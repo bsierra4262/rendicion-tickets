@@ -45,56 +45,25 @@ function drive_parent_id(): string
     return (string)setting_get('drive_parent_id', '12y0-4kU2A4YlG1eZl2Dy-SxylR-h9mgY');
 }
 
-/** ¿Hay una cuenta de Drive conectada (tenemos refresh token)? */
+/**
+ * ¿Hay una conexión de Drive en la SESIÓN actual?
+ * Por seguridad, los tokens de Drive viven SOLO en la sesión del usuario: se
+ * borran al desloguear o en el cierre automático (no queda nada persistente).
+ */
 function drive_conectado(): bool
 {
-    return (string)setting_get('drive_refresh_token', '') !== '';
+    return !empty($_SESSION['drive_refresh_token']);
 }
 
-// ---- OAuth offline (consentimiento para Drive) ----
-function drive_auth_url(string $state): string
-{
-    $g = google_cfg();
-    $params = [
-        'client_id'              => $g['client_id'] ?? '',
-        'redirect_uri'           => google_redirect_uri(), // mismo que el login
-        'response_type'          => 'code',
-        'scope'                  => 'openid email ' . DRIVE_SCOPE,
-        'state'                  => $state,
-        'access_type'            => 'offline',
-        'prompt'                 => 'consent',             // fuerza refresh_token
-        'include_granted_scopes' => 'true',
-    ];
-    if (!empty($g['allowed_domain'])) {
-        $params['hd'] = $g['allowed_domain'];
-    }
-    return 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query($params);
-}
-
-/** Intercambia el "code" por tokens (incluye refresh_token). */
-function drive_exchange_code(string $code): array
-{
-    $g = google_cfg();
-    $body = http_build_query([
-        'code'          => $code,
-        'client_id'     => $g['client_id'] ?? '',
-        'client_secret' => $g['client_secret'] ?? '',
-        'redirect_uri'  => google_redirect_uri(),
-        'grant_type'    => 'authorization_code',
-    ]);
-    return drive_http('POST', 'https://oauth2.googleapis.com/token', $body,
-        ['Content-Type: application/x-www-form-urlencoded']);
-}
-
-/** Devuelve un access token válido (lo refresca y cachea si hace falta). */
+/** Devuelve un access token válido para la sesión (lo refresca si hace falta). */
 function drive_access_token(): ?string
 {
-    $tok = (string)setting_get('drive_access_token', '');
-    $exp = (int)setting_get('drive_access_expira', '0');
+    $tok = (string)($_SESSION['drive_access_token'] ?? '');
+    $exp = (int)($_SESSION['drive_access_expira'] ?? 0);
     if ($tok !== '' && $exp > time() + 60) {
         return $tok;
     }
-    $rt = (string)setting_get('drive_refresh_token', '');
+    $rt = (string)($_SESSION['drive_refresh_token'] ?? '');
     if ($rt === '') {
         return null;
     }
@@ -113,31 +82,46 @@ function drive_access_token(): ?string
         }
         return null;
     }
-    setting_set('drive_access_token', (string)$res['access_token']);
-    setting_set('drive_access_expira', (string)(time() + (int)($res['expires_in'] ?? 3600)));
+    $_SESSION['drive_access_token']  = (string)$res['access_token'];
+    $_SESSION['drive_access_expira'] = time() + (int)($res['expires_in'] ?? 3600);
     return (string)$res['access_token'];
 }
 
-/** Revoca y olvida la conexión de Drive. */
-function drive_desconectar(): void
+/** Guarda en la sesión la conexión de Drive obtenida en el login (acceso offline). */
+function drive_guardar_sesion(array $tok): void
 {
-    $rt = (string)setting_get('drive_refresh_token', '');
-    if ($rt !== '') {
-        drive_http('POST', 'https://oauth2.googleapis.com/revoke', http_build_query(['token' => $rt]),
-            ['Content-Type: application/x-www-form-urlencoded']);
+    if (empty($tok['refresh_token'])) {
+        return;
     }
-    foreach (['drive_refresh_token', 'drive_access_token', 'drive_access_expira'] as $k) {
-        setting_del($k);
+    $_SESSION['drive_refresh_token'] = (string)$tok['refresh_token'];
+    if (!empty($tok['access_token'])) {
+        $_SESSION['drive_access_token']  = (string)$tok['access_token'];
+        $_SESSION['drive_access_expira'] = time() + (int)($tok['expires_in'] ?? 3600);
     }
 }
 
+/**
+ * Olvida la conexión de Drive: revoca el token en Google (best-effort, con
+ * timeout corto) y lo borra de la sesión. Se invoca en CADA cierre de sesión
+ * —manual o automático— por seguridad.
+ */
+function drive_desconectar(): void
+{
+    $rt = (string)($_SESSION['drive_refresh_token'] ?? '');
+    if ($rt !== '') {
+        drive_http('POST', 'https://oauth2.googleapis.com/revoke', http_build_query(['token' => $rt]),
+            ['Content-Type: application/x-www-form-urlencoded'], 4);
+    }
+    unset($_SESSION['drive_refresh_token'], $_SESSION['drive_access_token'], $_SESSION['drive_access_expira']);
+}
+
 // ---- HTTP helper (curl → array) ----
-function drive_http(string $method, string $url, $body = null, array $headers = []): array
+function drive_http(string $method, string $url, $body = null, array $headers = [], int $timeout = 40): array
 {
     $ch = curl_init($url);
     $opt = [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 40,
+        CURLOPT_TIMEOUT        => $timeout,
         CURLOPT_CUSTOMREQUEST  => $method,
         CURLOPT_HTTPHEADER     => $headers,
     ];

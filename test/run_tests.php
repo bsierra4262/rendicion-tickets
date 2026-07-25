@@ -639,20 +639,13 @@ $boot37  = $readf("$SRC/bootstrap.php");
 $idx37   = $readf("$WEB/index.php");
 $cb37    = $readf("$SRC/pages/google-callback.php");
 $cf37    = $readf("$SRC/pages/comprobante-form.php");
-$lay37   = $readf("$VIEWS/layout.php");
-$drv37   = $readf("$SRC/pages/drive.php");
-$drvv37  = $readf("$VIEWS/drive.php");
-$icn37   = $readf("$SRC/icons.php");
-ok('drive: OAuth offline (access_type + prompt=consent, mismo redirect)', strpos($gd37, "'access_type'            => 'offline'") !== false && strpos($gd37, "'prompt'                 => 'consent'") !== false && strpos($gd37, 'google_redirect_uri()') !== false);
-ok('drive: refresca access token con refresh_token',      strpos($gd37, "'grant_type'    => 'refresh_token'") !== false && strpos($gd37, 'drive_access_token') !== false);
+ok('drive: refresca access token con refresh_token',      strpos($gd37, "'grant_type'    => 'refresh_token'") !== false && strpos($gd37, 'function drive_access_token') !== false);
 ok('drive: sube por multipart y crea carpetas año/mes',   strpos($gd37, 'multipart/related') !== false && strpos($gd37, 'application/vnd.google-apps.folder') !== false);
 ok('drive: bootstrap carga el módulo',                    strpos($boot37, "require APP . '/google_drive.php'") !== false);
-ok('drive: rutas registradas (admin)',                    strpos($idx37, "'drive'                => ['public' => false, 'admin' => true]") !== false && strpos($idx37, "'drive-connect'") !== false);
-ok('drive: callback distingue el flujo por state "drive:"', strpos($cb37, "strncmp((string)(\$_GET['state'] ?? ''), 'drive:', 6)") !== false && strpos($cb37, "setting_set('drive_refresh_token'") !== false);
 ok('drive: guardado con FALLBACK (try/catch, nunca rompe)', strpos($cf37, 'drive_subir_comprobante') !== false && strpos($cf37, 'catch (\\Throwable $e)') !== false && strpos($cf37, "queda la copia local") !== false);
-ok('drive: nav admin + icono cloud',                       strpos($lay37, "\$nav['drive']") !== false && strpos($icn37, "'cloud'") !== false);
-ok('drive: controlador maneja parent/desconectar/probar', strpos($drv37, "=== 'parent'") !== false && strpos($drv37, "=== 'desconectar'") !== false && strpos($drv37, "=== 'probar'") !== false);
-ok('drive: vista admin (conectar/desconectar/probar/carpeta)', strpos($drvv37, 'drive-connect') !== false && strpos($drvv37, 'value="desconectar"') !== false && strpos($drvv37, 'value="probar"') !== false && strpos($drvv37, 'value="parent"') !== false);
+// El portal /drive se eliminó: no debe haber rutas, nav, ni archivos del portal.
+ok('drive: portal ELIMINADO (sin rutas ni nav)',          strpos($idx37, "'drive-connect'") === false && strpos($idx37, "'drive'                =>") === false && strpos($readf("$VIEWS/layout.php"), "\$nav['drive']") === false);
+ok('drive: archivos del portal borrados',                 !is_file("$SRC/pages/drive.php") && !is_file("$SRC/pages/drive-connect.php") && !is_file("$VIEWS/drive.php"));
 
 echo "== v2.38 — portabilidad: config por entorno, esquema, Docker, white-label ==\n";
 $ROOT = dirname($WEB, 2);
@@ -701,7 +694,16 @@ ok('login: pide scope Drive + offline cuando no está conectado', strpos($au39, 
 $gp39 = $readf("$SRC/google.php");
 ok('login: el scope Drive es condicional a !drive_conectado()', strpos($gp39, 'function_exists(\'drive_conectado\') && !drive_conectado()') !== false);
 $cb39 = $readf("$SRC/pages/google-callback.php");
-ok('login: guarda el refresh_token de Drive si aún no está conectado', strpos($cb39, "!drive_conectado() && !empty(\$tok['refresh_token'])") !== false && strpos($cb39, "setting_set('drive_refresh_token'") !== false);
+ok('login: guarda la conexión de Drive en la sesión', strpos($cb39, 'drive_guardar_sesion($tok)') !== false && strpos($cb39, "strncmp") === false);
+
+echo "== v2.40 — Drive atado a la sesión + portal eliminado (seguridad) ==\n";
+$gd40 = $readf("$SRC/google_drive.php");
+$au40 = $readf("$SRC/auth.php");
+ok('drive: tokens viven en la SESIÓN (no persistentes)', strpos($gd40, "\$_SESSION['drive_refresh_token']") !== false && strpos($gd40, 'function drive_guardar_sesion') !== false && strpos($gd40, "setting_get('drive_refresh_token'") === false);
+ok('drive: drive_conectado lee la sesión',             strpos($gd40, "return !empty(\$_SESSION['drive_refresh_token'])") !== false);
+ok('drive: desconectar revoca en Google + limpia sesión', strpos($gd40, 'oauth2.googleapis.com/revoke') !== false && strpos($gd40, "unset(\$_SESSION['drive_refresh_token']") !== false);
+ok('seguridad: auth_logout desconecta Drive (todo cierre)', strpos($au40, 'drive_desconectar()') !== false && strpos($au40, 'function auth_logout') !== false);
+ok('drive: se quitaron las funciones del portal (auth_url/exchange)', strpos($gd40, 'function drive_auth_url') === false && strpos($gd40, 'function drive_exchange_code') === false);
 
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);

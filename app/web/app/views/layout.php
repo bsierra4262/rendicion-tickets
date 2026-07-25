@@ -14,7 +14,6 @@ $nav = [
 ];
 if ($u && ($u['rol'] ?? '') === 'admin') {
     $nav['usuarios'] = ['Usuarios', 'users'];
-    $nav['drive']    = ['Drive', 'cloud'];
     $nav['api-keys'] = ['API', 'key'];
     $nav['cron']     = ['CRON', 'activity'];
 }

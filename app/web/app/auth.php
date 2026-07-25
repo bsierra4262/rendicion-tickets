@@ -58,6 +58,11 @@ function auth_login(string $email, string $password): bool
 
 function auth_logout(): void
 {
+    // Seguridad: al cerrar la sesión (manual, automática o por usuario inactivo),
+    // desconectar Drive — revoca el token en Google y lo borra de la sesión.
+    if (function_exists('drive_desconectar')) {
+        try { drive_desconectar(); } catch (\Throwable $e) {}
+    }
     $_SESSION = [];
     if (PHP_SAPI !== 'cli' && ini_get('session.use_cookies')) {
         $p = session_get_cookie_params();
