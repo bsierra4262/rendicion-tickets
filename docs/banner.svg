@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="Rendición de Tickets — INTELLIHELP">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4a2470"/>
+      <stop offset="0.55" stop-color="#663399"/>
+      <stop offset="1" stop-color="#7a3fb0"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9CC930"/>
+      <stop offset="1" stop-color="#c3e85f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="320" fill="url(#bg)"/>
+  <!-- textura sutil -->
+  <g fill="#ffffff" opacity="0.05">
+    <circle cx="1120" cy="70" r="180"/>
+    <circle cx="240" cy="300" r="150"/>
+  </g>
+  <!-- ticket icon -->
+  <g transform="translate(96,96)" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 4 H112 V150 L92 136 L72 150 L52 136 L32 150 L8 136 Z"/>
+    <path d="M30 40 H90 M30 68 H90 M30 96 H72"/>
+  </g>
+  <text x="248" y="150" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="72" font-weight="800" fill="#ffffff" letter-spacing="-1">Rendición de Tickets</text>
+  <text x="250" y="205" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="30" font-weight="500" fill="#e9dcff">OCR de comprobantes fiscales argentinos · 100&#37; en el navegador</text>
+  <rect x="250" y="236" width="150" height="8" rx="4" fill="url(#accent)"/>
+  <text x="250" y="286" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="#9CC930" letter-spacing="3">INTELLIHELP</text>
+</svg>

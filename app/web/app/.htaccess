@@ -1,0 +1,2 @@
+# El código de la app no debe servirse directamente por el navegador.
+Require all denied

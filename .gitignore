@@ -1,0 +1,35 @@
+# ============================================================
+#  .gitignore — INTELLIHELP Rendición de Tickets
+#  Solo se versiona: app/ (código), test/ (tests), md/ (docs).
+#  NUNCA se versiona: secretos reales ni datos reales de comprobantes.
+# ============================================================
+
+# --- Ignorar TODO el root por defecto... ---
+/*
+
+# --- ...menos lo que sí queremos versionar: ---
+!/.gitignore
+!/README.md
+!/LICENSE
+!/app/
+!/test/
+!/md/
+!/docs/
+
+# --- Secretos reales (aunque estén dentro de app/): NUNCA subir ---
+app/server-config/config.php
+
+# --- Datos reales / sensibles (por si alguna vez caen dentro de app/) ---
+**/FOTOS TICKTES REALES/
+**/TICKSTS ESCANEADOS ORIGINALES/
+**/Exportaciones de datos/
+**/PDF GENERADO/
+*.xlsx
+
+# --- Basura / temporales ---
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+__pycache__/
+node_modules/

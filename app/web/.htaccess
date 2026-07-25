@@ -1,0 +1,32 @@
+# ============================================================
+#  App INTELLIHELP Tickets  ·  /tickets/
+#  Aísla esta carpeta del WordPress + Wordfence del raíz.
+# ============================================================
+
+# Desactivar el WAF de Wordfence (auto_prepend_file del raíz) para esta app
+php_value auto_prepend_file none
+
+# Config y storage seguros (fuera del web root)
+SetEnv TICKETS_CONFIG /home/u566451014/tickets_config/config.php
+SetEnv TICKETS_STORAGE /home/u566451014/tickets_storage
+
+DirectoryIndex index.php
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /tickets/
+
+    # Servir archivos y carpetas reales tal cual (assets, uploads, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Todo lo demás -> front controller
+    RewriteRule ^([A-Za-z0-9/_-]*)$ index.php?r=$1 [L,QSA]
+</IfModule>
+
+# Proteger archivos sensibles
+<FilesMatch "\.(sql|md|json|lock|log)$">
+    Require all denied
+</FilesMatch>
