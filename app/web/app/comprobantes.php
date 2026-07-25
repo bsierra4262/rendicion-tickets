@@ -823,6 +823,21 @@ function comp_list(array $f): array
     return ['rows' => $rows, 'total' => $total, 'page' => $page, 'per' => $per, 'totales' => $totales];
 }
 
+/** Comprobantes archivados (papelera). Solo para administradores. */
+function comp_eliminados(int $limit = 300): array
+{
+    $limit = max(1, min(1000, $limit));
+    return q("SELECT c.*, p.cuit AS prov_cuit, p.razon_social AS prov_razon, co.nombre AS concepto,
+                     u.nombre AS elim_por
+                FROM comprobantes c
+                LEFT JOIN proveedores p ON p.id = c.proveedor_id
+                LEFT JOIN conceptos co ON co.id = c.concepto_id
+                LEFT JOIN usuarios u ON u.id = c.eliminado_por
+               WHERE c.eliminado_en IS NOT NULL
+               ORDER BY c.eliminado_en DESC
+               LIMIT $limit")->fetchAll();
+}
+
 /** Todos los comprobantes que matchean los filtros (sin paginar), para exportar. */
 function comp_all(array $f): array
 {

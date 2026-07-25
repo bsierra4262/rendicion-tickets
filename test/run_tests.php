@@ -729,6 +729,18 @@ ok('modelo: restaurar recupera en Drive + audita',  strpos($mc42, 'drive_restaur
 ok('visor: esquinas INVISIBLES (sin puntos, background transparent)', strpos($vw42, 'background:transparent;cursor:grab') !== false && strpos($vw42, "border:2px solid var(--primary") === false);
 ok('visor: ayuda ADAPTATIVA por dispositivo (no hardcodeada)', strpos($vw42, "matchMedia('(pointer: coarse)')") !== false && strpos($vw42, 'con dos dedos') !== false && strpos($vw42, 'desde las esquinas') !== false);
 
+echo "== v2.43 — Papelera de administrador (recuperar lo archivado) ==\n";
+$pap43  = $readf("$SRC/pages/papelera.php");
+$papv43 = $readf("$VIEWS/papelera.php");
+$idx43  = $readf("$WEB/index.php");
+$lay43  = $readf("$VIEWS/layout.php");
+$mc43   = $readf("$SRC/comprobantes.php");
+ok('papelera: ruta admin registrada',            strpos($idx43, "'papelera'             => ['public' => false, 'admin' => true]") !== false);
+ok('papelera: página solo admin + acción restaurar', strpos($pap43, 'require_admin()') !== false && strpos($pap43, "=== 'restaurar'") !== false && strpos($pap43, 'comp_restore(') !== false);
+ok('papelera: consulta comp_eliminados (eliminado_en NOT NULL)', strpos($mc43, 'function comp_eliminados') !== false && strpos($mc43, 'c.eliminado_en IS NOT NULL') !== false);
+ok('papelera: vista lista archivados + botón Restaurar + quién/cuándo', strpos($papv43, 'restaurar') !== false && strpos($papv43, 'eliminado_en') !== false && strpos($papv43, 'elim_por') !== false);
+ok('papelera: en el nav de administrador',        strpos($lay43, "\$nav['papelera']") !== false);
+
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);
 if ($F) { echo "FALLARON:\n - " . implode("\n - ", $fails) . "\n"; }

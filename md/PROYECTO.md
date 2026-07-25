@@ -474,3 +474,11 @@ Ajustes tras verificación de uso real (imagen servida desde Drive confirmada: c
 - **Ayuda del visor ADAPTATIVA (no hardcodeada)**: detecta el dispositivo (`matchMedia('(pointer: coarse)')`). En PC: «Zoom: rueda del mouse · mover: arrastrar · girar: desde las esquinas · doble clic: restablecer». En táctil: «Zoom: pellizco · mover: arrastrar · girar: con dos dedos · doble toque: restablecer».
 - **Auditoría del CRON revisada**: cobertura completa confirmada — errores (php/excepción/fatal/js/drive), Drive (conectar/carpeta/subida/fallo/archivar/restaurar/desconectar), comprobantes (crear/editar/verificar/rechazar/estado/eliminar/restaurar/exportar), sesión, navegación, OCR, proveedores, conceptos, usuarios, tokens.
 - **Validación**: +7 tests → **384/384**. `viewer.js?v=4`.
+
+## 50. v2.43 — Papelera de administrador (recuperar lo archivado) (2026-07-25)
+Se agregó la **Papelera** (solo administradores) para recuperar comprobantes archivados (soft-delete), reforzando que nada se pierde.
+- **Página `/papelera`** (admin): lista los comprobantes con `eliminado_en IS NOT NULL` (consulta `comp_eliminados()`), mostrando tipo/nº/fecha, proveedor, total, miniatura (servida desde Drive aunque esté en «Archivados»), y **cuándo/quién** lo archivó. Botón **Restaurar** (POST con CSRF + confirmación).
+- **Restaurar**: llama a `comp_restore()` → vuelve a la lista y su imagen **regresa de «Archivados» a la carpeta AÑO/mes en Drive** (§49). Todo auditado en el CRON (`comprobante.restaurar` + `drive.restaurar`).
+- Ruta admin registrada + link en el nav de administrador (ícono papelera). Nada se borra físicamente: el soft-delete + esta papelera cierran el ciclo.
+- **Nota de proceso**: se reforzó la regla de NO borrar/resetear nada salvo indicación explícita del cliente (tras un reset a 0 que se hizo por una mala interpretación mía de un pedido ambiguo).
+- **Validación**: +5 tests → **389/389**.
