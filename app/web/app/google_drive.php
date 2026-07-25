@@ -378,6 +378,53 @@ function drive_procesar_imagen(int $comprobanteId, array $c, array $file): void
     }
 }
 
+/** Mueve un archivo de Drive a una carpeta destino (quita los padres actuales). */
+function drive_mover(string $fileId, string $destId, string $token): bool
+{
+    $info = drive_http('GET',
+        'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId) . '?fields=parents&supportsAllDrives=true',
+        null, ['Authorization: Bearer ' . $token]);
+    $remove = !empty($info['parents']) ? implode(',', $info['parents']) : '';
+    $url = 'https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId)
+        . '?addParents=' . rawurlencode($destId)
+        . ($remove !== '' ? '&removeParents=' . rawurlencode($remove) : '')
+        . '&fields=id&supportsAllDrives=true';
+    $res = drive_http('PATCH', $url, '{}',
+        ['Authorization: Bearer ' . $token, 'Content-Type: application/json']);
+    return !empty($res['id']);
+}
+
+/**
+ * Archiva en Drive el archivo de un comprobante: lo mueve a la carpeta
+ * "Archivados" (bajo la raíz). Espeja el archivado (soft-delete) de la app.
+ */
+function drive_archivar(string $fileId): bool
+{
+    if ($fileId === '' || !drive_conectado()) { return false; }
+    $token = drive_access_token();
+    if (!$token) { return false; }
+    $arch = drive_folder_id('Archivados', drive_parent_id(), $token);
+    if (!$arch) { return false; }
+    return drive_mover($fileId, $arch, $token);
+}
+
+/**
+ * Restaura en Drive el archivo: lo devuelve a su carpeta AÑO / "AÑO MM - Mes"
+ * (la recrea si hiciera falta), sacándolo de "Archivados".
+ */
+function drive_restaurar(string $fileId, string $fecha): bool
+{
+    if ($fileId === '' || !drive_conectado()) { return false; }
+    $token = drive_access_token();
+    if (!$token) { return false; }
+    $parent = drive_parent_id();
+    $fAnio = drive_folder_id(substr($fecha, 0, 4), $parent, $token);
+    if (!$fAnio) { return false; }
+    $fMes = drive_folder_id(drive_carpeta_mes($fecha), $fAnio, $token);
+    if (!$fMes) { return false; }
+    return drive_mover($fileId, $fMes, $token);
+}
+
 /** Prueba de conexión: lista/crea la carpeta raíz. Devuelve [ok, mensaje]. */
 function drive_probar(): array
 {

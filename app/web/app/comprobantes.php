@@ -700,6 +700,19 @@ function comp_delete(int $id): void
     if (!$c) { return; }
     q('UPDATE comprobantes SET eliminado_en = NOW(), eliminado_por = ? WHERE id = ? AND eliminado_en IS NULL',
         [current_user_id() ?: null, $id]);
+    // Espejo en Drive: mover el archivo a "Archivados" (queda auditado en el CRON).
+    if (!empty($c['drive_file_id']) && function_exists('drive_archivar')) {
+        try {
+            $ok = drive_archivar((string)$c['drive_file_id']);
+            if (function_exists('log_app')) {
+                log_app($ok ? 'drive.archivar' : 'drive.fallo', ['tipo' => $ok ? 'accion' : 'error',
+                    'entidad' => 'comprobante', 'entidad_id' => $id,
+                    'detalle' => $ok ? 'Imagen movida a «Archivados» en Drive' : 'No se pudo mover la imagen a «Archivados» en Drive']);
+            }
+        } catch (\Throwable $e) {
+            if (function_exists('log_error')) { log_error('drive.excepcion', $e->getMessage(), $e->getFile(), $e->getLine()); }
+        }
+    }
     if (function_exists('log_app')) {
         log_app('comprobante.eliminar', ['entidad' => 'comprobante', 'entidad_id' => $id,
             'detalle' => comp_etiqueta($c) . ' · archivado (recuperable, no se borró de la base)']);
@@ -709,7 +722,21 @@ function comp_delete(int $id): void
 /** Restaura un comprobante archivado (admin). */
 function comp_restore(int $id): void
 {
+    $c = q('SELECT id, drive_file_id, fecha_emision FROM comprobantes WHERE id = ? LIMIT 1', [$id])->fetch();
     q('UPDATE comprobantes SET eliminado_en = NULL, eliminado_por = NULL WHERE id = ?', [$id]);
+    // Espejo en Drive: devolver el archivo a su carpeta AÑO/mes (queda auditado).
+    if ($c && !empty($c['drive_file_id']) && function_exists('drive_restaurar')) {
+        try {
+            $ok = drive_restaurar((string)$c['drive_file_id'], (string)$c['fecha_emision']);
+            if (function_exists('log_app')) {
+                log_app($ok ? 'drive.restaurar' : 'drive.fallo', ['tipo' => $ok ? 'accion' : 'error',
+                    'entidad' => 'comprobante', 'entidad_id' => $id,
+                    'detalle' => $ok ? 'Imagen devuelta a su carpeta AÑO/mes en Drive' : 'No se pudo devolver la imagen a su carpeta en Drive']);
+            }
+        } catch (\Throwable $e) {
+            if (function_exists('log_error')) { log_error('drive.excepcion', $e->getMessage(), $e->getFile(), $e->getLine()); }
+        }
+    }
     if (function_exists('log_app')) {
         log_app('comprobante.restaurar', ['entidad' => 'comprobante', 'entidad_id' => $id, 'detalle' => 'Restaurado desde la papelera']);
     }

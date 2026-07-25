@@ -717,6 +717,18 @@ ok('drive: desconectar revoca en Google + limpia sesión', strpos($gd40, 'oauth2
 ok('seguridad: auth_logout desconecta Drive (todo cierre)', strpos($au40, 'drive_desconectar()') !== false && strpos($au40, 'function auth_logout') !== false);
 ok('drive: se quitaron las funciones del portal (auth_url/exchange)', strpos($gd40, 'function drive_auth_url') === false && strpos($gd40, 'function drive_exchange_code') === false);
 
+echo "== v2.42 — Drive: archivar/restaurar espejo del soft-delete + visor limpio ==\n";
+$gd42 = $readf("$SRC/google_drive.php");
+$mc42 = $readf("$SRC/comprobantes.php");
+$vw42 = $readf("$ASSETS/js/viewer.js");
+ok('drive: archivar mueve a «Archivados»',          strpos($gd42, "function drive_archivar") !== false && strpos($gd42, "drive_folder_id('Archivados'") !== false && strpos($gd42, 'function drive_mover') !== false);
+ok('drive: restaurar devuelve a AÑO/mes',           strpos($gd42, 'function drive_restaurar') !== false && strpos($gd42, 'drive_carpeta_mes($fecha)') !== false);
+ok('drive: mover usa addParents/removeParents (PATCH)', strpos($gd42, 'addParents=') !== false && strpos($gd42, 'removeParents=') !== false && strpos($gd42, "'PATCH'") !== false);
+ok('modelo: eliminar archiva en Drive + audita',    strpos($mc42, 'drive_archivar((string)$c[\'drive_file_id\'])') !== false && strpos($mc42, "'drive.archivar'") !== false);
+ok('modelo: restaurar recupera en Drive + audita',  strpos($mc42, 'drive_restaurar((string)$c[\'drive_file_id\']') !== false && strpos($mc42, "'drive.restaurar'") !== false);
+ok('visor: esquinas INVISIBLES (sin puntos, background transparent)', strpos($vw42, 'background:transparent;cursor:grab') !== false && strpos($vw42, "border:2px solid var(--primary") === false);
+ok('visor: ayuda ADAPTATIVA por dispositivo (no hardcodeada)', strpos($vw42, "matchMedia('(pointer: coarse)')") !== false && strpos($vw42, 'con dos dedos') !== false && strpos($vw42, 'desde las esquinas') !== false);
+
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);
 if ($F) { echo "FALLARON:\n - " . implode("\n - ", $fails) . "\n"; }

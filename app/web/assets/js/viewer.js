@@ -37,7 +37,7 @@
                     '</span>' +
                 '</div>' +
                 '<div class="cv-body"></div>' +
-                '<div class="cv-hint">Zoom: scroll o pellizco · mover: arrastrar · girar: <b>esquinas (PC)</b> o <b>dos dedos (celular)</b> · doble clic: restablecer</div>' +
+                '<div class="cv-hint"></div>' +
             '</div>';
         document.body.appendChild(overlay);
         titleEl = overlay.querySelector('.cv-title');
@@ -45,6 +45,12 @@
         bodyEl = overlay.querySelector('.cv-body');
         hintEl = overlay.querySelector('.cv-hint');
         toolsEl = overlay.querySelector('.cv-tools');
+        // Ayuda según el dispositivo (no hardcodeada): táctil vs mouse/PC.
+        var esTactil = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+            || ('ontouchstart' in window && !window.matchMedia('(pointer: fine)').matches);
+        hintEl.innerHTML = esTactil
+            ? 'Zoom: pellizco · mover: arrastrar · girar: <b>con dos dedos</b> · doble toque: restablecer'
+            : 'Zoom: rueda del mouse · mover: arrastrar · girar: <b>desde las esquinas</b> · doble clic: restablecer';
         overlay.addEventListener('click', function (e) {
             var rb = e.target.closest('.cv-rot');
             if (rb) { rot = snap(rot + (rb.getAttribute('data-dir') === '1' ? 90 : -90)); apply(); return; }
@@ -105,15 +111,15 @@
         img.draggable = false;
         img.style.cssText = 'display:block;max-width:80vw;max-height:74vh;user-select:none;-webkit-user-drag:none';
         stage.appendChild(img);
-        // 4 manijas en las esquinas para girar
-        [['tl', '-9px', 'auto', 'auto', '-9px'], ['tr', '-9px', '-9px', 'auto', 'auto'],
-         ['br', 'auto', '-9px', '-9px', 'auto'], ['bl', 'auto', 'auto', '-9px', '-9px']]
+        // 4 zonas de esquina para girar (INVISIBLES: el visor queda limpio como antes;
+        // el cursor cambia al pasar por encima y el pie de ayuda lo explica).
+        [['tl', '0', 'auto', 'auto', '0'], ['tr', '0', '0', 'auto', 'auto'],
+         ['br', 'auto', '0', '0', 'auto'], ['bl', 'auto', 'auto', '0', '0']]
         .forEach(function (p) {
             var h = document.createElement('span');
             h.className = 'cv-handle cv-' + p[0];
             h.style.cssText = 'position:absolute;top:' + p[1] + ';right:' + p[2] + ';bottom:' + p[3] + ';left:' + p[4] +
-                ';width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--primary,#663399);' +
-                'box-shadow:0 1px 4px rgba(0,0,0,.35);cursor:grab;touch-action:none;z-index:2';
+                ';width:44px;height:44px;background:transparent;cursor:grab;touch-action:none;z-index:2';
             h.addEventListener('mousedown', function (e) { e.preventDefault(); e.stopPropagation(); startRotate(e.clientX, e.clientY); });
             h.addEventListener('touchstart', function (e) { e.stopPropagation(); if (e.touches.length === 1) startRotate(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
             stage.appendChild(h);
