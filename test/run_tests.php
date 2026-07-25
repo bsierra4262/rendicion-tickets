@@ -25,6 +25,7 @@ $GLOBALS['CONFIG'] = [
 $SRC = getenv('TICKETS_SRC') ?: (__DIR__ . '/../app/web/app');
 require $SRC . '/helpers.php';
 require $SRC . '/google.php';
+require $SRC . '/google_drive.php';
 require $SRC . '/comprobantes.php';
 require $SRC . '/actividad.php';
 
@@ -614,6 +615,44 @@ ok('sesión: login avisa por inactividad / máximo',         strpos($loginp36, "
 ok('sesión: idle.js con keepalive, aviso y cuenta regresiva', $idle36 !== '' && strpos($idle36, 'api-sesion') !== false && strpos($idle36, 'Seguir conectado') !== false && strpos($idle36, 'idleCd') !== false);
 ok('sesión: idle.js corta por inactividad y por absoluto', strpos($idle36, "go('inactividad')") !== false && strpos($idle36, "go('expiro')") !== false);
 ok('layout: inyecta window.__sesion y carga idle.js v1',   strpos($lay36, 'window.__sesion') !== false && (bool)preg_match('/idle\.js[^\n]*\?v=1/', $lay36));
+
+echo "== v2.37 — respaldo en Google Drive (OAuth offline + subida + fallback) ==\n";
+// Funciones PURAS (sin red)
+eq('drive: mes en español (7)',            drive_mes_es(7), 'Julio');
+eq('drive: mes en español (12)',           drive_mes_es(12), 'Diciembre');
+eq('drive: carpeta mensual "AÑO MM - Mes"', drive_carpeta_mes('2026-07-19'), '2026 07 - Julio');
+eq('drive: carpeta mensual enero',         drive_carpeta_mes('2026-01-03'), '2026 01 - Enero');
+eq('drive: sanitiza barras y control',     drive_sanitizar("FA/LA\\BELLA"), 'FA-LA-BELLA');
+eq('drive: mime pdf',                      drive_mime_de('pdf'), 'application/pdf');
+eq('drive: mime jpg',                      drive_mime_de('JPG'), 'image/jpeg');
+$nom = drive_nombre_archivo([
+    'fecha_emision' => '2026-07-19', 'tipo_comprobante' => 'Fact', 'letra' => 'A',
+    'punto_venta' => '585', 'numero' => '2182', 'prov_razon' => 'FALABELLA SA',
+], 'jpg');
+ok('drive: nombre legible ordenable por fecha', strpos($nom, '2026-07-19') === 0 && strpos($nom, 'Fact A') !== false && strpos($nom, '00585-00002182') !== false && strpos($nom, 'FALABELLA SA') !== false && substr($nom, -4) === '.jpg');
+ok('drive: nombre sin barras (seguro para Drive)', strpos($nom, '/') === false && strpos($nom, '\\') === false);
+$nomVacio = drive_nombre_archivo([], 'pdf');
+ok('drive: nombre válido aun con datos faltantes', $nomVacio !== '.pdf' && substr($nomVacio, -4) === '.pdf' && strpos($nomVacio, '/') === false);
+// Wiring / integración
+$gd37    = $readf("$SRC/google_drive.php");
+$boot37  = $readf("$SRC/bootstrap.php");
+$idx37   = $readf("$WEB/index.php");
+$cb37    = $readf("$SRC/pages/google-callback.php");
+$cf37    = $readf("$SRC/pages/comprobante-form.php");
+$lay37   = $readf("$VIEWS/layout.php");
+$drv37   = $readf("$SRC/pages/drive.php");
+$drvv37  = $readf("$VIEWS/drive.php");
+$icn37   = $readf("$SRC/icons.php");
+ok('drive: OAuth offline (access_type + prompt=consent, mismo redirect)', strpos($gd37, "'access_type'            => 'offline'") !== false && strpos($gd37, "'prompt'                 => 'consent'") !== false && strpos($gd37, 'google_redirect_uri()') !== false);
+ok('drive: refresca access token con refresh_token',      strpos($gd37, "'grant_type'    => 'refresh_token'") !== false && strpos($gd37, 'drive_access_token') !== false);
+ok('drive: sube por multipart y crea carpetas año/mes',   strpos($gd37, 'multipart/related') !== false && strpos($gd37, 'application/vnd.google-apps.folder') !== false);
+ok('drive: bootstrap carga el módulo',                    strpos($boot37, "require APP . '/google_drive.php'") !== false);
+ok('drive: rutas registradas (admin)',                    strpos($idx37, "'drive'                => ['public' => false, 'admin' => true]") !== false && strpos($idx37, "'drive-connect'") !== false);
+ok('drive: callback distingue el flujo por state "drive:"', strpos($cb37, "strncmp((string)(\$_GET['state'] ?? ''), 'drive:', 6)") !== false && strpos($cb37, "setting_set('drive_refresh_token'") !== false);
+ok('drive: guardado con FALLBACK (try/catch, nunca rompe)', strpos($cf37, 'drive_subir_comprobante') !== false && strpos($cf37, 'catch (\\Throwable $e)') !== false && strpos($cf37, "queda la copia local") !== false);
+ok('drive: nav admin + icono cloud',                       strpos($lay37, "\$nav['drive']") !== false && strpos($icn37, "'cloud'") !== false);
+ok('drive: controlador maneja parent/desconectar/probar', strpos($drv37, "=== 'parent'") !== false && strpos($drv37, "=== 'desconectar'") !== false && strpos($drv37, "=== 'probar'") !== false);
+ok('drive: vista admin (conectar/desconectar/probar/carpeta)', strpos($drvv37, 'drive-connect') !== false && strpos($drvv37, 'value="desconectar"') !== false && strpos($drvv37, 'value="probar"') !== false && strpos($drvv37, 'value="parent"') !== false);
 
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);

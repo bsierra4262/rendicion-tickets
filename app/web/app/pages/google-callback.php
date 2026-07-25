@@ -1,6 +1,49 @@
 <?php
 declare(strict_types=1);
 
+// ---- Conexión de Google Drive (el admin ya está logueado) ----
+// Se distingue del login por el prefijo del state ("drive:"). Va ANTES del
+// redirect de sesión iniciada porque en este flujo el usuario SÍ está logueado.
+if (strncmp((string)($_GET['state'] ?? ''), 'drive:', 6) === 0) {
+    require_admin();
+    $state    = (string)$_GET['state'];
+    $expected = (string)($_SESSION['drive_state'] ?? '');
+    unset($_SESSION['drive_state']);
+    if ($expected === '' || !hash_equals($expected, $state)) {
+        flash('La validación de seguridad con Google falló. Reintentá la conexión.', 'error');
+        redirect('drive');
+    }
+    if (isset($_GET['error'])) {
+        flash('Se canceló la conexión con Google Drive.', 'error');
+        redirect('drive');
+    }
+    $code = (string)($_GET['code'] ?? '');
+    if ($code === '') {
+        redirect('drive');
+    }
+    $tok = drive_exchange_code($code);
+    if (empty($tok['refresh_token'])) {
+        if (function_exists('log_error')) {
+            log_error('drive.sin_refresh', 'sin refresh_token: ' . json_encode($tok), __FILE__, __LINE__);
+        }
+        flash('Google no devolvió un token permanente. Entrá a tu cuenta → Seguridad → "Acceso de terceros", quitá esta app y reintentá.', 'error');
+        redirect('drive');
+    }
+    setting_set('drive_refresh_token', (string)$tok['refresh_token']);
+    if (!empty($tok['access_token'])) {
+        setting_set('drive_access_token', (string)$tok['access_token']);
+        setting_set('drive_access_expira', (string)(time() + (int)($tok['expires_in'] ?? 3600)));
+    }
+    $u = auth_user();
+    setting_set('drive_conectado_por', (string)($u['email'] ?? ''));
+    setting_set('drive_conectado_en', date('Y-m-d H:i:s'));
+    if (function_exists('log_app')) {
+        log_app('drive.conectar', ['tipo' => 'auth', 'detalle' => 'Google Drive conectado por ' . ($u['email'] ?? '')]);
+    }
+    flash('¡Google Drive conectado! Las imágenes nuevas se respaldan automáticamente.', 'success');
+    redirect('drive');
+}
+
 if (auth_user()) {
     redirect('dashboard');
 }

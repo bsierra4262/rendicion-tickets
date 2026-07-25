@@ -31,6 +31,12 @@ $action = url('comprobante-form') . ($editing ? '?id=' . $id : '');
             <a href="<?= e(url('comprobante-imagen') . '?id=' . $id) ?>" target="_blank" rel="noopener">
                 <img src="<?= e(url('comprobante-imagen') . '?id=' . $id) ?>" alt="Comprobante" class="comp-img">
             </a>
+            <?php if (!empty($v['drive_link'])): ?>
+                <p class="muted small" style="margin-top:8px">
+                    <?= icon('cloud', 15) ?> Respaldado en Drive ·
+                    <a href="<?= e($v['drive_link']) ?>" target="_blank" rel="noopener">Ver en Google Drive</a>
+                </p>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 
