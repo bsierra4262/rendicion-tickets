@@ -593,6 +593,28 @@ ok('multi-foto: une varias fotos en un ticket (multiple)', strpos($esc35, 'funct
 ok('orientar: endereza el preview y guarda imagen procesada', strpos($esc35, 'workCanvas = rotate(workCanvas, corr)') !== false && strpos($esc35, "fd.set('imagen', blob") !== false);
 ok('visor: rotar (⟲ ⟳) además de zoom/pan',                strpos($vw35, 'cv-rot') !== false && strpos($vw35, "rotate(' + rot + 'deg)") !== false && (bool)preg_match('/viewer\.js[^\n]*\?v=3/', $lay35));
 
+echo "== v2.36 — auto-cierre de sesión (inactividad 10 min + máx. 8 h) ==\n";
+$boot36  = $readf("$SRC/bootstrap.php");
+$auth36  = $readf("$SRC/auth.php");
+$idx36   = $readf("$WEB/index.php");
+$logout36= $readf("$SRC/pages/logout.php");
+$loginp36= $readf("$SRC/pages/login.php");
+$apises36= $readf("$SRC/pages/api-sesion.php");
+$idle36  = $readf("$ASSETS/js/idle.js");
+$lay36   = $readf("$VIEWS/layout.php");
+ok('sesión: enforcement REAL en el servidor (idle + absoluto)', strpos($boot36, "idle_ttl") !== false && strpos($boot36, "abs_ttl") !== false && strpos($boot36, "last_activity") !== false);
+ok('sesión: vencida responde 440 a AJAX y redirige la navegación', strpos($boot36, 'http_response_code(440)') !== false && strpos($boot36, "sesion_expirada") !== false && strpos($boot36, "redirect('login?expiro=") !== false);
+ok('sesión: allowlist JSON (api-keys HTML se redirige, no 440)', strpos($boot36, '$jsonRoutes') !== false && strpos($boot36, "'api-proveedor'") !== false && strpos($boot36, "'api-keys'") === false);
+ok('sesión: el cierre automático queda en el CRON',        strpos($boot36, "sesion.cierre_auto") !== false);
+ok('sesión: login sella login_time + last_activity',       substr_count($auth36, "\$_SESSION['login_time']") >= 2 && substr_count($auth36, "\$_SESSION['last_activity']") >= 2);
+ok('sesión: ruta api-sesion registrada (pública, chequea adentro)', strpos($idx36, "'api-sesion'") !== false);
+ok('sesión: endpoint keepalive existe y valida auth (440)', $apises36 !== '' && strpos($apises36, 'http_response_code(440)') !== false && strpos($apises36, 'abs_rem') !== false);
+ok('sesión: logout propaga el motivo (expiro)',            strpos($logout36, "expiro") !== false && strpos($logout36, "login?expiro=") !== false);
+ok('sesión: login avisa por inactividad / máximo',         strpos($loginp36, "\$_GET['expiro']") !== false && strpos($loginp36, 'inactividad') !== false);
+ok('sesión: idle.js con keepalive, aviso y cuenta regresiva', $idle36 !== '' && strpos($idle36, 'api-sesion') !== false && strpos($idle36, 'Seguir conectado') !== false && strpos($idle36, 'idleCd') !== false);
+ok('sesión: idle.js corta por inactividad y por absoluto', strpos($idle36, "go('inactividad')") !== false && strpos($idle36, "go('expiro')") !== false);
+ok('layout: inyecta window.__sesion y carga idle.js v1',   strpos($lay36, 'window.__sesion') !== false && (bool)preg_match('/idle\.js[^\n]*\?v=1/', $lay36));
+
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);
 if ($F) { echo "FALLARON:\n - " . implode("\n - ", $fails) . "\n"; }

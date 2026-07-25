@@ -56,7 +56,14 @@ $extraFoot = $extraFoot ?? '';
     window.addEventListener('unhandledrejection', function (e) {
         if (window.appLog) window.appLog('js.error', 'promesa: ' + ((e.reason && (e.reason.message || e.reason)) || 'rechazo'), 'error');
     });
-    </script>
+    // Config del auto-cierre de sesión (lo consume idle.js).
+    window.__sesion = {
+        idle: <?= (int)($GLOBALS['CONFIG']['app']['idle_ttl'] ?? 600) ?>,
+        abs: <?= (int)($GLOBALS['CONFIG']['app']['abs_ttl'] ?? 28800) ?>,
+        loginAt: <?= (int)($_SESSION['login_time'] ?? time()) ?>,
+        base: <?= json_encode(url('')) ?>
+    };
+</script>
     <?php endif; ?>
     <?= $extraHead ?>
 </head>
@@ -104,6 +111,7 @@ $extraFoot = $extraFoot ?? '';
 <script defer src="<?= $asset('assets/js/filefield.js') ?>?v=1"></script>
 <script defer src="<?= $asset('assets/js/combobox.js') ?>?v=7"></script>
 <script defer src="<?= $asset('assets/js/datepicker.js') ?>?v=3"></script>
+<?php if ($u): ?><script defer src="<?= $asset('assets/js/idle.js') ?>?v=1"></script><?php endif; ?>
 <?= $extraFoot ?>
 </body>
 </html>

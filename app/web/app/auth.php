@@ -50,6 +50,8 @@ function auth_login(string $email, string $password): bool
     }
     session_regenerate_id(true);
     $_SESSION['uid'] = (int)$u['id'];
+    $_SESSION['login_time'] = time();
+    $_SESSION['last_activity'] = time();
     q('UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = ?', [$u['id']]);
     return true;
 }
@@ -79,6 +81,8 @@ function auth_login_user(int $id): void
 {
     session_regenerate_id(true);
     $_SESSION['uid'] = $id;
+    $_SESSION['login_time'] = time();
+    $_SESSION['last_activity'] = time();
     q('UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = ?', [$id]);
     if (function_exists('log_app')) {
         log_app('sesion.ingreso', ['tipo' => 'auth', 'usuario_id' => $id, 'detalle' => 'Ingreso con Google Workspace']);

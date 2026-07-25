@@ -97,4 +97,45 @@ if (PHP_SAPI !== 'cli') {
     ]);
     session_name('ith_tickets');
     session_start();
+
+    // ---- Auto-cierre de sesión (enforcement REAL en el servidor) ----
+    // Inactividad (10 min) + sesión máxima (8 h). El cliente (idle.js) solo
+    // muestra el aviso; la seguridad la impone el servidor: la próxima request
+    // tras el vencimiento destruye la sesión aunque el navegador no colabore.
+    if (!empty($_SESSION['uid'])) {
+        $now     = time();
+        $idleTtl = (int)($CONFIG['app']['idle_ttl'] ?? 600);    // 10 min
+        $absTtl  = (int)($CONFIG['app']['abs_ttl']  ?? 28800);  // 8 h
+        $idle    = $now - (int)($_SESSION['last_activity'] ?? $now);
+        $abs     = $now - (int)($_SESSION['login_time']    ?? $now);
+        $venIdle = $idleTtl > 0 && $idle > $idleTtl;
+        $venAbs  = $absTtl  > 0 && $abs  > $absTtl;
+        if ($venIdle || $venAbs) {
+            $motivo = $venIdle ? 'inactividad' : 'expiro';
+            $uid    = (int)$_SESSION['uid'];
+            if (function_exists('log_app')) {
+                try {
+                    log_app('sesion.cierre_auto', ['tipo' => 'auth', 'usuario_id' => $uid,
+                        'detalle' => 'Cierre automático por ' . ($venIdle ? 'inactividad (10 min)' : 'sesión máxima (8 h)')]);
+                } catch (\Throwable $e) {}
+            }
+            auth_logout();
+            // Endpoints que responden JSON (fetch en segundo plano): devolvemos 440
+            // para que el cliente reaccione. La navegación normal y los formularios
+            // de página completa se redirigen al login con el aviso.
+            $rt = function_exists('current_route') ? current_route() : '';
+            $jsonRoutes = ['api-sesion', 'api-log', 'api-proveedor', 'concepto-crear',
+                'api/estado', 'api/comprobantes', 'api/pendientes'];
+            $isAjax = (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest')
+                   || in_array($rt, $jsonRoutes, true);
+            if ($isAjax) {
+                http_response_code(440);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['ok' => false, 'error' => 'sesion_expirada', 'motivo' => $motivo]);
+                exit;
+            }
+            redirect('login?expiro=' . $motivo);
+        }
+        $_SESSION['last_activity'] = $now;
+    }
 }

@@ -14,6 +14,7 @@ $routes = [
     'google-login'    => ['public' => true],
     'google-callback' => ['public' => true],
     'logout'          => ['public' => false],
+    'api-sesion'      => ['public' => true],
     'dashboard'       => ['public' => false],
     'comprobantes'         => ['public' => false],
     'comprobantes-export'  => ['public' => false],
