@@ -157,5 +157,14 @@ php test/run_tests.php
 
 ## Licencia
 
-Software **propietario** de INTELLIHELP. Todos los derechos reservados. Uso interno; prohibida su
-redistribución sin autorización.
+Software **propietario**, desarrollado **íntegramente por Brian Sierra**. Todos los derechos reservados.
+Se utiliza por INTELLIHELP para su operación interna; prohibida su redistribución o uso por fuera de ese
+marco sin autorización expresa y por escrito del autor.
+
+El autor conserva su **derecho moral de reconocimiento de autoría** (Ley 11.723 art. 52; Convenio de
+Berna art. 6 bis). Ver [LICENSE](LICENSE).
+
+## Autor
+
+**Brian Sierra** — diseño, desarrollo e implementación completos (backend, OCR en el navegador, parser
+fiscal argentino, padrón nacional, front-end y despliegue).
