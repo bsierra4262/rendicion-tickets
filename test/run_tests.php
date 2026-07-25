@@ -592,7 +592,7 @@ ok('dewarp: ADAPTATIVO en escanear (intento logueado)',    strpos($esc35, 'ocr.d
 ok('CRON: errores de orientación y lectura logueados',     strpos($pad35, 'ocr.orient.error') !== false && strpos($pad35, 'ocr.orient.run_error') !== false && strpos($esc35, 'ocr.lectura_error') !== false);
 ok('multi-foto: une varias fotos en un ticket (multiple)', strpos($esc35, 'function loadMultiple') !== false && strpos($escv35, 'multiple') !== false && strpos($esc35, 'ocr.multifoto') !== false);
 ok('orientar: endereza el preview y guarda imagen procesada', strpos($esc35, 'workCanvas = rotate(workCanvas, corr)') !== false && strpos($esc35, "fd.set('imagen', blob") !== false);
-ok('visor: rotar (⟲ ⟳) además de zoom/pan',                strpos($vw35, 'cv-rot') !== false && strpos($vw35, "rotate(' + rot + 'deg)") !== false && (bool)preg_match('/viewer\.js[^\n]*\?v=4/', $lay35));
+ok('visor: rotar (⟲ ⟳) además de zoom/pan',                strpos($vw35, 'cv-rot') !== false && strpos($vw35, "rotate(' + rot + 'deg)") !== false && (bool)preg_match('/viewer\.js[^\n]*\?v=5/', $lay35));
 ok('visor: rotación LIBRE por esquinas (PC) + imán a 90°',  strpos($vw35, 'cv-handle') !== false && strpos($vw35, 'function startRotate') !== false && strpos($vw35, 'function snap') !== false);
 ok('visor: rotación por DOS DEDOS (tablet/celular)',        strpos($vw35, 'function angle') !== false && strpos($vw35, 'rot += (a - pinchA)') !== false);
 $cfv = $readf("$VIEWS/comprobante-form.php");
