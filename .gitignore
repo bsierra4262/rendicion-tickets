@@ -9,6 +9,7 @@
 
 # --- ...menos lo que sí queremos versionar: ---
 !/.gitignore
+!/.gitattributes
 !/.editorconfig
 !/.dockerignore
 !/.env.example

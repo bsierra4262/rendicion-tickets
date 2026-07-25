@@ -1,0 +1,16 @@
+# Normalización de fin de línea: LF en el repositorio (la app corre en Linux).
+* text=auto eol=lf
+
+# Scripts que DEBEN ser LF sí o sí (CRLF los rompe en Linux).
+*.sh   text eol=lf
+*.php  text eol=lf
+
+# Binarios: no tocar.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.ico  binary
+*.gif  binary
+*.onnx binary
+*.woff binary
+*.woff2 binary
