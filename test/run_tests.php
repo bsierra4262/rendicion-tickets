@@ -592,7 +592,13 @@ ok('dewarp: ADAPTATIVO en escanear (intento logueado)',    strpos($esc35, 'ocr.d
 ok('CRON: errores de orientación y lectura logueados',     strpos($pad35, 'ocr.orient.error') !== false && strpos($pad35, 'ocr.orient.run_error') !== false && strpos($esc35, 'ocr.lectura_error') !== false);
 ok('multi-foto: une varias fotos en un ticket (multiple)', strpos($esc35, 'function loadMultiple') !== false && strpos($escv35, 'multiple') !== false && strpos($esc35, 'ocr.multifoto') !== false);
 ok('orientar: endereza el preview y guarda imagen procesada', strpos($esc35, 'workCanvas = rotate(workCanvas, corr)') !== false && strpos($esc35, "fd.set('imagen', blob") !== false);
-ok('visor: rotar (⟲ ⟳) además de zoom/pan',                strpos($vw35, 'cv-rot') !== false && strpos($vw35, "rotate(' + rot + 'deg)") !== false && (bool)preg_match('/viewer\.js[^\n]*\?v=3/', $lay35));
+ok('visor: rotar (⟲ ⟳) además de zoom/pan',                strpos($vw35, 'cv-rot') !== false && strpos($vw35, "rotate(' + rot + 'deg)") !== false && (bool)preg_match('/viewer\.js[^\n]*\?v=4/', $lay35));
+ok('visor: rotación LIBRE por esquinas (PC) + imán a 90°',  strpos($vw35, 'cv-handle') !== false && strpos($vw35, 'function startRotate') !== false && strpos($vw35, 'function snap') !== false);
+ok('visor: rotación por DOS DEDOS (tablet/celular)',        strpos($vw35, 'function angle') !== false && strpos($vw35, 'rot += (a - pinchA)') !== false);
+$cfv = $readf("$VIEWS/comprobante-form.php");
+ok('detalle: la imagen abre el visor (comp-viewer) y contempla Drive', strpos($cfv, 'comp-viewer') !== false && strpos($cfv, "drive_file_id") !== false);
+$clv = $readf("$VIEWS/comprobantes.php");
+ok('lista: muestra miniatura también para imágenes en Drive', strpos($clv, '$hasImg') !== false && strpos($clv, "drive_file_id") !== false);
 
 echo "== v2.36 — auto-cierre de sesión (inactividad 10 min + máx. 8 h) ==\n";
 $boot36  = $readf("$SRC/bootstrap.php");
@@ -642,7 +648,13 @@ $cf37    = $readf("$SRC/pages/comprobante-form.php");
 ok('drive: refresca access token con refresh_token',      strpos($gd37, "'grant_type'    => 'refresh_token'") !== false && strpos($gd37, 'function drive_access_token') !== false);
 ok('drive: sube por multipart y crea carpetas año/mes',   strpos($gd37, 'multipart/related') !== false && strpos($gd37, 'application/vnd.google-apps.folder') !== false);
 ok('drive: bootstrap carga el módulo',                    strpos($boot37, "require APP . '/google_drive.php'") !== false);
-ok('drive: guardado con FALLBACK (try/catch, nunca rompe)', strpos($cf37, 'drive_subir_comprobante') !== false && strpos($cf37, 'catch (\\Throwable $e)') !== false && strpos($cf37, "queda la copia local") !== false);
+ok('drive: comprobante-form sube imagen SOLO a Drive (drive_procesar_imagen)', strpos($cf37, 'drive_procesar_imagen($savedId') !== false && strpos($cf37, 'guardar_imagen(') === false);
+$esc37 = $readf("$SRC/pages/escanear.php");
+ok('drive: BUGFIX escaneo también sube a Drive (no solo local)', strpos($esc37, 'drive_procesar_imagen($savedId') !== false && strpos($esc37, 'guardar_imagen(') === false);
+ok('drive: NADA local — procesar_imagen setea imagen_path=NULL + audita', strpos($gd37, 'function drive_procesar_imagen') !== false && strpos($gd37, 'imagen_path = NULL') !== false && strpos($gd37, "log_app('drive.subida'") !== false && strpos($gd37, "log_app('drive.fallo'") !== false);
+ok('drive: audita creación de carpetas (drive.carpeta)', strpos($gd37, "log_app('drive.carpeta'") !== false && strpos($gd37, 'bool &$creada') !== false);
+ok('drive: sirve la imagen desde Drive (drive_descargar) + fallback local viejo', strpos($gd37, 'function drive_descargar') !== false && strpos($readf("$SRC/pages/comprobante-imagen.php"), 'drive_descargar') !== false);
+ok('drive: desconectar queda auditado en el CRON',        strpos($gd37, "log_app('drive.desconectar'") !== false);
 // El portal /drive se eliminó: no debe haber rutas, nav, ni archivos del portal.
 ok('drive: portal ELIMINADO (sin rutas ni nav)',          strpos($idx37, "'drive-connect'") === false && strpos($idx37, "'drive'                =>") === false && strpos($readf("$VIEWS/layout.php"), "\$nav['drive']") === false);
 ok('drive: archivos del portal borrados',                 !is_file("$SRC/pages/drive.php") && !is_file("$SRC/pages/drive-connect.php") && !is_file("$VIEWS/drive.php"));

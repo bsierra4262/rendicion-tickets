@@ -26,41 +26,15 @@ if (is_post()) {
     [$errors, $clean] = valida_comprobante($_POST);
     if (!$errors) {
         $opts = [];
-        if (!empty($_FILES['imagen']['name'])) {
-            $ruta = guardar_imagen($_FILES['imagen']);
-            if ($ruta) { $opts['imagen_path'] = $ruta; }
-        }
         $act = $_POST['estado_action'] ?? '';
         if ($act === 'verificar')      { $opts['estado'] = 'verificado'; }
         elseif ($act === 'rechazar')   { $opts['estado'] = 'rechazado'; }
         elseif ($act === 'pendiente')  { $opts['estado'] = 'pendiente_revision'; }
         $savedId = comp_save($clean, $editing ? $id : null, current_user_id() ?? 0, $opts);
 
-        // Respaldo automático en Google Drive (si está conectado). Envuelto en
-        // try/catch: la copia local ya está guardada, así que esto NUNCA rompe
-        // el guardado del comprobante.
-        if (!empty($opts['imagen_path']) && function_exists('drive_conectado') && drive_conectado()) {
-            try {
-                $cInfo = comp_find($savedId);
-                if ($cInfo) {
-                    $up = drive_subir_comprobante($cInfo, (string)$opts['imagen_path']);
-                    if ($up) {
-                        q('UPDATE comprobantes SET drive_link = ?, drive_file_id = ? WHERE id = ?',
-                            [$up['link'], $up['id'], $savedId]);
-                        if (function_exists('log_app')) {
-                            log_app('drive.subida', ['entidad' => 'comprobante', 'entidad_id' => $savedId,
-                                'detalle' => 'Imagen respaldada en Google Drive']);
-                        }
-                    } elseif (function_exists('log_app')) {
-                        log_app('drive.fallo', ['tipo' => 'error', 'entidad' => 'comprobante', 'entidad_id' => $savedId,
-                            'detalle' => 'No se pudo respaldar en Drive; queda la copia local']);
-                    }
-                }
-            } catch (\Throwable $e) {
-                if (function_exists('log_error')) {
-                    log_error('drive.excepcion', $e->getMessage(), $e->getFile(), $e->getLine());
-                }
-            }
+        // Imagen: SOLO a Google Drive (sin copia local). Todo queda auditado en el CRON.
+        if (!empty($_FILES['imagen']['name'])) {
+            drive_procesar_imagen($savedId, $clean, $_FILES['imagen']);
         }
 
         flash($editing ? 'Comprobante actualizado.' : 'Comprobante cargado correctamente.', 'success');

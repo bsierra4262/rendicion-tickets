@@ -105,8 +105,8 @@ $qsBase = array_filter([
                 <tr><td colspan="9" class="empty">No hay comprobantes con estos filtros.</td></tr>
             <?php else: foreach ($rows as $r):
                 [$bc, $bl] = $badges[$r['estado']] ?? ['', $r['estado']];
-                $img = $r['imagen_path'] ?? '';
-                $isPdf = $img && strtolower(pathinfo($img, PATHINFO_EXTENSION)) === 'pdf';
+                $hasImg = !empty($r['imagen_path']) || !empty($r['drive_file_id']);
+                $isPdf  = !empty($r['imagen_path']) && strtolower((string)pathinfo((string)$r['imagen_path'], PATHINFO_EXTENSION)) === 'pdf';
                 $imgUrl = url('comprobante-imagen') . '?id=' . (int)$r['id'];
             ?>
                 <tr>
@@ -126,7 +126,7 @@ $qsBase = array_filter([
                     <td class="num prio-4" data-label="IVA"><?= e(money($r['importe_iva'], $r['moneda'])) ?></td>
                     <td class="num strong" data-label="Total"><?= e(money($r['importe_total'], $r['moneda'])) ?></td>
                     <td data-label="Foto" class="prio-3">
-                        <?php if ($img):
+                        <?php if ($hasImg):
                             $capT = trim($r['tipo_comprobante'] . ' ' . ($r['letra'] ?? '')) . ' · ' . str_pad((string)$r['punto_venta'], 4, '0', STR_PAD_LEFT) . '-' . $r['numero'];
                             $capD = ($r['prov_razon'] ?: 'Sin proveedor') . '  ·  ' . money($r['importe_total'], $r['moneda']) . '  ·  ' . date('d/m/Y', strtotime($r['fecha_emision']));
                         ?>

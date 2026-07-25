@@ -25,11 +25,18 @@ $action = url('comprobante-form') . ($editing ? '?id=' . $id : '');
 <form method="post" action="<?= e($action) ?>" class="comp-form" id="compForm" enctype="multipart/form-data">
     <?= csrf_field() ?>
 
-    <?php if ($editing && !empty($v['imagen_path'])): ?>
+    <?php if ($editing && (!empty($v['imagen_path']) || !empty($v['drive_file_id']))):
+        $imgSrc = url('comprobante-imagen') . '?id=' . $id;
+        $isPdf  = !empty($v['imagen_path']) && strtolower((string)pathinfo((string)$v['imagen_path'], PATHINFO_EXTENSION)) === 'pdf';
+    ?>
         <div class="form-card card">
             <h2 class="sec">Imagen del comprobante</h2>
-            <a href="<?= e(url('comprobante-imagen') . '?id=' . $id) ?>" target="_blank" rel="noopener">
-                <img src="<?= e(url('comprobante-imagen') . '?id=' . $id) ?>" alt="Comprobante" class="comp-img">
+            <a href="<?= e($imgSrc) ?>" class="comp-viewer" data-type="<?= $isPdf ? 'iframe' : 'image' ?>" data-title="Comprobante">
+                <?php if ($isPdf): ?>
+                    <span class="btn btn-ghost"><?= icon('file') ?> Ver PDF</span>
+                <?php else: ?>
+                    <img src="<?= e($imgSrc) ?>" alt="Comprobante" class="comp-img">
+                <?php endif; ?>
             </a>
             <?php if (!empty($v['drive_link'])): ?>
                 <p class="muted small" style="margin-top:8px">

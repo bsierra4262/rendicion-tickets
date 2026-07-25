@@ -18,14 +18,14 @@ if (is_post()) {
     $ajax = ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'fetch';
     if (!$errors) {
         $opts = ['estado' => 'pendiente_revision', 'origen' => 'ocr'];
-        if (!empty($_FILES['imagen']['name'])) {
-            $ruta = guardar_imagen($_FILES['imagen']);
-            if ($ruta) { $opts['imagen_path'] = $ruta; }
-        }
         if (!empty($_POST['ocr_text'])) {
             $opts['ocr_text'] = mb_substr((string)$_POST['ocr_text'], 0, 20000);
         }
-        comp_save($clean, null, current_user_id() ?? 0, $opts);
+        $savedId = comp_save($clean, null, current_user_id() ?? 0, $opts);
+        // Imagen: SOLO a Google Drive (sin copia local). Todo queda auditado en el CRON.
+        if (!empty($_FILES['imagen']['name'])) {
+            drive_procesar_imagen($savedId, $clean, $_FILES['imagen']);
+        }
         flash('Ticket escaneado y guardado como pendiente de revisión.', 'success');
         if ($ajax) { header('Content-Type: application/json'); echo json_encode(['ok' => true, 'redirect' => url('comprobantes?estado=pendiente_revision')]); exit; }
         redirect('comprobantes?estado=pendiente_revision');

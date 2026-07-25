@@ -113,7 +113,7 @@ $brandOrg  = $GLOBALS['CONFIG']['app']['org'] ?? 'INTELLIHELP';
 <?php else: ?>
     <?= $content ?>
 <?php endif; ?>
-<script defer src="<?= $asset('assets/js/viewer.js') ?>?v=3"></script>
+<script defer src="<?= $asset('assets/js/viewer.js') ?>?v=4"></script>
 <script defer src="<?= $asset('assets/js/confirm.js') ?>?v=1"></script>
 <script defer src="<?= $asset('assets/js/filefield.js') ?>?v=1"></script>
 <script defer src="<?= $asset('assets/js/combobox.js') ?>?v=7"></script>

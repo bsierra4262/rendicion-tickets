@@ -111,6 +111,9 @@ function drive_desconectar(): void
     if ($rt !== '') {
         drive_http('POST', 'https://oauth2.googleapis.com/revoke', http_build_query(['token' => $rt]),
             ['Content-Type: application/x-www-form-urlencoded'], 4);
+        if (function_exists('log_app')) {
+            log_app('drive.desconectar', ['tipo' => 'auth', 'detalle' => 'Drive desconectado y token revocado (cierre de sesión)']);
+        }
     }
     unset($_SESSION['drive_refresh_token'], $_SESSION['drive_access_token'], $_SESSION['drive_access_expira']);
 }
@@ -201,9 +204,11 @@ function drive_nombre_archivo(array $c, string $ext): string
 //  Operaciones sobre Drive (requieren red)
 // ============================================================
 
-/** Busca (o crea) una carpeta por nombre bajo un padre. Devuelve su id o null. */
-function drive_folder_id(string $nombre, string $parentId, string $token): ?string
+/** Busca (o crea) una carpeta por nombre bajo un padre. Devuelve su id o null.
+ *  $creada se pone en true si la carpeta no existía y hubo que crearla. */
+function drive_folder_id(string $nombre, string $parentId, string $token, bool &$creada = false): ?string
 {
+    $creada = false;
     $nombreQ = str_replace("'", "\\'", $nombre);
     $q = sprintf("name = '%s' and '%s' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
         $nombreQ, $parentId);
@@ -225,7 +230,11 @@ function drive_folder_id(string $nombre, string $parentId, string $token): ?stri
     ]);
     $res = drive_http('POST', 'https://www.googleapis.com/drive/v3/files?fields=id&supportsAllDrives=true',
         $meta, ['Authorization: Bearer ' . $token, 'Content-Type: application/json']);
-    return !empty($res['id']) ? (string)$res['id'] : null;
+    if (!empty($res['id'])) {
+        $creada = true;
+        return (string)$res['id'];
+    }
+    return null;
 }
 
 /** Sube un archivo (multipart) a una carpeta. Devuelve la respuesta o null. */
@@ -259,40 +268,114 @@ function drive_mime_de(string $ext): string
 }
 
 /**
- * Orquesta la subida de la imagen de un comprobante a Drive.
- * @param array  $c        fila del comprobante (con fecha_emision, tipo, etc.)
- * @param string $localRel ruta relativa dentro de uploads/ (ej. "2026/07/xx.jpg")
- * @return array|null      ['id'=>..., 'link'=>...] o null si no se pudo.
+ * Sube a Drive la imagen de un comprobante. Crea las carpetas AÑO/mes si no
+ * existen y registra en el CRON la creación de carpetas.
+ * @param array  $c       datos del comprobante (fecha_emision, tipo, etc.) para el nombre
+ * @param string $absPath ruta ABSOLUTA del archivo a subir (puede ser el temporal del upload)
+ * @param string $ext     extensión (jpg/png/webp/pdf)
+ * @return array          ['id','link','ruta'] si OK, o ['error'=>motivo] si falló.
  */
-function drive_subir_comprobante(array $c, string $localRel): ?array
+function drive_subir_comprobante(array $c, string $absPath, string $ext): array
 {
-    if (!drive_conectado()) {
-        return null;
-    }
+    if (!drive_conectado()) { return ['error' => 'Drive no conectado en la sesión']; }
     $token = drive_access_token();
-    if (!$token) {
-        return null;
-    }
-    $abs = STORAGE . '/uploads/' . $localRel;
-    if (!is_file($abs)) {
-        return null;
-    }
+    if (!$token) { return ['error' => 'no se pudo obtener el access token (refresh falló)']; }
+    if (!is_file($absPath)) { return ['error' => 'no existe el archivo a subir']; }
     $parent = drive_parent_id();
-    if ($parent === '') {
-        return null;
-    }
+    if ($parent === '') { return ['error' => 'no hay carpeta raíz configurada']; }
+
     $fecha = (string)($c['fecha_emision'] ?? date('Y-m-d'));
     $anio  = substr($fecha, 0, 4);
-    $fAnio = drive_folder_id($anio, $parent, $token);
-    if (!$fAnio) { return null; }
-    $fMes = drive_folder_id(drive_carpeta_mes($fecha), $fAnio, $token);
-    if (!$fMes) { return null; }
-    $ext  = strtolower(pathinfo($abs, PATHINFO_EXTENSION)) ?: 'jpg';
+    $mesN  = drive_carpeta_mes($fecha);
+
+    $creadaA = false; $creadaM = false;
+    $fAnio = drive_folder_id($anio, $parent, $token, $creadaA);
+    if (!$fAnio) { return ['error' => 'no se pudo crear/acceder la carpeta ' . $anio]; }
+    $fMes = drive_folder_id($mesN, $fAnio, $token, $creadaM);
+    if (!$fMes) { return ['error' => 'no se pudo crear/acceder la carpeta ' . $mesN]; }
+    if (($creadaA || $creadaM) && function_exists('log_app')) {
+        log_app('drive.carpeta', ['tipo' => 'accion',
+            'detalle' => 'Carpeta creada en Drive: ' . $anio . ' / ' . $mesN]);
+    }
+
     $nombre = drive_nombre_archivo($c, $ext);
-    $res = drive_subir($abs, $nombre, $fMes, drive_mime_de($ext), $token);
-    if (!$res) { return null; }
+    $res = drive_subir($absPath, $nombre, $fMes, drive_mime_de($ext), $token);
+    if (!$res) { return ['error' => 'falló la subida del archivo ' . $nombre]; }
     $id = (string)$res['id'];
-    return ['id' => $id, 'link' => (string)($res['webViewLink'] ?? ('https://drive.google.com/file/d/' . $id . '/view'))];
+    return [
+        'id'   => $id,
+        'link' => (string)($res['webViewLink'] ?? ('https://drive.google.com/file/d/' . $id . '/view')),
+        'ruta' => $anio . '/' . $mesN . '/' . $nombre,
+    ];
+}
+
+/**
+ * Descarga los bytes de un archivo de Drive (para servir la imagen sin copia
+ * local). Devuelve ['body'=>..., 'mime'=>...] o null.
+ */
+function drive_descargar(string $fileId): ?array
+{
+    if ($fileId === '' || !drive_conectado()) { return null; }
+    $token = drive_access_token();
+    if (!$token) { return null; }
+    $ch = curl_init('https://www.googleapis.com/drive/v3/files/' . rawurlencode($fileId)
+        . '?alt=media&supportsAllDrives=true');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 40,
+        CURLOPT_HTTPHEADER     => ['Authorization: Bearer ' . $token],
+    ]);
+    $body = curl_exec($ch);
+    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $mime = (string)curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+    curl_close($ch);
+    if ($body === false || $code !== 200) { return null; }
+    return ['body' => $body, 'mime' => $mime ?: 'application/octet-stream'];
+}
+
+/**
+ * Respalda la imagen de un comprobante recién guardado subiéndola a Drive
+ * (SIN copia local). Registra cada paso en la auditoría (CRON). Nunca lanza:
+ * si Drive falla, deja el comprobante sin imagen y un error claro en el CRON.
+ * @param int    $comprobanteId  id del comprobante ya guardado
+ * @param array  $c              datos del comprobante (para el nombre del archivo)
+ * @param array  $file           $_FILES['imagen']
+ */
+function drive_procesar_imagen(int $comprobanteId, array $c, array $file): void
+{
+    if (empty($file['tmp_name']) || ($file['error'] ?? 1) !== UPLOAD_ERR_OK) { return; }
+
+    $mime = function_exists('mime_content_type') ? (mime_content_type($file['tmp_name']) ?: '') : ($file['type'] ?? '');
+    $map  = ['image/jpeg' => 'jpg', 'image/pjpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'application/pdf' => 'pdf'];
+    $ext  = $map[$mime] ?? null;
+    if (!$ext || (int)($file['size'] ?? 0) > 15 * 1024 * 1024) {
+        if (function_exists('log_app')) {
+            log_app('drive.fallo', ['tipo' => 'error', 'entidad' => 'comprobante', 'entidad_id' => $comprobanteId,
+                'detalle' => 'Imagen rechazada (formato/tamaño): ' . $mime]);
+        }
+        return;
+    }
+
+    try {
+        $res = drive_subir_comprobante($c, (string)$file['tmp_name'], $ext);
+        if (!empty($res['id'])) {
+            q('UPDATE comprobantes SET drive_file_id = ?, drive_link = ?, imagen_path = NULL WHERE id = ?',
+                [$res['id'], $res['link'], $comprobanteId]);
+            if (function_exists('log_app')) {
+                log_app('drive.subida', ['tipo' => 'accion', 'entidad' => 'comprobante', 'entidad_id' => $comprobanteId,
+                    'detalle' => 'Imagen en Drive: ' . ($res['ruta'] ?? '') . ' · ' . $res['link']]);
+            }
+        } else {
+            if (function_exists('log_app')) {
+                log_app('drive.fallo', ['tipo' => 'error', 'entidad' => 'comprobante', 'entidad_id' => $comprobanteId,
+                    'detalle' => 'No se pudo subir a Drive (' . ($res['error'] ?? 'motivo desconocido') . '). El comprobante quedó SIN imagen.']);
+            }
+        }
+    } catch (\Throwable $e) {
+        if (function_exists('log_error')) {
+            log_error('drive.excepcion', $e->getMessage(), $e->getFile(), $e->getLine());
+        }
+    }
 }
 
 /** Prueba de conexión: lista/crea la carpeta raíz. Devuelve [ok, mensaje]. */
