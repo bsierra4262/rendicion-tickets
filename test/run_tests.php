@@ -527,7 +527,7 @@ ok('largos: mínimo 10 franjas a 1800px + solape 22%',      strpos($esc28, 'Math
 ok('escanear.php versiona escanear.js v36',                strpos($escv28, 'escanear.js') !== false && (bool)preg_match('/escanear\.js[^\n]*\?v=36/', $escv28));
 
 echo "== v2.29 — padrón nacional offline (empresas) sin certificado ==\n";
-$sch29 = $readf(dirname($WEB) . '/db/schema.sql');
+$sch29 = str_replace('`', '', $readf(dirname($WEB) . '/db/schema.sql')); // tolera backticks del dump
 $mc29  = $readf("$SRC/comprobantes.php");
 $api29 = $readf("$SRC/pages/api-proveedor.php");
 $esc29 = $readf("$ASSETS/js/escanear.js");
@@ -653,6 +653,47 @@ ok('drive: guardado con FALLBACK (try/catch, nunca rompe)', strpos($cf37, 'drive
 ok('drive: nav admin + icono cloud',                       strpos($lay37, "\$nav['drive']") !== false && strpos($icn37, "'cloud'") !== false);
 ok('drive: controlador maneja parent/desconectar/probar', strpos($drv37, "=== 'parent'") !== false && strpos($drv37, "=== 'desconectar'") !== false && strpos($drv37, "=== 'probar'") !== false);
 ok('drive: vista admin (conectar/desconectar/probar/carpeta)', strpos($drvv37, 'drive-connect') !== false && strpos($drvv37, 'value="desconectar"') !== false && strpos($drvv37, 'value="probar"') !== false && strpos($drvv37, 'value="parent"') !== false);
+
+echo "== v2.38 — portabilidad: config por entorno, esquema, Docker, white-label ==\n";
+$ROOT = dirname($WEB, 2);
+// config por entorno
+putenv('DB_HOST=testhost'); putenv('DB_NAME=testdb'); putenv('APP_NAME=Marca X');
+putenv('APP_ORG=ACME'); putenv('APP_BRAND_PRIMARY=#123456'); putenv('GOOGLE_AUTO_PROVISION=false');
+$cenv = require "$SRC/config_env.php";
+eq('config_env: db.host desde entorno',      $cenv['db']['host'], 'testhost');
+eq('config_env: app.name desde entorno',     $cenv['app']['name'], 'Marca X');
+eq('config_env: app.org desde entorno',      $cenv['app']['org'], 'ACME');
+eq('config_env: brand.primary desde entorno', $cenv['app']['brand']['primary'], '#123456');
+eq('config_env: bool GOOGLE_AUTO_PROVISION=false', $cenv['google']['auto_provision'], false);
+eq('config_env: default idle_ttl sin env',   $cenv['app']['idle_ttl'], 600);
+foreach (['DB_HOST','DB_NAME','APP_NAME','APP_ORG','APP_BRAND_PRIMARY','GOOGLE_AUTO_PROVISION'] as $k) { putenv($k); }
+// bootstrap: fallback a entorno
+$boot38 = $readf("$SRC/bootstrap.php");
+ok('bootstrap: fallback a config_env por entorno', strpos($boot38, "config_env.php") !== false && strpos($boot38, "getenv('DB_HOST')") !== false && strpos($boot38, 'server-config/config.php') !== false);
+// esquema
+$sch = $readf("$ROOT/app/db/schema.sql");
+ok('schema.sql: existe con las 8 tablas',    substr_count($sch, 'CREATE TABLE') === 8);
+ok('schema.sql: incluye columnas de Drive + FULLTEXT del padrón', strpos($sch, 'drive_link') !== false && strpos($sch, 'drive_file_id') !== false && strpos($sch, 'FULLTEXT') !== false);
+ok('schema.sql: sin AUTO_INCREMENT= (contadores reseteados)', strpos($sch, 'AUTO_INCREMENT=') === false);
+// Docker
+ok('docker: Dockerfile (php8.2-apache + pdo_mysql/mbstring + rewrite)', strpos($readf("$ROOT/Dockerfile"), 'php:8.2-apache') !== false && strpos($readf("$ROOT/Dockerfile"), 'docker-php-ext-install pdo_mysql mbstring') !== false);
+ok('docker: compose con app + db (mariadb) y volúmenes', strpos($readf("$ROOT/docker-compose.yml"), 'mariadb') !== false && strpos($readf("$ROOT/docker-compose.yml"), 'dbdata') !== false);
+ok('docker: entrypoint espera DB + importa esquema', strpos($readf("$ROOT/docker/entrypoint.sh"), 'dbinit.php') !== false && strpos($readf("$ROOT/docker/entrypoint.sh"), 'apache2-foreground') !== false);
+ok('docker: vhost DocumentRoot app/web + protege app/', strpos($readf("$ROOT/docker/000-default.conf"), 'DocumentRoot /var/www/html/app/web') !== false && strpos($readf("$ROOT/docker/000-default.conf"), 'Require all denied') !== false);
+ok('docker: dbinit importa schema.sql por PDO si falta', strpos($readf("$ROOT/docker/dbinit.php"), 'schema.sql') !== false && strpos($readf("$ROOT/docker/dbinit.php"), "SHOW TABLES LIKE 'usuarios'") !== false);
+ok('.env.example con DB + Google + marca',   strpos($readf("$ROOT/.env.example"), 'GOOGLE_CLIENT_ID') !== false && strpos($readf("$ROOT/.env.example"), 'APP_BRAND_PRIMARY') !== false);
+// instalador + docs
+ok('bin/setup.php diagnostica e importa esquema', strpos($readf("$ROOT/bin/setup.php"), 'extension_loaded') !== false && strpos($readf("$ROOT/bin/setup.php"), 'schema.sql') !== false);
+ok('INSTALL.md + BRANDING.md presentes',     $readf("$ROOT/INSTALL.md") !== '' && $readf("$ROOT/BRANDING.md") !== '');
+// white-label en el layout
+$lay38 = $readf("$VIEWS/layout.php");
+ok('layout: inyecta color de marca + logo/organización configurables', strpos($lay38, '--primary:') !== false && strpos($lay38, '$brandLogo') !== false && strpos($lay38, '$brandOrg') !== false);
+// gitignore versiona lo nuevo, nunca secretos
+$gi = $readf("$ROOT/.gitignore");
+ok('.gitignore: versiona Docker/bin/.env.example, excluye config.php y .env', strpos($gi, '!/Dockerfile') !== false && strpos($gi, '!/bin/') !== false && strpos($gi, '!/.env.example') !== false && strpos($gi, 'app/server-config/config.php') !== false && strpos($gi, '/.env') !== false);
+// README profesional (sin lenguaje casual)
+$rm = $readf("$ROOT/README.md");
+ok('README: sin lenguaje casual (tu Excel / sacás / pegá / creá)', stripos($rm, 'tu Excel') === false && stripos($rm, 'sacás') === false && strpos($rm, 'Pegá') === false && strpos($rm, 'Creá') === false);
 
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);

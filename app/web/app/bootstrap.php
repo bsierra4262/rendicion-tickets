@@ -1,21 +1,29 @@
 <?php
 declare(strict_types=1);
 
-// ---- Localizar la configuración segura (fuera del web root) ----
+// ---- Localizar la configuración ----
+// Orden de resolución:
+//   1) archivo indicado por la variable TICKETS_CONFIG (fuera del web root, prod)
+//   2) rutas conocidas (Hostinger, repo, local)
+//   3) variables de entorno (Docker / 12-factor) → app/config_env.php
 $configFile = $_SERVER['TICKETS_CONFIG'] ?? (getenv('TICKETS_CONFIG') ?: '');
 if (!$configFile || !is_file($configFile)) {
     foreach ([
-        '/home/u566451014/tickets_config/config.php',
-        dirname(__DIR__) . '/config.local.php',
+        '/home/u566451014/tickets_config/config.php',       // Hostinger (producción)
+        dirname(__DIR__, 2) . '/server-config/config.php',  // repo: app/server-config/config.php
+        dirname(__DIR__) . '/config.local.php',             // local
     ] as $cand) {
         if (is_file($cand)) { $configFile = $cand; break; }
     }
 }
-if (!$configFile || !is_file($configFile)) {
+if ($configFile && is_file($configFile)) {
+    $CONFIG = require $configFile;
+} elseif (getenv('DB_HOST') !== false || getenv('DB_NAME') !== false) {
+    $CONFIG = require __DIR__ . '/config_env.php';           // Docker / entorno
+} else {
     http_response_code(500);
-    exit('Error: no se encontró la configuración de la aplicación.');
+    exit('Error: no se encontró la configuración (ni archivo config.php ni variables de entorno).');
 }
-$CONFIG = require $configFile;
 $GLOBALS['CONFIG'] = $CONFIG;
 
 // ---- Constantes ----

@@ -1,0 +1,12 @@
+.git
+.github
+docs
+md
+node_modules
+scratchpad
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+app/server-config/config.php
+.env

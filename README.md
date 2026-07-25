@@ -1,19 +1,19 @@
 <p align="center">
-  <img src="docs/banner.svg" alt="Rendición de Tickets — INTELLIHELP" width="100%">
+  <img src="docs/banner.svg" alt="Rendición de Tickets" width="100%">
 </p>
 
 <p align="center">
-  <b>Catálogo de comprobantes fiscales argentinos con OCR 100&#37; en el navegador.</b><br>
-  Sacás una foto del ticket → lee los datos (QR de ARCA + IA) → los revisás → quedan volcados como tu Excel de rendición.
+  <b>Catálogo de comprobantes fiscales argentinos con OCR ejecutado íntegramente en el navegador.</b><br>
+  Digitaliza facturas y tiques a partir de una fotografía: decodifica el QR de ARCA, extrae los datos con OCR cuando no lo hay, valida contra el padrón nacional y persiste el resultado tras revisión humana.
 </p>
 
 <p align="center">
   <a href="https://github.com/bsierra4262/rendicion-tickets/actions/workflows/ci.yml"><img src="https://github.com/bsierra4262/rendicion-tickets/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/PHP-8.2-777BB4?logo=php&logoColor=white" alt="PHP 8.2">
+  <img src="https://img.shields.io/badge/PHP-8.1%2B-777BB4?logo=php&logoColor=white" alt="PHP 8.1+">
   <img src="https://img.shields.io/badge/MySQL-MariaDB-4479A1?logo=mysql&logoColor=white" alt="MySQL / MariaDB">
   <img src="https://img.shields.io/badge/OCR-PaddleOCR%20PP--OCRv6-0A7CFF" alt="PaddleOCR">
   <img src="https://img.shields.io/badge/runtime-onnxruntime--web-005CED" alt="onnxruntime-web">
-  <img src="https://img.shields.io/badge/tests-311%20passing-3fb950" alt="311 tests">
+  <img src="https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white" alt="Docker ready">
   <img src="https://img.shields.io/badge/licencia-propietaria-663399" alt="Licencia propietaria">
 </p>
 
@@ -23,126 +23,125 @@
 
 - [Descripción](#descripción)
 - [Características](#características)
-- [Capturas](#capturas)
-- [Cómo funciona (pipeline)](#cómo-funciona-pipeline)
+- [Arquitectura del pipeline](#arquitectura-del-pipeline)
 - [Stack técnico](#stack-técnico)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Puesta en marcha](#puesta-en-marcha)
 - [Tests](#tests)
 - [Seguridad](#seguridad)
 - [Licencia](#licencia)
+- [Autor](#autor)
 
 ## Descripción
 
-**Rendición de Tickets** digitaliza la carga de comprobantes de gastos (facturas A/B/C, tiques, notas
-de crédito/débito) de una empresa argentina. Reemplaza la planilla de Excel por una web donde el
-administrativo **saca una foto del ticket** y la aplicación **extrae automáticamente** fecha, tipo,
-punto de venta, número, CUIT, razón social, importes (Neto + IVA + Percepción = Total) y concepto —
-priorizando el **QR/código de barras de ARCA** como fuente de verdad y usando **OCR con IA** cuando no
-lo hay. Todo corre **en el navegador**, sin APIs pagas ni certificados, con **revisión humana** antes
-de guardar.
+**Rendición de Tickets** digitaliza la carga de comprobantes de gastos (facturas A/B/C,
+tiques, notas de crédito y débito). Reemplaza la planilla de cálculo por una aplicación
+web que, a partir de una fotografía del comprobante, extrae de forma automática la fecha,
+el tipo, el punto de venta, el número, el CUIT, la razón social, los importes
+(Neto + IVA + Percepción = Total) y el concepto.
 
-> **Demo (privada):** https://intellihelp.tech/tickets
+El sistema prioriza el **QR / código de barras de ARCA** como fuente de verdad y recurre al
+**OCR** cuando el comprobante no lo incluye. El reconocimiento se ejecuta en el navegador
+del cliente, sin servicios de OCR de pago ni certificados, y todo alta queda en estado de
+borrador hasta su **revisión y aprobación** por un operador.
+
+> Demo (privada): `https://intellihelp.tech/tickets`
 
 ## Características
 
-- 📷 **Escaneo por foto o PDF** — lee el **QR de ARCA** (datos exactos, sin OCR) y el **código de barras** (RG 1702); si no hay, cae al OCR.
-- 🧠 **OCR con IA en el navegador** — **PaddleOCR PP-OCRv6** vía `onnxruntime-web` (WASM/WebGPU). Sin servidor de OCR, sin costo.
-- 🧭 **Orientación automática por IA** — clasificador `doc_ori` (ONNX) endereza la foto (0/90/180/270°) en una inferencia.
-- 📜 **Tickets largos y ultra-largos** — lectura por franjas con solape; y **varias fotos se unen en un solo** comprobante.
-- 🇦🇷 **Parser fiscal argentino** — CUIT con dígito verificador (módulo 11), tipo/letra, punto de venta-número, importes en formato AR, IVA 21/10,5/27, CAE.
-- 🗂️ **Padrón nacional offline (~1,13 M empresas)** — resuelve **CUIT ↔ razón social** con **validación cruzada**: nunca asigna un dato dudoso (desambigua homónimos, detecta el CUIT del comprador, recupera lecturas con 1 error).
-- 🏷️ **Categorización automática auto-entrenada** — el concepto de cada proveedor se ajusta solo con el uso.
-- ✅ **Revisión humana** — todo queda como borrador `pendiente de revisión`; se corrige y se aprueba.
-- 📊 **Reportes y export** — totales por mes, proveedor y concepto; export a PDF/CSV.
-- 🔍 **Auditoría completa (CRON)** — cada acción y cada error (cliente y servidor) queda registrado.
+- **Ingesta por fotografía o PDF.** Decodifica el QR de ARCA (datos exactos, sin OCR) y el código de barras (RG 1702); si no están, aplica OCR.
+- **OCR en el navegador.** PaddleOCR PP-OCRv6 sobre `onnxruntime-web` (WASM/WebGPU). Sin servidor de reconocimiento ni costo por uso.
+- **Corrección de orientación por modelo.** Un clasificador ONNX (`doc_ori`) endereza la imagen (0/90/180/270°) en una inferencia.
+- **Comprobantes extensos.** Lectura por franjas con solapamiento; múltiples fotografías se combinan en un único comprobante.
+- **Parser fiscal argentino.** CUIT con dígito verificador (módulo 11), tipo y letra, punto de venta y número, importes en formato local, tasas de IVA (21 / 10,5 / 27) y CAE.
+- **Padrón nacional offline (~1,13 M de empresas).** Resolución cruzada CUIT ↔ razón social: no asigna datos ambiguos (desambigua homónimos, descarta el CUIT del comprador, recupera lecturas con un error).
+- **Categorización auto-entrenada.** El concepto de cada proveedor se ajusta con el uso.
+- **Respaldo en Google Drive.** Cada imagen se replica en Drive con estructura por año y mes; la copia local se conserva como respaldo.
+- **Control de sesión.** Cierre automático por inactividad y por tiempo máximo, con validación del lado del servidor.
+- **Auditoría completa.** Cada acción y cada error (cliente y servidor) queda registrado.
 
-## Capturas
-
-> 🔗 **Demo en vivo:** https://intellihelp.tech/tickets
-
-<details>
-<summary><b>Ver capturas de pantalla</b></summary>
-
-<br>
-
-Para mostrarlas acá, colocá las imágenes en `docs/screenshots/` con estos nombres:
-
-|  Escanear un ticket | Listado de comprobantes | Reportes |
-| :---: | :---: | :---: |
-| ![Escanear un ticket](docs/screenshots/escanear.png) | ![Listado de comprobantes](docs/screenshots/comprobantes.png) | ![Reportes](docs/screenshots/reportes.png) |
-
-</details>
-
-## Cómo funciona (pipeline)
+## Arquitectura del pipeline
 
 ```mermaid
 flowchart TD
-    A[📷 Foto / PDF del ticket] --> B{¿Trae QR / código<br/>de barras de ARCA?}
-    B -- Sí --> C[Decodifica datos exactos<br/>CUIT · PtoVta · tipo · nº · importe · CAE]
-    B -- No --> D[🧭 Orientación por IA<br/>doc_ori ONNX]
-    D --> E[🧠 OCR PaddleOCR PP-OCRv6<br/>onnxruntime-web]
-    E --> F{¿Ticket largo /<br/>lectura pobre?}
-    F -- Sí --> G[Lectura por franjas<br/>a máxima calidad]
+    A[Fotografía / PDF] --> B{¿Incluye QR o código<br/>de barras de ARCA?}
+    B -- Sí --> C[Decodificación exacta<br/>CUIT · PtoVta · tipo · nº · importe · CAE]
+    B -- No --> D[Corrección de orientación<br/>doc_ori · ONNX]
+    D --> E[OCR · PaddleOCR PP-OCRv6<br/>onnxruntime-web]
+    E --> F{¿Comprobante extenso<br/>o lectura pobre?}
+    F -- Sí --> G[Lectura por franjas<br/>a máxima resolución]
     F -- No --> H[Parser fiscal AR]
     G --> H
     C --> H
-    H --> I[🗂️ Validación cruzada<br/>contra el padrón nacional<br/>CUIT ↔ razón social]
-    I --> J[✅ Revisión humana]
-    J --> K[(💾 Comprobante guardado)]
+    H --> I[Validación cruzada contra<br/>el padrón nacional<br/>CUIT ↔ razón social]
+    I --> J[Revisión humana]
+    J --> K[(Comprobante persistido)]
 ```
 
-Cada capa tiene _fallback_: si el QR no está, va el OCR; si la IA de orientación no carga, se prueban
-las 4 orientaciones; si el padrón no resuelve, se completa a mano. **Nunca se rompe y nunca inventa un dato.**
+Cada capa incorpora un mecanismo de degradación controlada: si el QR no está presente, se
+aplica OCR; si el modelo de orientación no carga, se evalúan las cuatro rotaciones; si el
+padrón no resuelve, el dato se completa manualmente. El sistema no interrumpe el flujo ni
+infiere datos que no puede verificar.
 
 ## Stack técnico
 
 | Capa | Tecnología |
 | --- | --- |
-| Backend | PHP 8.2 (front-controller propio, sin framework) |
-| Base de datos | MySQL / MariaDB (utf8mb4) |
+| Backend | PHP 8.1+ (front-controller propio, sin framework) |
+| Base de datos | MySQL 8 / MariaDB 10.4+ (utf8mb4) |
 | OCR | PaddleOCR PP-OCRv6 · `onnxruntime-web` · modelos ONNX (orientación) |
-| Lectura de códigos | `jsQR` · `ZXing` · `BarcodeDetector` nativo |
-| Front | JavaScript vanilla (sin build), CSS propio |
-| Auth | Sesiones PHP + **Login con Google Workspace (OAuth 2.0)** |
-| Hosting | Apache/PHP (Hostinger) |
+| Códigos | `jsQR` · `ZXing` · `BarcodeDetector` nativo |
+| Front-end | JavaScript sin build, CSS con variables de tema |
+| Autenticación | Sesiones PHP + OAuth 2.0 (Google Workspace) |
+| Empaquetado | Docker (PHP-Apache + MariaDB) o Apache/PHP sobre hosting |
 
 ## Estructura del proyecto
 
 ```
 app/
 ├─ web/                 # document root: index.php (router), vistas, assets
-│  ├─ app/              # lógica: comprobantes, proveedores, auth, google, helpers…
-│  ├─ assets/           # js/ (escanear, paddleocr, viewer…), css/, models/ (ONNX)
-│  └─ ...
-├─ db/                  # schema.sql y scripts
-└─ server-config/       # config.example.php  (config.php real NO se versiona)
-test/                   # batería de tests de regresión (311)
-md/                     # documentación (PROYECTO.md, REQUERIMIENTOS.md)
-docs/                   # banner y capturas del README
+│  ├─ app/              # dominio: comprobantes, proveedores, auth, google, drive, helpers
+│  ├─ assets/           # js (escaneo, OCR, visor), css, models (ONNX)
+│  └─ .htaccess         # front controller + aislamiento
+├─ db/                  # schema.sql
+└─ server-config/       # config.example.php (config.php real no se versiona)
+bin/                    # setup.php (instalación / diagnóstico)
+docker/                 # Dockerfile assets: vhost, entrypoint, dbinit
+test/                   # batería de regresión
+docs/                   # banner y capturas
 ```
 
 ## Puesta en marcha
 
+### Docker
+
 ```bash
-# 1) Configuración (fuera del web root en producción)
-cp app/server-config/config.example.php app/server-config/config.php
-#   completá: DB (host/name/user/pass), app.secret, y Google OAuth (client_id/secret/dominio)
-
-# 2) Base de datos
-mysql -u USUARIO -p BASE < app/db/schema.sql
-
-# 3) Servir app/web/ como document root del sitio (Apache/PHP 8.2)
-
-# 4) Tests
-php test/run_tests.php
+cp .env.example .env      # completar credenciales, dominio de Google y marca
+docker compose up -d --build
+# Aplicación en http://localhost:8080
 ```
+
+El contenedor espera la base, importa `app/db/schema.sql` en el primer arranque y sirve la
+aplicación. Detalle completo, incluido el despliegue en hosting web, en
+[INSTALL.md](INSTALL.md).
+
+### Hosting web
+
+DocumentRoot en `app/web/`, importar `app/db/schema.sql`, crear `config.php` fuera del web
+root (plantilla en `app/server-config/config.example.php`) y validar con:
+
+```bash
+php bin/setup.php
+```
+
+La personalización de nombre, colores y logo para otra organización se describe en
+[BRANDING.md](BRANDING.md).
 
 ## Tests
 
-Batería de **311 tests de regresión** (validación de CUIT, parseo de importes AR/US, reglas fiscales,
-lógica del padrón, versiones de assets, etc.). Regla del proyecto: **cada bug encontrado agrega un test**
-para que no vuelva a aparecer.
+Batería de regresión (validación de CUIT, parseo de importes AR/US, reglas fiscales, lógica
+del padrón, control de sesión, respaldo en Drive, versionado de assets). Regla del proyecto:
+**cada defecto detectado incorpora un test** para impedir su reaparición.
 
 ```bash
 php test/run_tests.php
@@ -150,21 +149,23 @@ php test/run_tests.php
 
 ## Seguridad
 
-- `config.php` (password de la DB + `client_secret` de Google) **nunca se versiona** — está en `.gitignore`; el repo trae `config.example.php` con placeholders.
-- El config real se despliega **fuera del web root** (no accesible por navegador).
-- Login con Google restringido al dominio de la organización (`hd`).
-- Nunca se suben datos reales de comprobantes al repositorio.
+- Los secretos (credenciales de base y `client_secret` de Google) viven en `config.php` o en
+  variables de entorno; nunca se versionan. El repositorio incluye únicamente
+  `config.example.php` y `.env.example` con marcadores.
+- En producción, `config.php` y el almacenamiento de imágenes se ubican fuera del web root.
+- El acceso se restringe al dominio de la organización (`hd`) vía Google Workspace.
+- Los comprobantes se persisten como borrador y requieren aprobación humana.
+- Política de reporte de vulnerabilidades en [SECURITY.md](SECURITY.md).
 
 ## Licencia
 
-Software **propietario**, desarrollado **íntegramente por Brian Sierra**. Todos los derechos reservados.
-Se utiliza por INTELLIHELP para su operación interna; prohibida su redistribución o uso por fuera de ese
-marco sin autorización expresa y por escrito del autor.
-
-El autor conserva su **derecho moral de reconocimiento de autoría** (Ley 11.723 art. 52; Convenio de
-Berna art. 6 bis). Ver [LICENSE](LICENSE).
+Software **propietario**, desarrollado **íntegramente por Brian Sierra**. Todos los derechos
+reservados. Uso interno de la organización; se prohíbe su redistribución o uso fuera de ese
+marco sin autorización expresa y por escrito del autor. El autor conserva su derecho moral de
+reconocimiento de autoría (Ley 11.723 art. 52; Convenio de Berna art. 6 bis). Ver
+[LICENSE](LICENSE).
 
 ## Autor
 
-**Brian Sierra** — diseño, desarrollo e implementación completos (backend, OCR en el navegador, parser
-fiscal argentino, padrón nacional, front-end y despliegue).
+**Brian Sierra** — diseño, desarrollo e implementación completos: backend, OCR en el
+navegador, parser fiscal argentino, padrón nacional, front-end, empaquetado y despliegue.

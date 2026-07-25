@@ -10,12 +10,20 @@
 # --- ...menos lo que sí queremos versionar: ---
 !/.gitignore
 !/.editorconfig
+!/.dockerignore
+!/.env.example
 !/.github/
 !/README.md
 !/LICENSE
 !/CHANGELOG.md
 !/CONTRIBUTING.md
 !/SECURITY.md
+!/INSTALL.md
+!/BRANDING.md
+!/Dockerfile
+!/docker-compose.yml
+!/docker/
+!/bin/
 !/app/
 !/test/
 !/md/
@@ -23,6 +31,7 @@
 
 # --- Secretos reales (aunque estén dentro de app/): NUNCA subir ---
 app/server-config/config.php
+/.env
 
 # --- Datos reales / sensibles (por si alguna vez caen dentro de app/) ---
 **/FOTOS TICKTES REALES/

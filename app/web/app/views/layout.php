@@ -21,6 +21,10 @@ if ($u && ($u['rol'] ?? '') === 'admin') {
 $asset = fn($p) => e(url($p));
 $extraHead = $extraHead ?? '';
 $extraFoot = $extraFoot ?? '';
+// Marca (white-label): color y logo configurables por config/entorno.
+$brand = $GLOBALS['CONFIG']['app']['brand'] ?? [];
+$brandLogo = !empty($brand['logo']) ? $brand['logo'] : 'assets/img/ITH-logo-139x75.png';
+$brandOrg  = $GLOBALS['CONFIG']['app']['org'] ?? 'INTELLIHELP';
 ?>
 <!doctype html>
 <html lang="es">
@@ -36,6 +40,9 @@ $extraFoot = $extraFoot ?? '';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= $asset('assets/css/app.css') ?>?v=14">
+    <?php if (!empty($brand['primary']) || !empty($brand['accent'])): ?>
+    <style>:root{<?php if (!empty($brand['primary'])): ?>--primary:<?= e($brand['primary']) ?>;<?php endif; ?><?php if (!empty($brand['accent'])): ?>--accent:<?= e($brand['accent']) ?>;<?php endif; ?>}</style>
+    <?php endif; ?>
     <?php if ($u): ?>
     <script>
     // Logger de auditoría al CRON: todo evento del cliente (OCR, motor, errores) se registra.
@@ -75,7 +82,7 @@ $extraFoot = $extraFoot ?? '';
     <header class="topbar">
         <div class="brand">
             <a href="<?= $asset('dashboard') ?>" aria-label="Inicio">
-                <img src="<?= $asset('assets/img/ITH-logo-139x75.png') ?>" alt="INTELLIHELP" class="brand-logo">
+                <img src="<?= $asset($brandLogo) ?>" alt="<?= e($brandOrg) ?>" class="brand-logo">
             </a>
         </div>
         <button class="nav-toggle" aria-label="Menú" onclick="document.body.classList.toggle('nav-open')"><?= icon('menu', 20) ?></button>
@@ -103,7 +110,7 @@ $extraFoot = $extraFoot ?? '';
         <?php endforeach; ?>
         <?= $content ?>
     </main>
-    <footer class="foot"><?= e($appName) ?> · INTELLIHELP — <?= date('Y') ?></footer>
+    <footer class="foot"><?= e($appName) ?> · <?= e($brandOrg) ?> — <?= date('Y') ?></footer>
 <?php else: ?>
     <?= $content ?>
 <?php endif; ?>
