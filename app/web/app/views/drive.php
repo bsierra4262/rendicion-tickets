@@ -38,11 +38,15 @@ $folderUrl = 'https://drive.google.com/drive/folders/' . rawurlencode($parent_id
         <p class="muted small" style="margin-top:6px">
             Mientras no esté conectado, las imágenes se guardan solo en el servidor (no se pierde nada; se pueden respaldar después).
         </p>
-        <div style="margin-top:14px">
-            <a class="btn btn-primary" href="<?= e(url('drive-connect')) ?>"><?= icon('cloud') ?>Conectar Google Drive</a>
+        <div class="flash flash-info" style="margin-top:12px">
+            <strong>Se conecta solo al iniciar sesión.</strong> La próxima vez que alguien entre con Google, el propio login
+            pedirá el permiso de Drive y quedará conectado. También podés conectarlo ahora manualmente:
+        </div>
+        <div style="margin-top:12px">
+            <a class="btn btn-primary" href="<?= e(url('drive-connect')) ?>"><?= icon('cloud') ?>Conectar Google Drive ahora</a>
         </div>
         <p class="muted small" style="margin-top:10px">
-            Se abre el consentimiento de Google. Iniciá sesión con la cuenta <strong>dueña de la carpeta</strong> (la de los 24&nbsp;TB) y aceptá el permiso de Drive.
+            Conviene iniciar sesión con la cuenta <strong>con acceso a la carpeta</strong> (la de los 24&nbsp;TB) y aceptar el permiso de Drive.
         </p>
     <?php endif; ?>
 </div>

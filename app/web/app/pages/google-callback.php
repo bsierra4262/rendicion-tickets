@@ -114,5 +114,20 @@ if ((int) $user['activo'] !== 1) {
 q('UPDATE usuarios SET nombre = ?, avatar_url = ? WHERE id = ?',
     [$nombre !== '' ? $nombre : $email, $picture !== '' ? $picture : null, (int) $user['id']]);
 
+// Portal único: si el login trajo acceso offline a Drive (refresh_token) y Drive
+// todavía no está conectado, lo dejamos conectado automáticamente en este mismo paso.
+if (function_exists('drive_conectado') && !drive_conectado() && !empty($tok['refresh_token'])) {
+    setting_set('drive_refresh_token', (string) $tok['refresh_token']);
+    if (!empty($tok['access_token'])) {
+        setting_set('drive_access_token', (string) $tok['access_token']);
+        setting_set('drive_access_expira', (string) (time() + (int) ($tok['expires_in'] ?? 3600)));
+    }
+    setting_set('drive_conectado_por', $email);
+    setting_set('drive_conectado_en', date('Y-m-d H:i:s'));
+    if (function_exists('log_app')) {
+        log_app('drive.conectar', ['tipo' => 'auth', 'detalle' => 'Google Drive conectado desde el login por ' . $email]);
+    }
+}
+
 auth_login_user((int) $user['id']);
 redirect('dashboard');

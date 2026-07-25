@@ -695,6 +695,14 @@ ok('.gitignore: versiona Docker/bin/.env.example, excluye config.php y .env', st
 $rm = $readf("$ROOT/README.md");
 ok('README: sin lenguaje casual (tu Excel / sacás / pegá / creá)', stripos($rm, 'tu Excel') === false && stripos($rm, 'sacás') === false && strpos($rm, 'Pegá') === false && strpos($rm, 'Creá') === false);
 
+echo "== v2.39 — portal único: el login conecta Drive (sin portal aparte) ==\n";
+$au39 = google_auth_url('st39'); // en tests drive_conectado()=false → debe pedir Drive
+ok('login: pide scope Drive + offline cuando no está conectado', strpos($au39, 'access_type=offline') !== false && strpos($au39, urlencode('https://www.googleapis.com/auth/drive')) !== false && strpos($au39, 'prompt=consent') !== false);
+$gp39 = $readf("$SRC/google.php");
+ok('login: el scope Drive es condicional a !drive_conectado()', strpos($gp39, 'function_exists(\'drive_conectado\') && !drive_conectado()') !== false);
+$cb39 = $readf("$SRC/pages/google-callback.php");
+ok('login: guarda el refresh_token de Drive si aún no está conectado', strpos($cb39, "!drive_conectado() && !empty(\$tok['refresh_token'])") !== false && strpos($cb39, "setting_set('drive_refresh_token'") !== false);
+
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);
 if ($F) { echo "FALLARON:\n - " . implode("\n - ", $fails) . "\n"; }

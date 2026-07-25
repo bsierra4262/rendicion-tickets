@@ -31,15 +31,25 @@ function google_redirect_uri(): string
 function google_auth_url(string $state): string
 {
     $g = google_cfg();
+    $scope  = 'openid email profile';
     $params = [
         'client_id'     => $g['client_id'],
         'redirect_uri'  => google_redirect_uri(),
         'response_type' => 'code',
-        'scope'         => 'openid email profile',
         'state'         => $state,
         'access_type'   => 'online',
         'prompt'        => 'select_account',
     ];
+    // Portal único: mientras Drive no esté conectado, el propio login pide el
+    // permiso de Drive (acceso offline) y así queda conectado en un solo paso,
+    // sin un botón/portal aparte. Una vez conectado, el login vuelve a ser simple.
+    if (function_exists('drive_conectado') && !drive_conectado()) {
+        $scope .= ' ' . (defined('DRIVE_SCOPE') ? DRIVE_SCOPE : 'https://www.googleapis.com/auth/drive');
+        $params['access_type']            = 'offline';
+        $params['prompt']                 = 'consent select_account';
+        $params['include_granted_scopes'] = 'true';
+    }
+    $params['scope'] = $scope;
     if (!empty($g['allowed_domain'])) {
         $params['hd'] = $g['allowed_domain'];
     }
