@@ -8,6 +8,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/bsierra4262/rendicion-tickets/actions/workflows/ci.yml"><img src="https://github.com/bsierra4262/rendicion-tickets/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <img src="https://img.shields.io/badge/PHP-8.2-777BB4?logo=php&logoColor=white" alt="PHP 8.2">
   <img src="https://img.shields.io/badge/MySQL-MariaDB-4479A1?logo=mysql&logoColor=white" alt="MySQL / MariaDB">
   <img src="https://img.shields.io/badge/OCR-PaddleOCR%20PP--OCRv6-0A7CFF" alt="PaddleOCR">
@@ -58,11 +59,20 @@ de guardar.
 
 ## Capturas
 
-> Guardá tus imágenes en `docs/screenshots/` con estos nombres y se ven acá.
+> 🔗 **Demo en vivo:** https://intellihelp.tech/tickets
+
+<details>
+<summary><b>Ver capturas de pantalla</b></summary>
+
+<br>
+
+Para mostrarlas acá, colocá las imágenes en `docs/screenshots/` con estos nombres:
 
 |  Escanear un ticket | Listado de comprobantes | Reportes |
 | :---: | :---: | :---: |
-| ![Escanear](docs/screenshots/escanear.png) | ![Comprobantes](docs/screenshots/comprobantes.png) | ![Reportes](docs/screenshots/reportes.png) |
+| ![Escanear un ticket](docs/screenshots/escanear.png) | ![Listado de comprobantes](docs/screenshots/comprobantes.png) | ![Reportes](docs/screenshots/reportes.png) |
+
+</details>
 
 ## Cómo funciona (pipeline)
 

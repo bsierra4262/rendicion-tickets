@@ -9,8 +9,13 @@
 
 # --- ...menos lo que sí queremos versionar: ---
 !/.gitignore
+!/.editorconfig
+!/.github/
 !/README.md
 !/LICENSE
+!/CHANGELOG.md
+!/CONTRIBUTING.md
+!/SECURITY.md
 !/app/
 !/test/
 !/md/
