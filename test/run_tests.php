@@ -814,7 +814,7 @@ ok('gasto: guardado sube a Drive SINCRÓNICO (links al volver, como comprobantes
 ok('drive: connect timeout (no cuelga si no llega a Google)', strpos($gd48, 'CURLOPT_CONNECTTIMEOUT') !== false);
 ok('gasto: parser matchea también por RUBRO (ej. EXPENSAS)', strpos($gjs48, "p.nombre + ' ' + (p.rubro") !== false);
 ok('gasto: Leer PAGO (fecha + marca pagado)', strpos($gjs48, 'function parsePago') !== false && strpos($gjs48, "setVal('estado', 'pagado')") !== false && strpos($gfv48, 'id="leerPago"') !== false);
-ok('gasto: __gprov con rubro + gastos.js v2', strpos($gfv48, "'rubro' => \$p['rubro']") !== false && (bool)preg_match('/gastos\.js[^\n]*\?v=2/', $gfv48));
+ok('gasto: __gprov con rubro + gastos.js versionado', strpos($gfv48, "'rubro' => \$p['rubro']") !== false && (bool)preg_match('/gastos\.js[^\n]*\?v=3/', $gfv48));
 
 echo "== v2.49 — fixes de gastos: form se completa visible + carpeta Drive real ==\n";
 $gjs49 = $readf("$ASSETS/js/gastos.js");
