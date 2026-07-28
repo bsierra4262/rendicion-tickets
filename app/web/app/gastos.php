@@ -139,34 +139,35 @@ function gp_restore(int $id): void
 /** Siembra los proveedores recurrentes reales (idempotente, no duplica). */
 function gp_seed(): int
 {
-    // [nombre, rubro, categoria, momento, carpeta_drive] — la carpeta espeja las del Drive real.
+    // [nombre, rubro, categoria, momento, carpeta_drive, cuit] — carpeta y CUIT reales
+    // (el CUIT del emisor hace el match exacto; vacío si el PDF no lo expone / es compartido).
     $data = [
-        ['EDENOR', 'ELECTRICIDAD', 'recurrente', 'vencido', '01.EDENOR'],
-        ['ADMINISTRACION SILVANA LORENA GUAYCOCHEA', 'EXPENSAS', 'recurrente', 'adelantado', '02.EXPENSAS'],
-        ['MAURICIO SZTERN', 'ALQUILER OFICINA', 'recurrente', 'adelantado', '03.MAURICIO STERN'],
-        ['ESTUDIO COLLINET', 'ESTUDIO CONTABLE', 'recurrente', 'vencido', '04.ESTUDIO COLLINET'],
-        ['NET2PHONE', 'SERVICIO TELEFONIA', 'recurrente', 'vencido', '05.NET2PHONE'],
-        ['GUPAZ', 'SERVICIO AGUA', 'recurrente', 'vencido', '06.GUPAZ - EVERFULL'],
-        ['CLARO EMPRESAS', 'SERVICIO CELULARES', 'recurrente', 'vencido', '07.CLARO EMPRESAS'],
-        ['TELECOM EMPRESAS', 'SERVICIO INTERNET', 'recurrente', 'vencido', '08.TELECOM EMPRESAS'],
-        ['SANCOR SALUD', 'MEDICINA PREPAGA', 'recurrente', 'adelantado', '09.SANCOR SALUD'],
-        ['JOI SEGUROS', 'SEGUROS', 'recurrente', 'vencido', '10.SEGUROS'],
-        ['GCBA - ABL', 'ABL', 'recurrente', 'vencido', '11.ABL OFICINA'],
-        ['GCBA - PATENTES', 'PATENTES', 'recurrente', 'vencido', '12.PATENTES VEHICULOS'],
-        ['ARCA', 'IMPUESTOS', 'recurrente', 'vencido', '13.ARCA'],
-        ['BANCOS', 'BANCOS', 'recurrente', 'vencido', '14.BANCOS'],
-        ['GOOGLE SUITE', 'GOOGLE SUITE', 'recurrente', 'vencido', '15.GOOGLE SUITE'],
-        ['HOSPITAL ALEMAN', 'MEDICINA PREPAGA', 'recurrente', 'adelantado', '16.HOSPITAL ALEMAN'],
-        ['OSDE', 'MEDICINA PREPAGA', 'recurrente', 'adelantado', '17.OSDE'],
-        ['CHATGPT', 'INTELIGENCIA ARTIFICIAL', 'recurrente', 'vencido', '18.CHATGPT NICOLAS'],
-        ['PERSONAL FLOW', 'SERVICIO CELULARES', 'recurrente', 'vencido', '19.PERSONAL NICOLAS'],
+        ['EDENOR', 'ELECTRICIDAD', 'recurrente', 'vencido', '01.EDENOR', '30655116202'],
+        ['ADMINISTRACION SILVANA LORENA GUAYCOCHEA', 'EXPENSAS', 'recurrente', 'adelantado', '02.EXPENSAS', '30714470511'],
+        ['MAURICIO SZTERN', 'ALQUILER OFICINA', 'recurrente', 'adelantado', '03.MAURICIO STERN', '30702102045'],
+        ['ESTUDIO COLLINET', 'ESTUDIO CONTABLE', 'recurrente', 'vencido', '04.ESTUDIO COLLINET', '20169624373'],
+        ['NET2PHONE', 'SERVICIO TELEFONIA', 'recurrente', 'vencido', '05.NET2PHONE', ''],
+        ['GUPAZ', 'SERVICIO AGUA', 'recurrente', 'vencido', '06.GUPAZ - EVERFULL', ''],
+        ['CLARO EMPRESAS', 'SERVICIO CELULARES', 'recurrente', 'vencido', '07.CLARO EMPRESAS', '30663288497'],
+        ['TELECOM EMPRESAS', 'SERVICIO INTERNET', 'recurrente', 'vencido', '08.TELECOM EMPRESAS', '30639453738'],
+        ['SANCOR SALUD', 'MEDICINA PREPAGA', 'recurrente', 'adelantado', '09.SANCOR SALUD', '30590354798'],
+        ['JOI SEGUROS', 'SEGUROS', 'recurrente', 'vencido', '10.SEGUROS', '30500049770'],
+        ['GCBA - ABL', 'ABL', 'recurrente', 'vencido', '11.ABL OFICINA', ''],
+        ['GCBA - PATENTES', 'PATENTES', 'recurrente', 'vencido', '12.PATENTES VEHICULOS', ''],
+        ['ARCA', 'IMPUESTOS', 'recurrente', 'vencido', '13.ARCA', ''],
+        ['BANCOS', 'BANCOS', 'recurrente', 'vencido', '14.BANCOS', ''],
+        ['GOOGLE SUITE', 'GOOGLE SUITE', 'recurrente', 'vencido', '15.GOOGLE SUITE', ''],
+        ['HOSPITAL ALEMAN', 'MEDICINA PREPAGA', 'recurrente', 'adelantado', '16.HOSPITAL ALEMAN', '30545843036'],
+        ['OSDE', 'MEDICINA PREPAGA', 'recurrente', 'adelantado', '17.OSDE', '30546741253'],
+        ['CHATGPT', 'INTELIGENCIA ARTIFICIAL', 'recurrente', 'vencido', '18.CHATGPT NICOLAS', ''],
+        ['PERSONAL FLOW', 'SERVICIO CELULARES', 'recurrente', 'vencido', '19.PERSONAL NICOLAS', ''],
     ];
     $n = 0; $orden = 10;
-    foreach ($data as [$nombre, $rubro, $cat, $mom, $folder]) {
+    foreach ($data as [$nombre, $rubro, $cat, $mom, $folder, $cuit]) {
         $ex = q('SELECT id FROM gastos_proveedores WHERE LOWER(nombre) = LOWER(?) LIMIT 1', [$nombre])->fetch();
         if ($ex) { continue; }
-        q("INSERT INTO gastos_proveedores (nombre, rubro, categoria, momento_facturacion, drive_folder, orden, activo)
-           VALUES (?,?,?,?,?,?,1)", [$nombre, $rubro, $cat, $mom, $folder, $orden]);
+        q("INSERT INTO gastos_proveedores (nombre, rubro, categoria, momento_facturacion, drive_folder, cuit, orden, activo)
+           VALUES (?,?,?,?,?,?,?,1)", [$nombre, $rubro, $cat, $mom, $folder, ($cuit ?: null), $orden]);
         $orden += 10; $n++;
     }
     return $n;

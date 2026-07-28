@@ -536,3 +536,11 @@ Feedback: al autocompletar, los datos se guardaban bien pero NO se veían en la 
 - **Período correcto**: `parsePeriodoLabel` lee el período de la etiqueta real de la factura ("Liquidación: 6/2026", "Período: 04/2026", "Periodo facturado Septiembre 2024") en vez de deducirlo de una fecha. Validado en EXPENSAS Junio 2026 → período `2026-06` (antes daba Julio por tomar el vencimiento).
 - **Emisión más prudente**: no usa la fecha de vencimiento como emisión (toma la más temprana que no sea el vencimiento; si no hay, la deja vacía).
 - **+4 tests → 433/433.** `gastos.js?v=4`, `datepicker.js?v=4`.
+
+## 58. v2.51 — Gastos: importe TOTAL A PAGAR + detección de proveedor por CUIT/keywords (2026-07-28)
+Ajuste a fondo del parser con las facturas reales del zip (evaluado sobre los 19 proveedores).
+- **Importe = TOTAL A PAGAR real**: detecta el par (total, total+recargo) cuando hay mora ("Luego del … - N%") → el TOTAL es el menor (ej. expensas: 470.895,74, no el 485.022,74 con +3% ni un número de la tabla de detalle). Ignora porcentajes, usa solo la cabecera (antes del "detalle de egresos"). Arregló también OSDE (228.196,38).
+- **Proveedor por CUIT + keywords**: `detectProv` prioriza el **CUIT del emisor** (se sembraron 10 CUITs reales en el maestro), luego **keywords curados** (el más específico gana), y si no está seguro **NO adivina** (deja vacío para elegir a mano). Caso especial Telecom/Personal (comparten CUIT): "flow"/"resumen de servicios" ⇒ Personal. Resultado en la evaluación: **17/19** correctos (NET2PHONE/CHATGPT son PDF-imagen sin texto → pendiente QR/OCR; BANCOS queda vacío, correcto).
+- **cuitonline.com**: el cliente pidió integrarlo (online, más actualizado que el padrón). **Está detrás de Cloudflare** → el servidor recibe "Just a moment…" y no puede consultarlo por scraping directo. Alternativa vigente: el **padrón offline** (1,13 M, ya integrado). Pendiente: evaluar una fuente online no bloqueada.
+- **+3 tests → 435/435.** `gastos.js?v=6`.
+- **Pendiente (pedido cliente)**: leer **QR** de las facturas (AFIP y otras) como en el OCR de comprobantes → datos puros para los PDF-imagen; y fuente online de CUIT↔razón.

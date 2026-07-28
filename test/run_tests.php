@@ -812,9 +812,9 @@ $gjs48 = $readf("$ASSETS/js/gastos.js");
 ok('gasto: helper finish_request disponible (utilidad)', strpos($hlp48, 'function finish_request') !== false);
 ok('gasto: guardado sube a Drive SINCRÓNICO (links al volver, como comprobantes)', strpos($gfp48, 'drive_gasto_subir($savedId') !== false && strpos($gfp48, "redirect('gastos')") !== false && strpos($gfp48, 'SINCR') !== false);
 ok('drive: connect timeout (no cuelga si no llega a Google)', strpos($gd48, 'CURLOPT_CONNECTTIMEOUT') !== false);
-ok('gasto: parser matchea también por RUBRO (ej. EXPENSAS)', strpos($gjs48, "p.nombre + ' ' + (p.rubro") !== false);
+ok('gasto: parser matchea por keyword (ej. EXPENSAS) sin falsos positivos', strpos($gjs48, "'expensas'") !== false && strpos($gjs48, 'var STOP') !== false);
 ok('gasto: Leer PAGO (fecha + marca pagado)', strpos($gjs48, 'function parsePago') !== false && strpos($gjs48, "setVal('estado', 'pagado')") !== false && strpos($gfv48, 'id="leerPago"') !== false);
-ok('gasto: __gprov con rubro + gastos.js versionado', strpos($gfv48, "'rubro' => \$p['rubro']") !== false && (bool)preg_match('/gastos\.js[^\n]*\?v=4/', $gfv48));
+ok('gasto: __gprov con rubro + gastos.js versionado', strpos($gfv48, "'rubro' => \$p['rubro']") !== false && (bool)preg_match('/gastos\.js[^\n]*\?v=6/', $gfv48));
 
 echo "== v2.49 — fixes de gastos: form se completa visible + carpeta Drive real ==\n";
 $gjs49 = $readf("$ASSETS/js/gastos.js");
@@ -834,7 +834,9 @@ $lay50 = $readf("$VIEWS/layout.php");
 ok('datepicker: sincroniza cambios EXTERNOS del hidden (OCR/autocompletar)', strpos($dp50, "hidden.addEventListener('change', syncLabel)") !== false);
 ok('gasto: período desde etiqueta (Liquidación/Período), no de la fecha', strpos($gjs50, 'function parsePeriodoLabel') !== false && strpos($gjs50, 'liquidaci') !== false && strpos($gjs50, 'parsePeriodoLabel(text) ||') !== false);
 ok('gasto: no usa el vencimiento como emisión', strpos($gjs50, "d.iso !== venc.iso") !== false);
-ok('assets versionados: datepicker v4 + gastos v4', (bool)preg_match('/datepicker\.js[^\n]*\?v=4/', $lay50) && (bool)preg_match('/gastos\.js[^\n]*\?v=4/', $readf("$VIEWS/gasto-form.php")));
+ok('assets versionados: datepicker v4 + gastos v6', (bool)preg_match('/datepicker\.js[^\n]*\?v=4/', $lay50) && (bool)preg_match('/gastos\.js[^\n]*\?v=6/', $readf("$VIEWS/gasto-form.php")));
+ok('gasto: detectProv por CUIT + keywords curados + caso Personal/Telecom', strpos($gjs50, 'var KEYWORDS') !== false && strpos($gjs50, "indexOf('PERSONAL')") !== false && strpos($gjs50, 'PROVS[i].cuit && cuits.indexOf') !== false);
+ok('gasto: importe = TOTAL A PAGAR (par total/total+recargo, ignora %)', strpos($gjs50, 'function parseTotal') !== false && strpos($gjs50, 'A * f') !== false && strpos($gjs50, "(?!\\s*%)") !== false);
 
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);

@@ -74,12 +74,39 @@
     }
     function findAmounts(t) {
         var out = [], m;
-        var re = /(\d{1,3}(?:\.\d{3})+,\d{2}|\d+,\d{2})/g;
+        // Importes AR; el (?!\s*%) descarta porcentajes (ej. "3,00%").
+        var re = /(\d{1,3}(?:\.\d{3})+,\d{2}|\d+,\d{2})(?!\s*%)/g;
         while ((m = re.exec(t))) {
             var v = parseFloat(m[1].replace(/\./g, '').replace(',', '.'));
             if (v > 0) { out.push({ v: v, idx: m.index }); }
         }
         return out;
+    }
+    // Detecta el importe a pagar. Prioriza el par (total, total+recargo) cuando la
+    // factura tiene recargo por mora ("Luego del … - N%"): el TOTAL A PAGAR es el menor.
+    function parseTotal(text, amounts) {
+        if (!amounts.length) { return null; }
+        var pctM = text.match(/(\d{1,2}(?:[.,]\d{1,2})?)\s*%/);
+        if (pctM) {
+            var pct = parseFloat(pctM[1].replace(',', '.'));
+            if (pct > 0 && pct < 30) {
+                var f = 1 + pct / 100;
+                for (var i = 0; i < amounts.length; i++) {
+                    for (var j = 0; j < amounts.length; j++) {
+                        if (i === j) { continue; }
+                        var A = amounts[i].v, B = amounts[j].v;
+                        if (A > 100 && Math.abs(B - A * f) <= Math.max(2, A * 0.002)) {
+                            return amounts[i]; // el menor = total a pagar en término
+                        }
+                    }
+                }
+            }
+        }
+        var t = nearLabel(text, ['total a pagar', 'importe total', 'total del plan', 'total en usd', 'neto a pagar', 'saldo a pagar', 'total factura'], amounts, 1200);
+        if (t) { return t; }
+        t = nearLabel(text, ['total'], amounts, 200);
+        if (t) { return t; }
+        return amounts.reduce(function (a, b) { return b.v > a.v ? b : a; }, amounts[0]);
     }
     function nearLabel(text, labels, items, win) {
         var low = text.toLowerCase(), best = null, bestD = 1e9;
@@ -92,26 +119,62 @@
         });
         return best;
     }
+    // Palabras clave DISTINTIVAS por proveedor (la coincidencia más larga/específica gana).
+    // Resuelve casos ambiguos (TELECOM vs PERSONAL, ambas de Telecom) y evita falsos
+    // positivos por palabras genéricas ("servicio", "empresas").
+    var KEYWORDS = {
+        'EDENOR': ['edenor', 'comercializadora norte'],
+        'ADMINISTRACION SILVANA LORENA GUAYCOCHEA': ['expensas', 'guaycochea'],
+        'MAURICIO SZTERN': ['sztern'],
+        'ESTUDIO COLLINET': ['collinet'],
+        'NET2PHONE': ['net2phone', 'net 2 phone'],
+        'GUPAZ': ['gupaz', 'everfull'],
+        'CLARO EMPRESAS': ['claro'],
+        'TELECOM EMPRESAS': ['telecom argentina'],
+        'SANCOR SALUD': ['sancor'],
+        'JOI SEGUROS': ['joi seguros', 'joi'],
+        'GCBA - ABL': ['inmobiliario y abl', 'impuesto inmobiliario', 'y abl'],
+        'GCBA - PATENTES': ['patente'],
+        'ARCA': ['arca', 'a.f.i.p', 'afip'],
+        'BANCOS': [],
+        'GOOGLE SUITE': ['google workspace', 'google', 'gsuit'],
+        'HOSPITAL ALEMAN': ['hospital aleman', 'hospital alemán'],
+        'OSDE': ['osde'],
+        'CHATGPT': ['chatgpt', 'openai'],
+        'PERSONAL FLOW': ['telecom personal', 'personal flow']
+    };
+    var STOP = { servicio: 1, servicios: 1, empresas: 1, empresa: 1, sociedad: 1, anonima: 1,
+        administracion: 1, seguros: 1, medicina: 1, prepaga: 1, salud: 1, gcba: 1, grupo: 1,
+        argentina: 1, nacional: 1, federal: 1, publico: 1 };
+
     function detectProv(text) {
         var low = text.toLowerCase();
         var cuits = (text.match(/\b\d{2}-?\d{8}-?\d\b/g) || []).map(digits);
         var i;
+        // 0) Telecom PERSONAL comparte CUIT con Telecom: "flow"/"resumen de servicios" ⇒ Personal.
+        if (/\bflow\b|resumen de servicios|resumenmkt/.test(low)) {
+            var per = PROVS.filter(function (p) { return p.nombre.toUpperCase().indexOf('PERSONAL') > -1; })[0];
+            if (per) { return per; }
+        }
+        // 1) CUIT exacto del emisor (lo más confiable).
         for (i = 0; i < PROVS.length; i++) { if (PROVS[i].cuit && cuits.indexOf(PROVS[i].cuit) > -1) { return PROVS[i]; } }
-        // Alias de proveedor → tokens que aparecen en la factura.
-        var alias = {
-            'edenor': 'distribuidora y comercializadora norte', 'google suite': 'google workspace gsuit',
-            'gcba - abl': 'inmobiliario abl', 'personal flow': 'telecom personal', 'gcba - patentes': 'patente'
-        };
-        var best = null, bestScore = 0;
+        // 2) Keyword curado: gana la coincidencia MÁS LARGA (más específica).
+        var best = null, bestLen = 0;
         PROVS.forEach(function (p) {
-            // Matchear por nombre, RUBRO y alias (ej. rubro "EXPENSAS" aparece en la factura).
-            var hay = (p.nombre + ' ' + (p.rubro || '') + ' ' + (alias[p.nombre.toLowerCase()] || '')).toLowerCase();
-            var toks = hay.split(/[^a-záéíóúñ0-9]+/).filter(function (x) { return x.length >= 4; });
-            var score = 0;
-            toks.forEach(function (tk) { if (low.indexOf(tk) > -1) { score++; } });
-            if (score > bestScore) { bestScore = score; best = p; }
+            var kws = KEYWORDS[p.nombre.toUpperCase()] || [];
+            kws.forEach(function (kw) { if (kw && low.indexOf(kw) > -1 && kw.length > bestLen) { bestLen = kw.length; best = p; } });
         });
-        return bestScore > 0 ? best : null;
+        if (best) { return best; }
+        // 3) Fallback estricto por token distintivo del nombre (para proveedores nuevos),
+        //    ignorando genéricos y exigiendo un mínimo → si no, NO adivina (deja vacío).
+        var bestS = null, bestScore = 0;
+        PROVS.forEach(function (p) {
+            var toks = p.nombre.toLowerCase().split(/[^a-záéíóúñ0-9]+/).filter(function (x) { return x.length >= 4 && !STOP[x]; });
+            var score = 0;
+            toks.forEach(function (tk) { if (low.indexOf(tk) > -1) { score += tk.length; } });
+            if (score > bestScore) { bestScore = score; bestS = p; }
+        });
+        return bestScore >= 5 ? bestS : null;
     }
 
     // Lee el comprobante de PAGO: fecha de pago + marca "pagado" (y valor si falta).
@@ -143,8 +206,11 @@
         var isUSD = /US\$|\bUSD\b|d[óo]lar/i.test(text);
         var emis = nearLabel(text, ['emisi', 'fecha de la factura', 'fecha de factura'], dates);
         var venc = nearLabel(text, ['vencimiento', '1° vto', '1�vto', '1 vto', 'vto.', 'vto ', 'vto:'], dates);
-        var total = nearLabel(text, ['total a pagar', 'total del plan', 'total en usd', 'importe total', 'total'], amounts, 300);
-        if (!total && amounts.length) { total = amounts.reduce(function (a, b) { return b.v > a.v ? b : a; }, amounts[0]); }
+        // Importe: usar la CABECERA (antes del detalle/histórico) para no agarrar
+        // números de las tablas de movimientos.
+        var cut = text.toLowerCase().search(/detalle de (egresos|movimientos|gastos)|movimientos del|hist[oó]rico de/);
+        var head = (cut > 200) ? text.slice(0, cut) : text;
+        var total = parseTotal(head, findAmounts(head)) || parseTotal(text, amounts);
         if (!venc && dates.length) { venc = dates[dates.length - 1]; }
         // Emisión: NO usar la fecha de vencimiento como emisión. Tomar la fecha más
         // temprana que NO sea el vencimiento; si no hay otra, dejar vacío.
