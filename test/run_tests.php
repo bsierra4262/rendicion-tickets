@@ -814,7 +814,7 @@ ok('gasto: guardado sube a Drive SINCRÓNICO (links al volver, como comprobantes
 ok('drive: connect timeout (no cuelga si no llega a Google)', strpos($gd48, 'CURLOPT_CONNECTTIMEOUT') !== false);
 ok('gasto: parser matchea también por RUBRO (ej. EXPENSAS)', strpos($gjs48, "p.nombre + ' ' + (p.rubro") !== false);
 ok('gasto: Leer PAGO (fecha + marca pagado)', strpos($gjs48, 'function parsePago') !== false && strpos($gjs48, "setVal('estado', 'pagado')") !== false && strpos($gfv48, 'id="leerPago"') !== false);
-ok('gasto: __gprov con rubro + gastos.js versionado', strpos($gfv48, "'rubro' => \$p['rubro']") !== false && (bool)preg_match('/gastos\.js[^\n]*\?v=3/', $gfv48));
+ok('gasto: __gprov con rubro + gastos.js versionado', strpos($gfv48, "'rubro' => \$p['rubro']") !== false && (bool)preg_match('/gastos\.js[^\n]*\?v=4/', $gfv48));
 
 echo "== v2.49 — fixes de gastos: form se completa visible + carpeta Drive real ==\n";
 $gjs49 = $readf("$ASSETS/js/gastos.js");
@@ -826,6 +826,15 @@ ok('gasto: maestro con carpeta de Drive (drive_folder) + seed real', strpos($gs4
 ok('gasto: Drive usa la carpeta configurada (no la razón social)', strpos($gd49, "prov_drive_folder") !== false);
 ok('gasto: campo Carpeta de Drive en el form del proveedor', strpos($gpf49, 'name="drive_folder"') !== false);
 ok('gasto: GR_SELECT trae drive_folder del proveedor', strpos($gs49, 'p.drive_folder AS prov_drive_folder') !== false);
+
+echo "== v2.50 — vista previa se completa (datepicker sync) + período correcto ==\n";
+$dp50  = $readf("$ASSETS/js/datepicker.js");
+$gjs50 = $readf("$ASSETS/js/gastos.js");
+$lay50 = $readf("$VIEWS/layout.php");
+ok('datepicker: sincroniza cambios EXTERNOS del hidden (OCR/autocompletar)', strpos($dp50, "hidden.addEventListener('change', syncLabel)") !== false);
+ok('gasto: período desde etiqueta (Liquidación/Período), no de la fecha', strpos($gjs50, 'function parsePeriodoLabel') !== false && strpos($gjs50, 'liquidaci') !== false && strpos($gjs50, 'parsePeriodoLabel(text) ||') !== false);
+ok('gasto: no usa el vencimiento como emisión', strpos($gjs50, "d.iso !== venc.iso") !== false);
+ok('assets versionados: datepicker v4 + gastos v4', (bool)preg_match('/datepicker\.js[^\n]*\?v=4/', $lay50) && (bool)preg_match('/gastos\.js[^\n]*\?v=4/', $readf("$VIEWS/gasto-form.php")));
 
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);

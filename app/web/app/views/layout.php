@@ -119,7 +119,7 @@ $brandOrg  = $GLOBALS['CONFIG']['app']['org'] ?? 'INTELLIHELP';
 <script defer src="<?= $asset('assets/js/confirm.js') ?>?v=1"></script>
 <script defer src="<?= $asset('assets/js/filefield.js') ?>?v=1"></script>
 <script defer src="<?= $asset('assets/js/combobox.js') ?>?v=7"></script>
-<script defer src="<?= $asset('assets/js/datepicker.js') ?>?v=3"></script>
+<script defer src="<?= $asset('assets/js/datepicker.js') ?>?v=4"></script>
 <?php if ($u): ?><script defer src="<?= $asset('assets/js/idle.js') ?>?v=1"></script><?php endif; ?>
 <?= $extraFoot ?>
 </body>

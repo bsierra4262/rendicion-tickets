@@ -61,6 +61,10 @@
             else { valEl.textContent = pad(+p[2]) + '/' + pad(+p[1]) + '/' + p[0]; }
         }
 
+        // Sincroniza la vista si el valor del hidden cambia por FUERA (OCR / autocompletar).
+        hidden.addEventListener('change', syncLabel);
+        hidden.addEventListener('input', syncLabel);
+
         function initView() {
             var t = new Date();
             var b = hidden.value ? hidden.value.split('-') : [t.getFullYear(), t.getMonth() + 1, t.getDate()];

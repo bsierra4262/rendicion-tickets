@@ -529,3 +529,10 @@ Feedback del cliente probando en vivo con facturas reales de EXPENSAS:
 - **Confirmado**: el parser lee el **texto real del PDF** (la factura de expensas contiene la palabra "EXPENSAS" → match por rubro), no el nombre del archivo.
 - **CRON limpiado** (truncate actividad) — el cliente pidió limpiarlo en cada tanda de testing.
 - **+7 tests → 429/429.** `gastos.js?v=3`. Deploy a testing.
+
+## 57. v2.50 — Vista previa se completa (datepicker sync) + período correcto (2026-07-28)
+Feedback: al autocompletar, los datos se guardaban bien pero NO se veían en la vista previa (form); y el Período salía el mes actual en vez del de la factura.
+- **Fechas se ven al autocompletar**: `datepicker.js` ahora escucha cambios EXTERNOS del input hidden (`hidden.addEventListener('change'/'input', syncLabel)`), así el OCR/autocompletar refleja las fechas en pantalla. El combobox ya lo hacía. Vale para toda la app.
+- **Período correcto**: `parsePeriodoLabel` lee el período de la etiqueta real de la factura ("Liquidación: 6/2026", "Período: 04/2026", "Periodo facturado Septiembre 2024") en vez de deducirlo de una fecha. Validado en EXPENSAS Junio 2026 → período `2026-06` (antes daba Julio por tomar el vencimiento).
+- **Emisión más prudente**: no usa la fecha de vencimiento como emisión (toma la más temprana que no sea el vencimiento; si no hay, la deja vacía).
+- **+4 tests → 433/433.** `gastos.js?v=4`, `datepicker.js?v=4`.

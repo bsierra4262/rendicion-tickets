@@ -126,6 +126,17 @@
     }
     window.parsePagoGasto = parsePago;
 
+    // Período explícito de la factura (ej. "Liquidación: 6/2026", "Período: 04/2026",
+    // "Periodo facturado Septiembre 2024") → "AAAA-MM". Más confiable que deducirlo de una fecha.
+    function parsePeriodoLabel(text) {
+        var low = (text || '').toLowerCase();
+        var m = low.match(/(?:liquidaci[óo]n|per[íi]odo(?:\s+facturado)?)\s*:?\s*(\d{1,2})\s*\/\s*(\d{4})/);
+        if (m) { return m[2] + '-' + ('0' + m[1]).slice(-2); }
+        m = low.match(/(?:per[íi]odo(?:\s+facturado)?|resumen\s+de)\s*:?\s*([a-záéíóú]{3,})\.?\s+(?:de\s+)?(\d{4})/);
+        if (m) { var mm = MESES[m[1].slice(0, 3)]; if (mm) { return m[2] + '-' + ('0' + mm).slice(-2); } }
+        return '';
+    }
+
     function parseFactura(text) {
         text = text || '';
         var dates = findDates(text), amounts = findAmounts(text);
@@ -134,15 +145,21 @@
         var venc = nearLabel(text, ['vencimiento', '1° vto', '1�vto', '1 vto', 'vto.', 'vto ', 'vto:'], dates);
         var total = nearLabel(text, ['total a pagar', 'total del plan', 'total en usd', 'importe total', 'total'], amounts, 300);
         if (!total && amounts.length) { total = amounts.reduce(function (a, b) { return b.v > a.v ? b : a; }, amounts[0]); }
-        if (!emis && dates.length) { emis = dates[0]; }
         if (!venc && dates.length) { venc = dates[dates.length - 1]; }
+        // Emisión: NO usar la fecha de vencimiento como emisión. Tomar la fecha más
+        // temprana que NO sea el vencimiento; si no hay otra, dejar vacío.
+        if (!emis && dates.length) {
+            var cand = dates.filter(function (d) { return !venc || d.iso !== venc.iso; });
+            emis = cand.length ? cand.reduce(function (a, b) { return b.iso < a.iso ? b : a; }, cand[0]) : null;
+        }
+        var periodo = parsePeriodoLabel(text) || (emis ? emis.iso.slice(0, 7) : (venc ? venc.iso.slice(0, 7) : ''));
         return {
             proveedor: detectProv(text),
             valor: total ? total.v : null,
             moneda: isUSD ? 'USD' : 'ARS',
             fecha_factura: emis ? emis.iso : '',
             fecha_vencimiento: venc ? venc.iso : '',
-            periodo: emis ? emis.iso.slice(0, 7) : ''
+            periodo: periodo
         };
     }
     window.parseFacturaGasto = parseFactura; // para tests
