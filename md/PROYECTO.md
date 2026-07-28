@@ -492,3 +492,10 @@ Nuevo módulo pedido por el cliente para gestionar gastos recurrentes (Edenor, e
 - **Menú**: dos solapas sueltas nuevas — "Gastos recurrentes" y "Proveedores" (la vieja de comprobantes pasó a "Prov. comprob." para no confundir).
 - Modelo `app/gastos.php`; páginas `gproveedores`/`gproveedor-form`/`gastos`/`gasto-form`. **+18 tests → 405/405.** Deploy a testing.
 - **Pendiente Fase 2**: OCR de facturas (19 formatos) + pago → autocompletar valor/fechas → matchear proveedor → popup de confirmación.
+
+## 52. v2.45 — Gastos Recurrentes Fase 2: lectura automática de la factura (2026-07-28)
+Automatización pedida: leer la factura y autocompletar. Como las facturas recurrentes son **PDFs digitales con texto**, se extrae el **texto** (más confiable que OCR de foto) y se parsea.
+- **Motor `gastos.js`**: carga pdf.js on-demand (mismo CDN que el escaneo), extrae el texto (`getTextContent`), y un **parser heurístico** saca: proveedor (match contra el maestro por CUIT y por tokens/alias del nombre), valor mensual (etiquetas «total a pagar/total del plan/total en USD» o el importe mayor), fecha de emisión, 1er vencimiento y período. Detecta moneda ARS/USD.
+- **Popup de confirmación** branded: muestra lo leído (proveedor, valor, fechas, período) y con «Usar estos datos» **completa el formulario** (editable). Botón «Leer factura (autocompletar)» junto al input del PDF.
+- **Validado contra 8 facturas reales** (Google, ABL, OSDE, Edenor, Telecom, Claro, Sancor, Net2Phone): **proveedor 8/8 correcto**, fechas correctas, importe correcto en la mayoría (algunos formatos —OSDE/Telecom/Net2Phone— necesitan ajuste fino, que se hace probando; el popup deja corregir). Filosofía asistida, igual que el OCR de comprobantes.
+- **+4 tests → 409/409.** `gastos.js?v=1`. Deploy a testing. Próximo: afinar el importe por proveedor con las pruebas reales.

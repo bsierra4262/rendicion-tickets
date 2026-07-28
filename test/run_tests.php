@@ -776,6 +776,12 @@ ok('gastos: rutas registradas', strpos($idx44, "'gproveedores'") !== false && st
 ok('gastos: nav con Gastos recurrentes + Proveedores', strpos($lay44, "'gastos'       => ['Gastos recurrentes'") !== false && strpos($lay44, "'gproveedores' => ['Proveedores'") !== false);
 ok('gastos: páginas y vistas existen', is_file("$SRC/pages/gproveedores.php") && is_file("$SRC/pages/gasto-form.php") && is_file("$VIEWS/gastos.php") && is_file("$VIEWS/gproveedor-form.php"));
 ok('gastos: form sube factura + pago a Drive', strpos($readf("$SRC/pages/gasto-form.php"), "drive_gasto_subir(\$savedId, \$g, 'factura'") !== false && strpos($readf("$SRC/pages/gasto-form.php"), "'pago'") !== false);
+// Fase 2: lectura automática de la factura (parser + popup)
+$gjs = $readf("$ASSETS/js/gastos.js");
+ok('gastos F2: parser de factura (proveedor/valor/fechas) + expuesto', strpos($gjs, 'function parseFactura') !== false && strpos($gjs, 'window.parseFacturaGasto') !== false && strpos($gjs, 'function detectProv') !== false);
+ok('gastos F2: extrae texto del PDF (pdf.js getTextContent)', strpos($gjs, 'getTextContent') !== false && strpos($gjs, 'pdfjsLib') !== false);
+ok('gastos F2: popup de confirmación que completa el form', strpos($gjs, 'function showPopup') !== false && strpos($gjs, 'function fillForm') !== false && strpos($gjs, 'Usar estos datos') !== false);
+ok('gastos F2: form wire (botón leer + __gprov + gastos.js)', strpos($readf("$VIEWS/gasto-form.php"), 'id="leerFactura"') !== false && strpos($readf("$VIEWS/gasto-form.php"), 'window.__gprov') !== false && strpos($readf("$VIEWS/gasto-form.php"), 'assets/js/gastos.js') !== false);
 
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);

@@ -7,7 +7,7 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
     <a href="<?= e(url('gastos')) ?>" class="btn btn-ghost"><?= icon('back') ?>Volver</a>
 </div>
 
-<form method="post" action="<?= e(url($editing ? 'gasto-form?id=' . $id : 'gasto-form')) ?>" class="comp-form" enctype="multipart/form-data">
+<form method="post" action="<?= e(url($editing ? 'gasto-form?id=' . $id : 'gasto-form')) ?>" class="comp-form" enctype="multipart/form-data" id="gastoForm">
     <?= csrf_field() ?>
     <div class="form-card card">
         <h2 class="sec">Datos del gasto</h2>
@@ -68,10 +68,12 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
 
     <div class="form-card card">
         <h2 class="sec">Archivos (se suben a Drive)</h2>
+        <div id="leerEstado"></div>
         <div class="grid-fields">
             <label class="fld">
                 <span>PDF de la factura</span>
                 <input type="file" name="factura" accept="application/pdf,image/*">
+                <button type="button" class="btn btn-ghost btn-sm" id="leerFactura" style="margin-top:8px"><?= icon('scan', 15) ?>Leer factura (autocompletar)</button>
                 <?php if (!empty($v['drive_factura_link'])): ?><em class="muted small"><?= icon('cloud', 13) ?> Ya cargada · <a href="<?= e($v['drive_factura_link']) ?>" target="_blank" rel="noopener">ver</a></em><?php endif; ?>
             </label>
             <label class="fld">
@@ -87,3 +89,8 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
         <button type="submit" class="btn btn-primary"><?= icon('save') ?><?= $editing ? 'Guardar cambios' : 'Cargar gasto' ?></button>
     </div>
 </form>
+
+<script>
+window.__gprov = <?= json_encode(array_map(fn($p) => ['id' => (int)$p['id'], 'nombre' => $p['nombre'], 'cuit' => $p['cuit'] ?? ''], $proveedores), JSON_UNESCAPED_UNICODE) ?>;
+</script>
+<script defer src="<?= e(url('assets/js/gastos.js')) ?>?v=1"></script>
