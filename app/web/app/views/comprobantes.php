@@ -40,9 +40,8 @@ $qsBase = array_filter([
         <p class="muted"><?= number_format($data['total'], 0, ',', '.') ?> comprobante(s)</p>
     </div>
     <div class="head-actions">
-        <a href="<?= e(url('escanear')) ?>" class="btn btn-accent"><?= icon('camera') ?>Escanear</a>
         <a href="<?= e(url('comprobantes-export') . ($qsBase ? '?' . http_build_query($qsBase) : '')) ?>" class="btn btn-ghost"><?= icon('download') ?>Exportar</a>
-        <a href="<?= e(url('comprobante-form')) ?>" class="btn btn-primary"><?= icon('plus') ?>Nuevo comprobante</a>
+        <a href="<?= e(url('escanear')) ?>" class="btn btn-primary"><?= icon('plus') ?>Nuevo comprobante</a>
     </div>
 </div>
 

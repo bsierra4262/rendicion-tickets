@@ -794,6 +794,15 @@ ok('padrón: ruta registrada + allowlist JSON del auto-logout', strpos($idx46, "
 ok('padrón: autocompletado en Prov. comprob. (NO en el maestro de gastos)', strpos($pv46, 'data-padron-form') !== false && strpos($pv46, 'assets/js/padron.js') !== false);
 ok('padrón: padron.js completa CUIT + razón sin duplicar', $pjs46 !== '' && strpos($pjs46, "api-padron?q=") !== false && strpos($pjs46, 'function pick') !== false && strpos($pjs46, 'razonEl.value') !== false && strpos($pjs46, 'cuitEl.value') !== false);
 
+echo "== v2.47 — menos solapas: Nuevo comprobante→Escáner + Nuevo gasto coherente ==\n";
+$lay47 = $readf("$VIEWS/layout.php");
+$cmp47 = $readf("$VIEWS/comprobantes.php");
+$gf47  = $readf("$VIEWS/gasto-form.php");
+ok('nav: se quitó la solapa Escanear', strpos($lay47, "'escanear'     => ['Escanear'") === false);
+ok('comprobantes: «Nuevo comprobante» va al escáner', (bool)preg_match('/url\(\x27escanear\x27\)[^>]*>[^<]*<\?= icon\(\x27plus\x27\).*Nuevo comprobante/s', $cmp47) || (strpos($cmp47, "url('escanear')") !== false && strpos($cmp47, 'Nuevo comprobante') !== false && strpos($cmp47, "url('comprobante-form')) ?>\" class=\"btn btn-primary\"") === false));
+ok('gasto-form: diseño coherente con el escáner (scan-panel + filefield + secciones)', strpos($gf47, 'scan-panel') !== false && strpos($gf47, 'data-filefield') !== false && strpos($gf47, '1 · Factura') !== false && strpos($gf47, '2 · Revisá y corregí') !== false);
+ok('gasto-form: botón Leer factura + wire de gastos.js intactos', strpos($gf47, 'id="leerFactura"') !== false && strpos($gf47, 'id="gastoForm"') !== false && strpos($gf47, 'assets/js/gastos.js') !== false);
+
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);
 if ($F) { echo "FALLARON:\n - " . implode("\n - ", $fails) . "\n"; }

@@ -9,8 +9,8 @@
 </script>
 <div class="page-head">
     <div>
-        <h1>Escanear ticket</h1>
-        <p class="muted">Sacá o subí una foto; el OCR lee los datos y los revisás antes de guardar</p>
+        <h1>Nuevo comprobante</h1>
+        <p class="muted">Sacá o subí una foto (o PDF); el OCR lee los datos y los revisás antes de guardar</p>
     </div>
     <a href="<?= e(url('comprobantes')) ?>" class="btn btn-ghost"><?= icon('back') ?>Volver</a>
 </div>

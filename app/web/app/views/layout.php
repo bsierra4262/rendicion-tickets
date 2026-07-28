@@ -7,7 +7,6 @@ $appName = $GLOBALS['CONFIG']['app']['name'] ?? 'Rendición de Tickets';
 $nav = [
     'dashboard'    => ['Panel', 'dashboard'],
     'comprobantes' => ['Comprobantes', 'receipt'],
-    'escanear'     => ['Escanear', 'scan'],
     'gastos'       => ['Gastos recurrentes', 'repeat'],
     'reportes'     => ['Reportes', 'chart'],
     'gproveedores' => ['Proveedores', 'users'],

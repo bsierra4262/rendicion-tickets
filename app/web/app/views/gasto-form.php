@@ -3,21 +3,43 @@ $val = fn($k) => e((string)($v[$k] ?? ''));
 $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</em>' : '';
 ?>
 <div class="page-head">
-    <div><h1><?= $editing ? 'Editar gasto' : 'Nuevo gasto recurrente' ?></h1></div>
+    <div>
+        <h1><?= $editing ? 'Editar gasto' : 'Nuevo gasto recurrente' ?></h1>
+        <p class="muted">Subí la factura y leela para autocompletar; revisá y guardá. La factura y el pago se respaldan en Drive.</p>
+    </div>
     <a href="<?= e(url('gastos')) ?>" class="btn btn-ghost"><?= icon('back') ?>Volver</a>
 </div>
 
 <form method="post" action="<?= e(url($editing ? 'gasto-form?id=' . $id : 'gasto-form')) ?>" class="comp-form" enctype="multipart/form-data" id="gastoForm">
     <?= csrf_field() ?>
+
+    <div class="form-card card scan-panel">
+        <h2 class="sec">1 · Factura</h2>
+        <div class="filefield" data-filefield>
+            <input class="filefield__input" type="file" name="factura" id="facturaFile" accept="application/pdf,image/*">
+            <label class="filefield__drop" for="facturaFile">
+                <?= icon('file', 26) ?>
+                <span class="filefield__cta">Elegí el PDF de la factura (o arrastralo)</span>
+                <span class="filefield__hint">PDF preferentemente. Después tocá <strong>«Leer factura»</strong> y se autocompletan proveedor, valor y fechas.</span>
+            </label>
+            <p class="filefield__name" data-empty="Sin archivo seleccionado">Sin archivo seleccionado</p>
+        </div>
+        <button type="button" id="leerFactura" class="btn btn-primary" style="margin-top:.85rem"><?= icon('scan') ?>Leer factura (autocompletar)</button>
+        <div id="leerEstado" style="margin-top:8px"></div>
+        <?php if (!empty($v['drive_factura_link'])): ?>
+            <p class="muted small" style="margin-top:8px"><?= icon('cloud', 14) ?> Factura ya cargada · <a href="<?= e($v['drive_factura_link']) ?>" target="_blank" rel="noopener">ver en Drive</a></p>
+        <?php endif; ?>
+    </div>
+
+    <h2 class="sec" style="margin:4px 0 -6px">2 · Revisá y corregí los datos</h2>
     <div class="form-card card">
-        <h2 class="sec">Datos del gasto</h2>
         <div class="grid-fields">
             <label class="fld">
                 <span>Proveedor *</span>
                 <select name="proveedor_id" required>
                     <option value="">Elegí…</option>
                     <?php foreach ($proveedores as $p): ?>
-                        <option value="<?= (int)$p['id'] ?>" data-rubro="<?= e($p['rubro'] ?? '') ?>" <?= (int)($v['proveedor_id'] ?? 0) === (int)$p['id'] ? 'selected' : '' ?>>
+                        <option value="<?= (int)$p['id'] ?>" <?= (int)($v['proveedor_id'] ?? 0) === (int)$p['id'] ? 'selected' : '' ?>>
                             <?= e($p['nombre']) ?><?= !empty($p['rubro']) ? ' · ' . e($p['rubro']) : '' ?>
                         </option>
                     <?php endforeach; ?>
@@ -36,8 +58,8 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
             <label class="fld">
                 <span>Moneda</span>
                 <select name="moneda">
-                    <option value="ARS" <?= ($v['moneda'] ?? 'ARS') === 'ARS' ? 'selected' : '' ?>>ARS ($)</option>
-                    <option value="USD" <?= ($v['moneda'] ?? '') === 'USD' ? 'selected' : '' ?>>USD (US$)</option>
+                    <option value="ARS" <?= ($v['moneda'] ?? 'ARS') === 'ARS' ? 'selected' : '' ?>>Pesos (ARS)</option>
+                    <option value="USD" <?= ($v['moneda'] ?? '') === 'USD' ? 'selected' : '' ?>>Dólares (USD)</option>
                 </select>
             </label>
             <label class="fld">
@@ -61,32 +83,30 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
             </label>
             <label class="fld" style="grid-column:1/-1">
                 <span>Observaciones</span>
-                <input type="text" name="observaciones" value="<?= $val('observaciones') ?>" maxlength="500">
+                <input type="text" name="observaciones" value="<?= $val('observaciones') ?>" maxlength="500" placeholder="Notas (opcional)">
             </label>
         </div>
     </div>
 
     <div class="form-card card">
-        <h2 class="sec">Archivos (se suben a Drive)</h2>
-        <div id="leerEstado"></div>
-        <div class="grid-fields">
-            <label class="fld">
-                <span>PDF de la factura</span>
-                <input type="file" name="factura" accept="application/pdf,image/*">
-                <button type="button" class="btn btn-ghost btn-sm" id="leerFactura" style="margin-top:8px"><?= icon('scan', 15) ?>Leer factura (autocompletar)</button>
-                <?php if (!empty($v['drive_factura_link'])): ?><em class="muted small"><?= icon('cloud', 13) ?> Ya cargada · <a href="<?= e($v['drive_factura_link']) ?>" target="_blank" rel="noopener">ver</a></em><?php endif; ?>
+        <h2 class="sec">3 · Comprobante de pago (opcional)</h2>
+        <div class="filefield" data-filefield>
+            <input class="filefield__input" type="file" name="pago" id="pagoFile" accept="application/pdf,image/*">
+            <label class="filefield__drop" for="pagoFile">
+                <?= icon('file', 26) ?>
+                <span class="filefield__cta">Elegí el PDF del pago (o arrastralo)</span>
+                <span class="filefield__hint">Se guarda junto a la factura en Drive (Proveedor / Año / Mes).</span>
             </label>
-            <label class="fld">
-                <span>PDF del pago</span>
-                <input type="file" name="pago" accept="application/pdf,image/*">
-                <?php if (!empty($v['drive_pago_link'])): ?><em class="muted small"><?= icon('cloud', 13) ?> Ya cargado · <a href="<?= e($v['drive_pago_link']) ?>" target="_blank" rel="noopener">ver</a></em><?php endif; ?>
-            </label>
+            <p class="filefield__name" data-empty="Sin archivo seleccionado">Sin archivo seleccionado</p>
         </div>
+        <?php if (!empty($v['drive_pago_link'])): ?>
+            <p class="muted small" style="margin-top:8px"><?= icon('cloud', 14) ?> Pago ya cargado · <a href="<?= e($v['drive_pago_link']) ?>" target="_blank" rel="noopener">ver en Drive</a></p>
+        <?php endif; ?>
     </div>
 
     <div class="form-actions">
+        <button type="submit" class="btn btn-accent"><?= icon('save') ?><?= $editing ? 'Guardar cambios' : 'Guardar gasto' ?></button>
         <a href="<?= e(url('gastos')) ?>" class="btn btn-ghost">Cancelar</a>
-        <button type="submit" class="btn btn-primary"><?= icon('save') ?><?= $editing ? 'Guardar cambios' : 'Cargar gasto' ?></button>
     </div>
 </form>
 

@@ -507,3 +507,9 @@ Pedido del cliente: aprovechar el padrón nacional que ya descargamos para no ca
 - **`padron.js`**: al escribir la razón social (o el CUIT) en "Agregar proveedor", muestra un desplegable con las coincidencias del padrón; al elegir una se completan **CUIT + razón** (sin tipear ni duplicar). El concepto sugerido sigue aprendiéndose solo.
 - **Probado en producción**: `q=edenor` → "EMPRESA DISTRIBUIDORA Y COMERCIALIZADORA NORTE (EDENOR S A)"; `q=falabella` → todas las variantes con su CUIT.
 - **+5 tests → 414/414.** Deploy a testing.
+
+## 54. v2.47 — Menos solapas: "Nuevo comprobante" abre el escáner + "Nuevo gasto" coherente (2026-07-28)
+Mejora de UX pedida por el cliente para reducir solapas y unificar el flujo de alta.
+- **Comprobantes**: se **quitó la solapa "Escanear"** del menú. El botón **"Nuevo comprobante"** ahora abre directamente el **escáner** (que ya tiene el OCR + los campos para revisar/corregir). El título del escáner pasó a «Nuevo comprobante».
+- **Gastos recurrentes**: "Nuevo gasto" abre el formulario que **analiza la factura y autocompleta**, ahora con el **mismo diseño del escáner**: «1 · Factura» (zona de subida + botón «Leer factura (autocompletar)»), «2 · Revisá y corregí los datos», «3 · Comprobante de pago (opcional)». Coherente y consistente con el resto de la app.
+- **+4 tests → 418/418.** Deploy a testing.
