@@ -2,7 +2,7 @@
 // Crea o actualiza el usuario administrador. Uso (CLI):
 //   TICKETS_CONFIG=/ruta/config.php php create_admin.php <email> [password] [nombre]
 declare(strict_types=1);
-require '/home/u566451014/domains/intellihelp.tech/public_html/tickets/app/bootstrap.php';
+require '/home/u566451014/domains/intellihelp.tech/public_html/comprobantes/app/bootstrap.php';
 
 $email  = strtolower(trim($argv[1] ?? 'bsierra4262@gmail.com'));
 $pass   = $argv[2] ?? substr(bin2hex(random_bytes(8)), 0, 12);

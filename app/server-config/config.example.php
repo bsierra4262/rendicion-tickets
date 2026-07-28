@@ -20,7 +20,7 @@ return [
     'app' => [
         'name'      => 'Rendición de Tickets',
         'org'       => 'TU_ORGANIZACION',                        // marca del pie / alt del logo
-        'base_path' => '/tickets',                               // '' si se sirve en la raíz del dominio
+        'base_path' => '/comprobantes',                               // '' si se sirve en la raíz del dominio
         'env'       => 'prod',                                   // 'prod' | 'dev'
         'timezone'  => 'America/Argentina/Buenos_Aires',
         'storage'   => '/home/USUARIO/tickets_storage',          // uploads, fuera del web root

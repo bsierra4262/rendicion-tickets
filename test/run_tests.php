@@ -9,11 +9,11 @@
 error_reporting(E_ALL);
 
 if (!defined('BASE_PATH')) {
-    define('BASE_PATH', '/tickets');
+    define('BASE_PATH', '/comprobantes');
 }
 $_SERVER['HTTP_HOST'] = $_SERVER['HTTP_HOST'] ?? 'intellihelp.tech';
 $GLOBALS['CONFIG'] = [
-    'app'    => ['name' => 'Test', 'base_path' => '/tickets'],
+    'app'    => ['name' => 'Test', 'base_path' => '/comprobantes'],
     'google' => [
         'client_id'      => 'CID.apps.googleusercontent.com',
         'client_secret'  => 'SECRET',
@@ -77,7 +77,7 @@ eq('periodo_de',                           periodo_de('2026-06-15'), '2026-06');
 echo "== Google OAuth ==\n";
 $ru = google_redirect_uri();
 ok('redirect_uri es HTTPS  (regresion BUG #1)', strpos($ru, 'https://') === 0);
-eq('redirect_uri exacto',                  $ru, 'https://intellihelp.tech/tickets/google-callback');
+eq('redirect_uri exacto',                  $ru, 'https://intellihelp.tech/comprobantes/google-callback');
 $au = google_auth_url('estado123');
 has('auth_url response_type=code',         $au, 'response_type=code');
 has('auth_url scope openid',               $au, 'scope=openid');

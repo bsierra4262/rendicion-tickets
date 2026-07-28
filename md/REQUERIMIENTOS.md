@@ -22,7 +22,7 @@
 - [ ] Login **100% Google Workspace** (dominio intellihelp.tech).
 - [ ] Diseño **profesional**, **totalmente responsive**, **iconos SVG**.
 - [ ] **Ventanas emergentes profesionales** (modal branded, nunca `confirm()` del navegador).
-- [ ] Solo se sube al server el contenido de **`app/`** (webroot `public_html/tickets`).
+- [ ] Solo se sube al server el contenido de **`app/`** (webroot `public_html/comprobantes`).
 
 ## 🟣 OCR / Escaneo
 - [ ] **Solo PaddleOCR** (PP-OCRv6 **medium**, el más avanzado). **Tesseract DESHABILITADO** hasta nuevo aviso.

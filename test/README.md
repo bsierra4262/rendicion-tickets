@@ -10,7 +10,7 @@ Validan la lógica pura (CUIT módulo‑11, parseo de importes AR/US, formato de
 php test/run_tests.php
 
 # Contra el código desplegado (en el servidor)
-TICKETS_SRC=/home/u566451014/domains/intellihelp.tech/public_html/tickets/app \
+TICKETS_SRC=/home/u566451014/domains/intellihelp.tech/public_html/comprobantes/app \
   php /home/u566451014/tickets_build/test/run_tests.php
 ```
 Sale con código 0 si todo pasa, 1 si algo falla.

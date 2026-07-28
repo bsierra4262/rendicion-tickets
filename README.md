@@ -45,7 +45,7 @@ El sistema prioriza el **QR / código de barras de ARCA** como fuente de verdad 
 del cliente, sin servicios de OCR de pago ni certificados, y todo alta queda en estado de
 borrador hasta su **revisión y aprobación** por un operador.
 
-> Demo (privada): `https://intellihelp.tech/tickets`
+> Demo (privada): `https://intellihelp.tech/comprobantes`
 
 ## Características
 

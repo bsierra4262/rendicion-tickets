@@ -6,7 +6,7 @@
 ---
 
 ## 1. Objetivo
-Reemplazar el Excel **"INTELLIHELP - Rendición de Tikets"** por una **aplicación web profesional** que replique sus categorías y funcionalidades, y las mejore. Desplegada en Hostinger, accesible en **https://intellihelp.tech/tickets/**.
+Reemplazar el Excel **"INTELLIHELP - Rendición de Tikets"** por una **aplicación web profesional** que replique sus categorías y funcionalidades, y las mejore. Desplegada en Hostinger, accesible en **https://intellihelp.tech/comprobantes/**.
 
 ## 2. Qué es (dominio)
 Sistema de **rendición de gastos / comprobantes que la empresa RECIBE** de proveedores (Argentina: Fact A/B/C, Ticket fiscal "TK", CUIT, IVA, percepciones).
@@ -40,7 +40,7 @@ Sistema de **rendición de gastos / comprobantes que la empresa RECIBE** de prov
 ### Local (`C:\Users\bsierra\Desktop\APP Tickets\`)
 ```
 app/                      <- TODO el proyecto (se sube al server)
-  web/                    <- web root -> public_html/tickets
+  web/                    <- web root -> public_html/comprobantes
     index.php  .htaccess
     app/  (bootstrap, db, helpers, auth, google, pages/, views/)
     assets/css/app.css
@@ -52,7 +52,7 @@ INTELLIHELP - Rendicion de Tikets (20260708).xlsx   <- fuente (NO se sube)
 ```
 ### Servidor (Hostinger)
 ```
-/home/u566451014/domains/intellihelp.tech/public_html/tickets/   <- app (web)
+/home/u566451014/domains/intellihelp.tech/public_html/comprobantes/   <- app (web)
 /home/u566451014/tickets_config/config.php                        <- config segura (600)
 /home/u566451014/tickets_storage/                                 <- uploads (fuera del web)
 /home/u566451014/tickets_build/                                   <- staging (sql, tests)
@@ -81,7 +81,7 @@ Tablas: **usuarios** (login+rol), **proveedores** (CUIT único, validado), **con
 - **SSH:** `151.106.96.54:65002`, usuario `u566451014` (contraseñas en hPanel, no en este doc).
 - Despliegue por **SFTP con paramiko** (scripts `ssh_run.py` / `sftp_put.py`).
 - **Regla de despliegue:** SOLO se sube el contenido de `app/`. `test/` y `md/` quedan **solo local**.
-- **Login Google:** Client ID `998033647027-...apps.googleusercontent.com`; secret y dominio cargados solo en el config del servidor. Redirect URI: `https://intellihelp.tech/tickets/google-callback`.
+- **Login Google:** Client ID `998033647027-...apps.googleusercontent.com`; secret y dominio cargados solo en el config del servidor. Redirect URI: `https://intellihelp.tech/comprobantes/google-callback`.
 
 ## 11. Estado actual
 - [x] Investigación y decisiones
