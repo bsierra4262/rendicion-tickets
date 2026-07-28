@@ -520,3 +520,12 @@ Bug reportado: al guardar un gasto con PDF, la página "quedaba cargando y nunca
 - **"Leer pago"**: botón nuevo que lee el PDF del pago → extrae la **fecha de pago** y marca el gasto como **Pagado** (y completa el valor si falta).
 - **Parser por RUBRO**: `detectProv` ahora matchea proveedor también por el **rubro** (ej. una factura de "EXPENSAS" detecta al proveedor cuyo rubro es EXPENSAS). Validado contra facturas reales: EXPENSAS ahora se detecta, sin romper los demás.
 - **+6 tests → 424/424.** `gastos.js?v=2`. Deploy a testing.
+
+## 56. v2.49 — Gastos: ajustes tras prueba real (form visible, Drive sincrónico/carpeta real, CRON) (2026-07-28)
+Feedback del cliente probando en vivo con facturas reales de EXPENSAS:
+- **El form ahora se completa VISIBLE**: `setVal` de gastos.js despacha `input`+`change` (como el OCR de comprobantes), así el combobox (proveedor/moneda) y el datepicker (fechas) reflejan lo leído. Antes se guardaba bien pero no se veía en pantalla.
+- **Subida a Drive SINCRÓNICA** (se revirtió el 2° plano): al volver a la lista, los archivos ya están y se ven los links de Factura/Pago (con 2° plano el usuario creía que no se subían). Se mantiene el connect-timeout para no colgar si no llega a Google.
+- **Carpeta de Drive por nombre REAL**: nuevo campo `drive_folder` en el maestro; se subían a una carpeta con la razón social (ej. "ADMINISTRACION SILVANA…") en vez de la carpeta real "02.EXPENSAS". Se sembraron las **19 carpetas reales** (01.EDENOR … 19.PERSONAL NICOLAS) y `drive_gasto_subir` las usa. Editable en el form del proveedor.
+- **Confirmado**: el parser lee el **texto real del PDF** (la factura de expensas contiene la palabra "EXPENSAS" → match por rubro), no el nombre del archivo.
+- **CRON limpiado** (truncate actividad) — el cliente pidió limpiarlo en cada tanda de testing.
+- **+7 tests → 429/429.** `gastos.js?v=3`. Deploy a testing.

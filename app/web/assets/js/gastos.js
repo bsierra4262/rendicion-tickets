@@ -191,7 +191,12 @@
 
     function setVal(name, value) {
         var el = form.querySelector('[name="' + name + '"]');
-        if (el && value != null && value !== '') { el.value = value; }
+        if (!el || value == null || value === '') { return; }
+        el.value = value;
+        // 'input' + 'change' para que el combobox (proveedor/moneda) y el datepicker
+        // (fechas) reflejen el valor en pantalla — igual que el OCR de comprobantes.
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
     }
     function fillForm(d) {
         if (d.proveedor) { setVal('proveedor_id', d.proveedor.id); }

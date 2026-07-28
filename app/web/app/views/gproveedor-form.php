@@ -55,6 +55,11 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
                 <input type="text" name="cuit" value="<?= $val('cuit') ?>" maxlength="13" placeholder="30-12345678-9">
                 <?= $err('cuit') ?>
             </label>
+            <label class="fld">
+                <span>Carpeta en Drive</span>
+                <input type="text" name="drive_folder" value="<?= $val('drive_folder') ?>" maxlength="150" placeholder="ej. 02.EXPENSAS">
+                <em class="muted small">Nombre exacto de la carpeta del proveedor en Drive. Si se deja vacío, usa el nombre del proveedor.</em>
+            </label>
             <?php if ($editing): ?>
             <label class="fld">
                 <span>Estado</span>

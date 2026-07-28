@@ -77,6 +77,8 @@ function gp_validar(array $in): array
     if ($cuit !== '' && !validar_cuit($cuit)) { $err['cuit'] = 'CUIT inválido (dígito verificador).'; }
     $c['cuit'] = $cuit !== '' ? $cuit : null;
 
+    $c['drive_folder'] = trim((string)($in['drive_folder'] ?? '')) ?: null;
+
     return [$err, $c];
 }
 
@@ -90,9 +92,9 @@ function gp_save(array $c, ?int $id, bool $activo = true): array
 
     if ($id) {
         q("UPDATE gastos_proveedores SET nombre=?, rubro=?, categoria=?, momento_facturacion=?, tipo_factura=?,
-                  vigencia_descuento=?, nombre_gasto=?, cuit=?, activo=? WHERE id=?",
+                  vigencia_descuento=?, nombre_gasto=?, cuit=?, drive_folder=?, activo=? WHERE id=?",
             [$c['nombre'], $c['rubro'], $c['categoria'], $c['momento_facturacion'], $c['tipo_factura'],
-             $c['vigencia_descuento'], $c['nombre_gasto'], $c['cuit'], $activo ? 1 : 0, $id]);
+             $c['vigencia_descuento'], $c['nombre_gasto'], $c['cuit'], $c['drive_folder'], $activo ? 1 : 0, $id]);
         if (function_exists('log_app')) {
             log_app('gproveedor.editar', ['entidad' => 'gasto_proveedor', 'entidad_id' => $id,
                 'detalle' => '«' . $c['nombre'] . '» · ' . ($c['rubro'] ?? '') . ' · ' . $c['categoria']]);
@@ -101,9 +103,9 @@ function gp_save(array $c, ?int $id, bool $activo = true): array
     }
     $orden = (int) db()->query('SELECT COALESCE(MAX(orden),0)+10 FROM gastos_proveedores')->fetchColumn();
     q("INSERT INTO gastos_proveedores (nombre, rubro, categoria, momento_facturacion, tipo_factura,
-              vigencia_descuento, nombre_gasto, cuit, orden, activo) VALUES (?,?,?,?,?,?,?,?,?,1)",
+              vigencia_descuento, nombre_gasto, cuit, drive_folder, orden, activo) VALUES (?,?,?,?,?,?,?,?,?,?,1)",
         [$c['nombre'], $c['rubro'], $c['categoria'], $c['momento_facturacion'], $c['tipo_factura'],
-         $c['vigencia_descuento'], $c['nombre_gasto'], $c['cuit'], $orden]);
+         $c['vigencia_descuento'], $c['nombre_gasto'], $c['cuit'], $c['drive_folder'], $orden]);
     $nid = (int) db()->lastInsertId();
     if (function_exists('log_app')) {
         log_app('gproveedor.crear', ['entidad' => 'gasto_proveedor', 'entidad_id' => $nid,
@@ -137,34 +139,34 @@ function gp_restore(int $id): void
 /** Siembra los proveedores recurrentes reales (idempotente, no duplica). */
 function gp_seed(): int
 {
-    // [nombre, rubro, categoria, momento]
+    // [nombre, rubro, categoria, momento, carpeta_drive] — la carpeta espeja las del Drive real.
     $data = [
-        ['EDENOR', 'ELECTRICIDAD', 'recurrente', 'vencido'],
-        ['ADMINISTRACION SILVANA LORENA GUAYCOCHEA', 'EXPENSAS', 'recurrente', 'adelantado'],
-        ['MAURICIO SZTERN', 'ALQUILER OFICINA', 'recurrente', 'adelantado'],
-        ['ESTUDIO COLLINET', 'ESTUDIO CONTABLE', 'recurrente', 'vencido'],
-        ['NET2PHONE', 'SERVICIO TELEFONIA', 'recurrente', 'vencido'],
-        ['GUPAZ', 'SERVICIO AGUA', 'recurrente', 'vencido'],
-        ['CLARO EMPRESAS', 'SERVICIO CELULARES', 'recurrente', 'vencido'],
-        ['TELECOM EMPRESAS', 'SERVICIO INTERNET', 'recurrente', 'vencido'],
-        ['SANCOR SALUD', 'MEDICINA PREPAGA', 'recurrente', 'adelantado'],
-        ['JOI SEGUROS', 'SEGUROS', 'recurrente', 'vencido'],
-        ['GCBA - ABL', 'ABL', 'recurrente', 'vencido'],
-        ['GCBA - PATENTES', 'PATENTES', 'recurrente', 'vencido'],
-        ['ARCA', 'IMPUESTOS', 'recurrente', 'vencido'],
-        ['BANCOS', 'BANCOS', 'recurrente', 'vencido'],
-        ['GOOGLE SUITE', 'GOOGLE SUITE', 'recurrente', 'vencido'],
-        ['HOSPITAL ALEMAN', 'MEDICINA PREPAGA', 'recurrente', 'adelantado'],
-        ['OSDE', 'MEDICINA PREPAGA', 'recurrente', 'adelantado'],
-        ['CHATGPT', 'INTELIGENCIA ARTIFICIAL', 'recurrente', 'vencido'],
-        ['PERSONAL FLOW', 'SERVICIO CELULARES', 'recurrente', 'vencido'],
+        ['EDENOR', 'ELECTRICIDAD', 'recurrente', 'vencido', '01.EDENOR'],
+        ['ADMINISTRACION SILVANA LORENA GUAYCOCHEA', 'EXPENSAS', 'recurrente', 'adelantado', '02.EXPENSAS'],
+        ['MAURICIO SZTERN', 'ALQUILER OFICINA', 'recurrente', 'adelantado', '03.MAURICIO STERN'],
+        ['ESTUDIO COLLINET', 'ESTUDIO CONTABLE', 'recurrente', 'vencido', '04.ESTUDIO COLLINET'],
+        ['NET2PHONE', 'SERVICIO TELEFONIA', 'recurrente', 'vencido', '05.NET2PHONE'],
+        ['GUPAZ', 'SERVICIO AGUA', 'recurrente', 'vencido', '06.GUPAZ - EVERFULL'],
+        ['CLARO EMPRESAS', 'SERVICIO CELULARES', 'recurrente', 'vencido', '07.CLARO EMPRESAS'],
+        ['TELECOM EMPRESAS', 'SERVICIO INTERNET', 'recurrente', 'vencido', '08.TELECOM EMPRESAS'],
+        ['SANCOR SALUD', 'MEDICINA PREPAGA', 'recurrente', 'adelantado', '09.SANCOR SALUD'],
+        ['JOI SEGUROS', 'SEGUROS', 'recurrente', 'vencido', '10.SEGUROS'],
+        ['GCBA - ABL', 'ABL', 'recurrente', 'vencido', '11.ABL OFICINA'],
+        ['GCBA - PATENTES', 'PATENTES', 'recurrente', 'vencido', '12.PATENTES VEHICULOS'],
+        ['ARCA', 'IMPUESTOS', 'recurrente', 'vencido', '13.ARCA'],
+        ['BANCOS', 'BANCOS', 'recurrente', 'vencido', '14.BANCOS'],
+        ['GOOGLE SUITE', 'GOOGLE SUITE', 'recurrente', 'vencido', '15.GOOGLE SUITE'],
+        ['HOSPITAL ALEMAN', 'MEDICINA PREPAGA', 'recurrente', 'adelantado', '16.HOSPITAL ALEMAN'],
+        ['OSDE', 'MEDICINA PREPAGA', 'recurrente', 'adelantado', '17.OSDE'],
+        ['CHATGPT', 'INTELIGENCIA ARTIFICIAL', 'recurrente', 'vencido', '18.CHATGPT NICOLAS'],
+        ['PERSONAL FLOW', 'SERVICIO CELULARES', 'recurrente', 'vencido', '19.PERSONAL NICOLAS'],
     ];
     $n = 0; $orden = 10;
-    foreach ($data as [$nombre, $rubro, $cat, $mom]) {
+    foreach ($data as [$nombre, $rubro, $cat, $mom, $folder]) {
         $ex = q('SELECT id FROM gastos_proveedores WHERE LOWER(nombre) = LOWER(?) LIMIT 1', [$nombre])->fetch();
         if ($ex) { continue; }
-        q("INSERT INTO gastos_proveedores (nombre, rubro, categoria, momento_facturacion, orden, activo)
-           VALUES (?,?,?,?,?,1)", [$nombre, $rubro, $cat, $mom, $orden]);
+        q("INSERT INTO gastos_proveedores (nombre, rubro, categoria, momento_facturacion, drive_folder, orden, activo)
+           VALUES (?,?,?,?,?,?,1)", [$nombre, $rubro, $cat, $mom, $folder, $orden]);
         $orden += 10; $n++;
     }
     return $n;
@@ -174,7 +176,8 @@ function gp_seed(): int
 //  Entradas de gastos recurrentes
 // ============================================================
 
-const GR_SELECT = "SELECT g.*, p.nombre AS prov_nombre, p.rubro AS prov_rubro, p.categoria AS prov_categoria
+const GR_SELECT = "SELECT g.*, p.nombre AS prov_nombre, p.rubro AS prov_rubro, p.categoria AS prov_categoria,
+                          p.drive_folder AS prov_drive_folder
                      FROM gastos_recurrentes g
                      LEFT JOIN gastos_proveedores p ON p.id = g.proveedor_id";
 

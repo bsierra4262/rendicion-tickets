@@ -467,7 +467,9 @@ function drive_gasto_subir(int $gastoId, array $g, string $tipo, array $file): v
         $token = drive_access_token();
         if (!$token) { throw new \RuntimeException('sin access token'); }
         $root    = drive_gastos_root();
-        $prov    = drive_sanitizar((string)($g['prov_nombre'] ?? 'PROVEEDOR'));
+        // Carpeta del proveedor: usa la carpeta configurada (espeja las del Drive real,
+        // ej. "02.EXPENSAS"); si no hay, cae al nombre del proveedor.
+        $prov    = drive_sanitizar((string)(!empty($g['prov_drive_folder']) ? $g['prov_drive_folder'] : ($g['prov_nombre'] ?? 'PROVEEDOR')));
         $periodo = (string)($g['periodo'] ?? date('Y-m'));
         $anio    = substr($periodo, 0, 4);
         $mesN    = drive_carpeta_mes($periodo . '-01');

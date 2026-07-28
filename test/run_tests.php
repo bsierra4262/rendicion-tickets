@@ -809,12 +809,23 @@ $gd48  = $readf("$SRC/google_drive.php");
 $gfp48 = $readf("$SRC/pages/gasto-form.php");
 $gfv48 = $readf("$VIEWS/gasto-form.php");
 $gjs48 = $readf("$ASSETS/js/gastos.js");
-ok('gasto: helper finish_request (responde y sigue en 2° plano)', strpos($hlp48, 'function finish_request') !== false && strpos($hlp48, 'finish_request()') !== false);
-ok('gasto: guardado NO bloquea — Drive en segundo plano', strpos($gfp48, 'finish_request();') !== false && strpos($gfp48, 'drive_gasto_subir($savedId') !== false && stripos($gfp48, 'segundo plano') !== false);
+ok('gasto: helper finish_request disponible (utilidad)', strpos($hlp48, 'function finish_request') !== false);
+ok('gasto: guardado sube a Drive SINCRÓNICO (links al volver, como comprobantes)', strpos($gfp48, 'drive_gasto_subir($savedId') !== false && strpos($gfp48, "redirect('gastos')") !== false && strpos($gfp48, 'SINCR') !== false);
 ok('drive: connect timeout (no cuelga si no llega a Google)', strpos($gd48, 'CURLOPT_CONNECTTIMEOUT') !== false);
 ok('gasto: parser matchea también por RUBRO (ej. EXPENSAS)', strpos($gjs48, "p.nombre + ' ' + (p.rubro") !== false);
 ok('gasto: Leer PAGO (fecha + marca pagado)', strpos($gjs48, 'function parsePago') !== false && strpos($gjs48, "setVal('estado', 'pagado')") !== false && strpos($gfv48, 'id="leerPago"') !== false);
 ok('gasto: __gprov con rubro + gastos.js v2', strpos($gfv48, "'rubro' => \$p['rubro']") !== false && (bool)preg_match('/gastos\.js[^\n]*\?v=2/', $gfv48));
+
+echo "== v2.49 — fixes de gastos: form se completa visible + carpeta Drive real ==\n";
+$gjs49 = $readf("$ASSETS/js/gastos.js");
+$gs49  = $readf("$SRC/gastos.php");
+$gd49  = $readf("$SRC/google_drive.php");
+$gpf49 = $readf("$VIEWS/gproveedor-form.php");
+ok('gasto: setVal despacha input+change (combobox/datepicker se sincronizan)', strpos($gjs49, "new Event('input'") !== false && strpos($gjs49, "new Event('change'") !== false && strpos($gjs49, 'function setVal') !== false);
+ok('gasto: maestro con carpeta de Drive (drive_folder) + seed real', strpos($gs49, 'drive_folder') !== false && strpos($gs49, "'02.EXPENSAS'") !== false && strpos($gs49, "'01.EDENOR'") !== false);
+ok('gasto: Drive usa la carpeta configurada (no la razón social)', strpos($gd49, "prov_drive_folder") !== false);
+ok('gasto: campo Carpeta de Drive en el form del proveedor', strpos($gpf49, 'name="drive_folder"') !== false);
+ok('gasto: GR_SELECT trae drive_folder del proveedor', strpos($gs49, 'p.drive_folder AS prov_drive_folder') !== false);
 
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);
