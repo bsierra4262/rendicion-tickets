@@ -499,3 +499,11 @@ Automatización pedida: leer la factura y autocompletar. Como las facturas recur
 - **Popup de confirmación** branded: muestra lo leído (proveedor, valor, fechas, período) y con «Usar estos datos» **completa el formulario** (editable). Botón «Leer factura (autocompletar)» junto al input del PDF.
 - **Validado contra 8 facturas reales** (Google, ABL, OSDE, Edenor, Telecom, Claro, Sancor, Net2Phone): **proveedor 8/8 correcto**, fechas correctas, importe correcto en la mayoría (algunos formatos —OSDE/Telecom/Net2Phone— necesitan ajuste fino, que se hace probando; el popup deja corregir). Filosofía asistida, igual que el OCR de comprobantes.
 - **+4 tests → 409/409.** `gastos.js?v=1`. Deploy a testing. Próximo: afinar el importe por proveedor con las pruebas reales.
+
+## 53. v2.46 — Buscador del padrón al agregar proveedor (Prov. comprob.) (2026-07-28)
+Pedido del cliente: aprovechar el padrón nacional que ya descargamos para no cargar proveedores duplicados en **"Prov. comprob."** (la sección de comprobantes, NO el maestro de gastos). Como el padrón son 1,13 M de empresas (tabla de consulta), no se vuelca la lista entera: se agrega un **buscador con autocompletado**.
+- **`padron_nac_buscar($term)`**: búsqueda amplia por CUIT (prefijo) o razón social (FULLTEXT BOOLEAN con prefijos), devuelve hasta 12 coincidencias.
+- **Endpoint `api-padron`** (JSON, login): `?q=` → coincidencias del padrón. En la allowlist JSON del auto-logout.
+- **`padron.js`**: al escribir la razón social (o el CUIT) en "Agregar proveedor", muestra un desplegable con las coincidencias del padrón; al elegir una se completan **CUIT + razón** (sin tipear ni duplicar). El concepto sugerido sigue aprendiéndose solo.
+- **Probado en producción**: `q=edenor` → "EMPRESA DISTRIBUIDORA Y COMERCIALIZADORA NORTE (EDENOR S A)"; `q=falabella` → todas las variantes con su CUIT.
+- **+5 tests → 414/414.** Deploy a testing.

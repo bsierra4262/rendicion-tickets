@@ -119,6 +119,33 @@ function padron_nac_by_cuit(string $cuit): ?array
     return q('SELECT cuit, razon_social FROM padron_nacional WHERE cuit = ? LIMIT 1', [$c])->fetch() ?: null;
 }
 
+/**
+ * Buscador AMPLIO del padrón para autocompletar (por CUIT o por razón social).
+ * Devuelve varias coincidencias (no exige match único). Uso: alta de proveedor.
+ */
+function padron_nac_buscar(string $term, int $limit = 12): array
+{
+    $term   = trim($term);
+    $digits = preg_replace('/\D/', '', $term) ?? '';
+    // Si el término es principalmente numérico → buscar por prefijo de CUIT.
+    if ($digits !== '' && strlen($digits) >= 3 && strlen($digits) >= mb_strlen(preg_replace('/\s/', '', $term)) - 2) {
+        try {
+            return q('SELECT cuit, razon_social FROM padron_nacional WHERE cuit LIKE ? ORDER BY cuit LIMIT ' . (int)$limit,
+                [$digits . '%'])->fetchAll();
+        } catch (\Throwable $e) { return []; }
+    }
+    // Por razón social (FULLTEXT BOOLEAN, prefijos), ordenando las más cortas primero.
+    $tokens = array_values(array_filter(explode(' ', prov_norm_razon($term)), fn($w) => strlen($w) >= 3));
+    if (!$tokens) { return []; }
+    usort($tokens, fn($a, $b) => strlen($b) - strlen($a));
+    $expr = implode(' ', array_map(fn($t) => '+' . $t . '*', array_slice($tokens, 0, 4)));
+    try {
+        return q('SELECT cuit, razon_social FROM padron_nacional
+                  WHERE MATCH(razon_social) AGAINST (? IN BOOLEAN MODE)
+                  ORDER BY CHAR_LENGTH(razon_social) ASC LIMIT ' . (int)$limit, [$expr])->fetchAll();
+    } catch (\Throwable $e) { return []; }
+}
+
 /** Núcleo de una razón social: sin acentos/puntuación ni sufijos societarios (SA/SRL/…). */
 function prov_razon_core(string $s): string
 {

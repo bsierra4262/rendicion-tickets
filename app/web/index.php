@@ -21,6 +21,7 @@ $routes = [
     'comprobante-form'     => ['public' => false],
     'comprobante-eliminar' => ['public' => false],
     'api-proveedor'        => ['public' => false],
+    'api-padron'           => ['public' => false],
     'api-log'              => ['public' => false],
     'concepto-crear'       => ['public' => false],
     'categorias'           => ['public' => false],

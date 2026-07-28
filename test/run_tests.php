@@ -783,6 +783,17 @@ ok('gastos F2: extrae texto del PDF (pdf.js getTextContent)', strpos($gjs, 'getT
 ok('gastos F2: popup de confirmación que completa el form', strpos($gjs, 'function showPopup') !== false && strpos($gjs, 'function fillForm') !== false && strpos($gjs, 'Usar estos datos') !== false);
 ok('gastos F2: form wire (botón leer + __gprov + gastos.js)', strpos($readf("$VIEWS/gasto-form.php"), 'id="leerFactura"') !== false && strpos($readf("$VIEWS/gasto-form.php"), 'window.__gprov') !== false && strpos($readf("$VIEWS/gasto-form.php"), 'assets/js/gastos.js') !== false);
 
+echo "== v2.46 — buscador del padrón al agregar proveedor (Prov. comprob.) ==\n";
+$mc46 = $readf("$SRC/comprobantes.php");
+$idx46 = $readf("$WEB/index.php");
+$pv46 = $readf("$VIEWS/proveedores.php");
+$pjs46 = $readf("$ASSETS/js/padron.js");
+ok('padrón: función de búsqueda amplia (CUIT o razón)', strpos($mc46, 'function padron_nac_buscar') !== false && strpos($mc46, 'cuit LIKE ?') !== false && strpos($mc46, 'IN BOOLEAN MODE') !== false);
+ok('padrón: endpoint api-padron (JSON, login) existe', is_file("$SRC/pages/api-padron.php") && strpos($readf("$SRC/pages/api-padron.php"), 'padron_nac_buscar') !== false);
+ok('padrón: ruta registrada + allowlist JSON del auto-logout', strpos($idx46, "'api-padron'") !== false && strpos($readf("$SRC/bootstrap.php"), "'api-padron'") !== false);
+ok('padrón: autocompletado en Prov. comprob. (NO en el maestro de gastos)', strpos($pv46, 'data-padron-form') !== false && strpos($pv46, 'assets/js/padron.js') !== false);
+ok('padrón: padron.js completa CUIT + razón sin duplicar', $pjs46 !== '' && strpos($pjs46, "api-padron?q=") !== false && strpos($pjs46, 'function pick') !== false && strpos($pjs46, 'razonEl.value') !== false && strpos($pjs46, 'cuitEl.value') !== false);
+
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);
 if ($F) { echo "FALLARON:\n - " . implode("\n - ", $fails) . "\n"; }

@@ -134,7 +134,7 @@ if (PHP_SAPI !== 'cli') {
             // para que el cliente reaccione. La navegación normal y los formularios
             // de página completa se redirigen al login con el aviso.
             $rt = function_exists('current_route') ? current_route() : '';
-            $jsonRoutes = ['api-sesion', 'api-log', 'api-proveedor', 'concepto-crear',
+            $jsonRoutes = ['api-sesion', 'api-log', 'api-proveedor', 'api-padron', 'concepto-crear',
                 'api/estado', 'api/comprobantes', 'api/pendientes'];
             $isAjax = (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest')
                    || in_array($rt, $jsonRoutes, true);

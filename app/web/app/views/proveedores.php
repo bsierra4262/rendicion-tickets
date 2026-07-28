@@ -19,19 +19,19 @@ $catOptions = function ($sel) use ($conceptos) {
 <div class="card" style="margin-bottom:1rem">
     <div class="card-head"><h2>Agregar proveedor</h2></div>
     <form method="post" action="<?= e(url('proveedor-guardar')) ?>" class="urow" style="flex-wrap:wrap;gap:.6rem"
-          data-confirm="¿Confirmás agregar este proveedor?" data-confirm-ok="Agregar">
+          data-confirm="¿Confirmás agregar este proveedor?" data-confirm-ok="Agregar" data-padron-form>
         <?= csrf_field() ?>
         <input type="hidden" name="id" value="0">
         <input type="text" name="cuit" placeholder="CUIT (opcional)" maxlength="13" inputmode="numeric"
                style="width:170px;padding:.6rem .75rem;border:1px solid var(--line);border-radius:var(--radius-xs)">
-        <input type="text" name="razon_social" placeholder="Razón social del proveedor" maxlength="200" required
+        <input type="text" name="razon_social" placeholder="Razón social… (buscá en el padrón)" maxlength="200" required
                style="flex:1;min-width:220px;padding:.6rem .75rem;border:1px solid var(--line);border-radius:var(--radius-xs)">
         <select name="categoria_sugerida_id" style="min-width:190px;padding:.6rem .75rem;border:1px solid var(--line);border-radius:var(--radius-xs)">
             <?= $catOptions(0) ?>
         </select>
         <button type="submit" class="btn btn-primary"><?= icon('plus') ?>Agregar</button>
     </form>
-    <p class="muted small" style="margin:.7rem 0 0">La <strong>concepto sugerido</strong> se aprende solo: cada vez que cargás un comprobante de este proveedor, se ajusta al concepto más usado. Acá podés fijarla o corregirla a mano.</p>
+    <p class="muted small" style="margin:.7rem 0 0"><?= icon('search', 13) ?> Mientras escribís la razón social (o el CUIT), te sugiere coincidencias del <strong>padrón nacional (1,13&nbsp;M de empresas)</strong>: elegí una y se completan CUIT + razón, sin duplicar. La <strong>concepto sugerido</strong> se aprende sola con el uso.</p>
 </div>
 
 <form method="get" action="<?= e(url('proveedores')) ?>" class="urow" style="margin-bottom:1rem">
@@ -86,3 +86,4 @@ $catOptions = function ($sel) use ($conceptos) {
     </div>
 </div>
 <p class="muted small" style="margin-top:.8rem">Se muestran hasta 300 proveedores. Usá el buscador para encontrar uno puntual. El catálogo crece solo con cada carga y se entrena con el uso.</p>
+<script defer src="<?= e(url('assets/js/padron.js')) ?>?v=1"></script>
