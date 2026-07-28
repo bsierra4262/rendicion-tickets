@@ -425,6 +425,78 @@ function drive_restaurar(string $fileId, string $fecha): bool
     return drive_mover($fileId, $fMes, $token);
 }
 
+// ============================================================
+//  Gastos Recurrentes — estructura Proveedor / Año / Mes
+// ============================================================
+
+/** ID de la carpeta raíz de Gastos Recurrentes en Drive (configurable). */
+function drive_gastos_root(): string
+{
+    return (string)setting_get('drive_gastos_root', '1wpfeuP0V5QAkSHEyxXqSqfKCCMddJHHG');
+}
+
+/**
+ * Sube a Drive el PDF (factura o pago) de un gasto en la estructura
+ * <raíz gastos> / Proveedor / Año / "AÑO MM - Mes" / archivo. Crea las carpetas
+ * si no existen, actualiza la fila y audita. Nunca lanza.
+ * @param string $tipo 'factura' | 'pago'
+ */
+function drive_gasto_subir(int $gastoId, array $g, string $tipo, array $file): void
+{
+    if (empty($file['tmp_name']) || ($file['error'] ?? 1) !== UPLOAD_ERR_OK) { return; }
+    $tipo = $tipo === 'pago' ? 'pago' : 'factura';
+    $mime = function_exists('mime_content_type') ? (mime_content_type($file['tmp_name']) ?: '') : ($file['type'] ?? '');
+    $map  = ['application/pdf' => 'pdf', 'image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+    $ext  = $map[$mime] ?? null;
+    if (!$ext || (int)($file['size'] ?? 0) > 20 * 1024 * 1024) {
+        if (function_exists('log_app')) {
+            log_app('gasto.drive_fallo', ['tipo' => 'error', 'entidad' => 'gasto', 'entidad_id' => $gastoId,
+                'detalle' => ucfirst($tipo) . ': formato/tamaño no permitido (' . $mime . ')']);
+        }
+        return;
+    }
+    if (!drive_conectado()) {
+        if (function_exists('log_app')) {
+            log_app('gasto.drive_fallo', ['tipo' => 'error', 'entidad' => 'gasto', 'entidad_id' => $gastoId,
+                'detalle' => 'Drive no conectado en la sesión; ' . $tipo . ' no subida']);
+        }
+        return;
+    }
+    try {
+        $token = drive_access_token();
+        if (!$token) { throw new \RuntimeException('sin access token'); }
+        $root    = drive_gastos_root();
+        $prov    = drive_sanitizar((string)($g['prov_nombre'] ?? 'PROVEEDOR'));
+        $periodo = (string)($g['periodo'] ?? date('Y-m'));
+        $anio    = substr($periodo, 0, 4);
+        $mesN    = drive_carpeta_mes($periodo . '-01');
+        $c1 = false; $c2 = false; $c3 = false;
+        $fProv = drive_folder_id($prov, $root, $token, $c1);
+        if (!$fProv) { throw new \RuntimeException('carpeta proveedor'); }
+        $fAnio = drive_folder_id($anio, $fProv, $token, $c2);
+        if (!$fAnio) { throw new \RuntimeException('carpeta año'); }
+        $fMes = drive_folder_id($mesN, $fAnio, $token, $c3);
+        if (!$fMes) { throw new \RuntimeException('carpeta mes'); }
+        if (($c1 || $c2 || $c3) && function_exists('log_app')) {
+            log_app('drive.carpeta', ['tipo' => 'accion', 'detalle' => 'Gastos: ' . $prov . ' / ' . $anio . ' / ' . $mesN]);
+        }
+        $nombre = drive_sanitizar(str_replace('-', '', $periodo) . ' - ' . $prov . ' - ' . ucfirst($tipo)) . '.' . $ext;
+        $res = drive_subir((string)$file['tmp_name'], $nombre, $fMes, drive_mime_de($ext), $token);
+        if (!$res) { throw new \RuntimeException('subida'); }
+        $id   = (string)$res['id'];
+        $link = (string)($res['webViewLink'] ?? ('https://drive.google.com/file/d/' . $id . '/view'));
+        q("UPDATE gastos_recurrentes SET drive_{$tipo}_id = ?, drive_{$tipo}_link = ? WHERE id = ?", [$id, $link, $gastoId]);
+        if (function_exists('log_app')) {
+            log_app('gasto.drive_subida', ['tipo' => 'accion', 'entidad' => 'gasto', 'entidad_id' => $gastoId,
+                'detalle' => ucfirst($tipo) . ' en Drive: ' . $prov . '/' . $anio . '/' . $mesN . ' · ' . $link]);
+        }
+    } catch (\Throwable $e) {
+        if (function_exists('log_error')) {
+            log_error('gasto.drive_excepcion', $tipo . ': ' . $e->getMessage(), $e->getFile(), $e->getLine());
+        }
+    }
+}
+
 /** Prueba de conexión: lista/crea la carpeta raíz. Devuelve [ok, mensaje]. */
 function drive_probar(): array
 {

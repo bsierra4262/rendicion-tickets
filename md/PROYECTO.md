@@ -482,3 +482,13 @@ Se agregó la **Papelera** (solo administradores) para recuperar comprobantes ar
 - Ruta admin registrada + link en el nav de administrador (ícono papelera). Nada se borra físicamente: el soft-delete + esta papelera cierran el ciclo.
 - **Nota de proceso**: se reforzó la regla de NO borrar/resetear nada salvo indicación explícita del cliente (tras un reset a 0 que se hizo por una mala interpretación mía de un pedido ambiguo).
 - **Validación**: +5 tests → **389/389**.
+
+## 51. v2.44 — Módulo Gastos Recurrentes (Fase 1: base) (2026-07-28)
+Nuevo módulo pedido por el cliente para gestionar gastos recurrentes (Edenor, expensas, alquiler, seguros, servicios, etc.), replicando cómo lo llevan en el Excel "2026 - Gastos Recurrentes ITH" + las carpetas del Drive. **Fase 1 = base** (maestro + carga manual + Drive); la automatización (OCR de factura/pago + matching + popup) queda para la Fase 2.
+- **Maestro `Proveedores`** (`gastos_proveedores`, estilo Conceptos): nombre · rubro/tipo de gasto · categoría (Recurrente / Única vez) · momento de facturación (adelantado / vencido) · tipo de factura · vigencia de descuento · nombre del gasto (opcional) · CUIT (opcional). ABM con papelera. **Sembrado con los 19 proveedores reales** del Excel/Drive.
+- **`Gastos recurrentes`** (`gastos_recurrentes`): proveedor · período · valor mensual · fecha de factura · 1er vencimiento · fecha de pago · estado · **PDF factura + PDF pago**. ABM con filtros (período/proveedor/estado).
+- **Drive**: al cargar un gasto, la factura y el pago se suben a **`<raíz gastos> / Proveedor / Año / "AÑO MM - Mes"`** (carpetas creadas on-demand). Raíz nueva configurable (`drive_gastos_root`, default la carpeta que pasó el cliente). Al archivar un gasto, sus PDFs se mueven a «Archivados».
+- **Auditoría** completa en el CRON: `gproveedor.crear/editar/eliminar/restaurar`, `gasto.crear/editar/eliminar/restaurar`, `gasto.drive_subida/drive_fallo`, `drive.carpeta`.
+- **Menú**: dos solapas sueltas nuevas — "Gastos recurrentes" y "Proveedores" (la vieja de comprobantes pasó a "Prov. comprob." para no confundir).
+- Modelo `app/gastos.php`; páginas `gproveedores`/`gproveedor-form`/`gastos`/`gasto-form`. **+18 tests → 405/405.** Deploy a testing.
+- **Pendiente Fase 2**: OCR de facturas (19 formatos) + pago → autocompletar valor/fechas → matchear proveedor → popup de confirmación.

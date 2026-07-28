@@ -138,6 +138,52 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
+-- ---- Módulo Gastos Recurrentes ----
+CREATE TABLE `gastos_proveedores` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(150) NOT NULL,
+  `rubro` varchar(120) DEFAULT NULL,
+  `categoria` enum('recurrente','unica_vez') NOT NULL DEFAULT 'recurrente',
+  `momento_facturacion` enum('adelantado','vencido') DEFAULT NULL,
+  `tipo_factura` varchar(60) DEFAULT NULL,
+  `vigencia_descuento` date DEFAULT NULL,
+  `nombre_gasto` varchar(150) DEFAULT NULL,
+  `cuit` char(11) DEFAULT NULL,
+  `drive_folder_id` varchar(128) DEFAULT NULL,
+  `activo` tinyint(4) NOT NULL DEFAULT 1,
+  `orden` int(11) NOT NULL DEFAULT 0,
+  `eliminado_en` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_activo` (`activo`,`eliminado_en`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `gastos_recurrentes` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `proveedor_id` int(10) unsigned NOT NULL,
+  `periodo` char(7) NOT NULL,
+  `valor_mensual` decimal(14,2) DEFAULT NULL,
+  `moneda` varchar(4) NOT NULL DEFAULT 'ARS',
+  `fecha_factura` date DEFAULT NULL,
+  `fecha_vencimiento` date DEFAULT NULL,
+  `fecha_pago` date DEFAULT NULL,
+  `drive_factura_id` varchar(128) DEFAULT NULL,
+  `drive_factura_link` varchar(512) DEFAULT NULL,
+  `drive_pago_id` varchar(128) DEFAULT NULL,
+  `drive_pago_link` varchar(512) DEFAULT NULL,
+  `estado` enum('pendiente','pagado') NOT NULL DEFAULT 'pendiente',
+  `observaciones` varchar(500) DEFAULT NULL,
+  `creado_por` int(10) unsigned DEFAULT NULL,
+  `eliminado_en` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_prov` (`proveedor_id`),
+  KEY `idx_periodo` (`periodo`),
+  KEY `idx_estado` (`estado`,`eliminado_en`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ---- Ajustes por defecto de la aplicación ----
 INSERT INTO `app_settings` (`clave`, `valor`) VALUES
   ('app_nombre', 'Rendición de Tickets'),

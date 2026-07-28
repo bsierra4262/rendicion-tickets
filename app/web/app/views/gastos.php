@@ -1,0 +1,66 @@
+<?php /** @var array $rows @var array $f @var array $proveedores */ ?>
+<div class="page-head">
+    <div>
+        <h1><?= icon('receipt', 22) ?> Gastos recurrentes</h1>
+        <p class="muted">Facturas y pagos de gastos recurrentes, por período. La factura y el pago se respaldan en Drive (Proveedor / Año / Mes).</p>
+    </div>
+    <a href="<?= e(url('gasto-form')) ?>" class="btn btn-primary"><?= icon('plus') ?>Nuevo gasto</a>
+</div>
+
+<form method="get" action="<?= e(url('gastos')) ?>" class="card" style="padding:12px;margin-bottom:14px">
+    <div class="urow">
+        <input type="month" name="periodo" value="<?= e($f['periodo']) ?>" style="padding:.55rem;border:1px solid var(--line);border-radius:9px">
+        <select name="proveedor_id" style="padding:.55rem;border:1px solid var(--line);border-radius:9px">
+            <option value="">Todos los proveedores</option>
+            <?php foreach ($proveedores as $p): ?>
+                <option value="<?= (int)$p['id'] ?>" <?= (int)$f['proveedor_id'] === (int)$p['id'] ? 'selected' : '' ?>><?= e($p['nombre']) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <select name="estado" style="padding:.55rem;border:1px solid var(--line);border-radius:9px">
+            <option value="">Todos</option>
+            <option value="pendiente" <?= $f['estado'] === 'pendiente' ? 'selected' : '' ?>>Pendiente</option>
+            <option value="pagado" <?= $f['estado'] === 'pagado' ? 'selected' : '' ?>>Pagado</option>
+        </select>
+        <button type="submit" class="btn btn-ghost"><?= icon('search') ?>Filtrar</button>
+    </div>
+</form>
+
+<div class="card">
+    <div class="table-scroll">
+        <table class="grid">
+            <thead><tr>
+                <th>Período</th><th>Proveedor</th><th class="num">Valor mensual</th>
+                <th class="prio-3">Factura</th><th class="prio-2">Vencimiento</th>
+                <th>Estado</th><th class="prio-3">Archivos</th><th class="acts"></th>
+            </tr></thead>
+            <tbody>
+            <?php if (!$rows): ?>
+                <tr><td colspan="8" class="empty">No hay gastos con estos filtros.</td></tr>
+            <?php else: foreach ($rows as $r): ?>
+                <tr>
+                    <td data-label="Período"><strong><?= e($r['periodo']) ?></strong></td>
+                    <td data-label="Proveedor"><?= e($r['prov_nombre'] ?: '—') ?>
+                        <?php if (!empty($r['prov_rubro'])): ?><br><span class="muted small"><?= e($r['prov_rubro']) ?></span><?php endif; ?>
+                    </td>
+                    <td class="num strong" data-label="Valor"><?= $r['valor_mensual'] !== null ? e(money($r['valor_mensual'], $r['moneda'])) : '—' ?></td>
+                    <td data-label="Factura" class="prio-3 muted small"><?= $r['fecha_factura'] ? e(date('d/m/Y', strtotime($r['fecha_factura']))) : '—' ?></td>
+                    <td data-label="Vencimiento" class="prio-2 muted small"><?= $r['fecha_vencimiento'] ? e(date('d/m/Y', strtotime($r['fecha_vencimiento']))) : '—' ?></td>
+                    <td data-label="Estado"><span class="badge <?= $r['estado'] === 'pagado' ? 'badge-ok' : 'badge-pend' ?>"><?= e(ucfirst($r['estado'])) ?></span></td>
+                    <td data-label="Archivos" class="prio-3">
+                        <?php if (!empty($r['drive_factura_link'])): ?><a href="<?= e($r['drive_factura_link']) ?>" target="_blank" rel="noopener" class="badge" title="Factura en Drive">Factura</a> <?php endif; ?>
+                        <?php if (!empty($r['drive_pago_link'])): ?><a href="<?= e($r['drive_pago_link']) ?>" target="_blank" rel="noopener" class="badge" title="Pago en Drive">Pago</a><?php endif; ?>
+                        <?php if (empty($r['drive_factura_link']) && empty($r['drive_pago_link'])): ?><span class="muted">—</span><?php endif; ?>
+                    </td>
+                    <td class="acts" data-label="Acciones">
+                        <a href="<?= e(url('gasto-form') . '?id=' . (int)$r['id']) ?>" class="act" title="Editar"><?= icon('edit', 16) ?></a>
+                        <form method="post" action="<?= e(url('gastos')) ?>" style="display:inline" data-confirm="¿Archivar este gasto? Se puede recuperar." data-confirm-danger data-confirm-ok="Archivar">
+                            <?= csrf_field() ?><input type="hidden" name="accion" value="eliminar"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+                            <button type="submit" class="act danger" title="Archivar"><?= icon('trash', 16) ?></button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>

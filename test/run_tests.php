@@ -27,6 +27,7 @@ require $SRC . '/helpers.php';
 require $SRC . '/google.php';
 require $SRC . '/google_drive.php';
 require $SRC . '/comprobantes.php';
+require $SRC . '/gastos.php';
 require $SRC . '/actividad.php';
 
 $T = 0; $F = 0; $fails = [];
@@ -677,7 +678,8 @@ $boot38 = $readf("$SRC/bootstrap.php");
 ok('bootstrap: fallback a config_env por entorno', strpos($boot38, "config_env.php") !== false && strpos($boot38, "getenv('DB_HOST')") !== false && strpos($boot38, 'server-config/config.php') !== false);
 // esquema
 $sch = $readf("$ROOT/app/db/schema.sql");
-ok('schema.sql: existe con las 8 tablas',    substr_count($sch, 'CREATE TABLE') === 8);
+ok('schema.sql: existe con las 10 tablas',   substr_count($sch, 'CREATE TABLE') === 10);
+ok('schema.sql: incluye las tablas de gastos', strpos($sch, 'CREATE TABLE `gastos_proveedores`') !== false && strpos($sch, 'CREATE TABLE `gastos_recurrentes`') !== false);
 ok('schema.sql: incluye columnas de Drive + FULLTEXT del padrón', strpos($sch, 'drive_link') !== false && strpos($sch, 'drive_file_id') !== false && strpos($sch, 'FULLTEXT') !== false);
 ok('schema.sql: sin AUTO_INCREMENT= (contadores reseteados)', strpos($sch, 'AUTO_INCREMENT=') === false);
 // Docker
@@ -740,6 +742,40 @@ ok('papelera: página solo admin + acción restaurar', strpos($pap43, 'require_a
 ok('papelera: consulta comp_eliminados (eliminado_en NOT NULL)', strpos($mc43, 'function comp_eliminados') !== false && strpos($mc43, 'c.eliminado_en IS NOT NULL') !== false);
 ok('papelera: vista lista archivados + botón Restaurar + quién/cuándo', strpos($papv43, 'restaurar') !== false && strpos($papv43, 'eliminado_en') !== false && strpos($papv43, 'elim_por') !== false);
 ok('papelera: en el nav de administrador',        strpos($lay43, "\$nav['papelera']") !== false);
+
+echo "== v2.44 — módulo Gastos Recurrentes (base: maestro + gastos + Drive) ==\n";
+// Opciones
+eq('gastos: categorías', array_keys(gp_categorias()), ['recurrente', 'unica_vez']);
+eq('gastos: momentos de facturación', array_keys(gp_momentos()), ['adelantado', 'vencido']);
+// Validación del maestro (pura)
+[$e1, $c1] = gp_validar(['nombre' => 'EDENOR', 'rubro' => 'ELECTRICIDAD', 'categoria' => 'recurrente', 'momento_facturacion' => 'vencido']);
+ok('gastos: proveedor válido sin errores', empty($e1) && $c1['nombre'] === 'EDENOR' && $c1['categoria'] === 'recurrente' && $c1['momento_facturacion'] === 'vencido');
+[$e2] = gp_validar(['nombre' => 'X']);
+ok('gastos: nombre corto da error', isset($e2['nombre']));
+[$e3] = gp_validar(['nombre' => 'Proveedor', 'cuit' => '30123456782']);
+ok('gastos: CUIT inválido da error', isset($e3['cuit']));
+[$e4, $c4] = gp_validar(['nombre' => 'Proveedor', 'categoria' => 'basura']);
+ok('gastos: categoría inválida cae a recurrente', empty($e4) && $c4['categoria'] === 'recurrente');
+// Validación de gastos (proveedor_id=0 no toca DB)
+[$e5] = gr_validar(['proveedor_id' => 0, 'periodo' => '2026-07']);
+ok('gastos: sin proveedor da error', isset($e5['proveedor_id']));
+[$e6] = gr_validar(['proveedor_id' => 0, 'periodo' => 'mal']);
+ok('gastos: período inválido da error', isset($e6['periodo']));
+// Seed real
+$gsrc = $readf("$SRC/gastos.php");
+ok('gastos: seed de los 19 proveedores reales', substr_count($gsrc, "'recurrente',") >= 19 && strpos($gsrc, "'EDENOR'") !== false && strpos($gsrc, "'GCBA - ABL'") !== false && strpos($gsrc, "'TELECOM EMPRESAS'") !== false);
+// Drive: estructura proveedor/año/mes
+$gd44 = $readf("$SRC/google_drive.php");
+ok('gastos: Drive sube a Proveedor/Año/Mes (raíz nueva) + audita', strpos($gd44, 'function drive_gasto_subir') !== false && strpos($gd44, "function drive_gastos_root") !== false && strpos($gd44, "'gasto.drive_subida'") !== false);
+// Wiring: bootstrap, rutas, nav, páginas
+$boot44 = $readf("$SRC/bootstrap.php");
+$idx44  = $readf("$WEB/index.php");
+$lay44  = $readf("$VIEWS/layout.php");
+ok('gastos: bootstrap carga el módulo', strpos($boot44, "require APP . '/gastos.php'") !== false);
+ok('gastos: rutas registradas', strpos($idx44, "'gproveedores'") !== false && strpos($idx44, "'gasto-form'") !== false);
+ok('gastos: nav con Gastos recurrentes + Proveedores', strpos($lay44, "'gastos'       => ['Gastos recurrentes'") !== false && strpos($lay44, "'gproveedores' => ['Proveedores'") !== false);
+ok('gastos: páginas y vistas existen', is_file("$SRC/pages/gproveedores.php") && is_file("$SRC/pages/gasto-form.php") && is_file("$VIEWS/gastos.php") && is_file("$VIEWS/gproveedor-form.php"));
+ok('gastos: form sube factura + pago a Drive', strpos($readf("$SRC/pages/gasto-form.php"), "drive_gasto_subir(\$savedId, \$g, 'factura'") !== false && strpos($readf("$SRC/pages/gasto-form.php"), "'pago'") !== false);
 
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);

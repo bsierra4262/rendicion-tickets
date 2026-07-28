@@ -29,6 +29,10 @@ $routes = [
     'proveedor-guardar'    => ['public' => false],
     'escanear'             => ['public' => false],
     'comprobante-imagen'   => ['public' => false],
+    'gproveedores'         => ['public' => false],
+    'gproveedor-form'      => ['public' => false],
+    'gastos'               => ['public' => false],
+    'gasto-form'           => ['public' => false],
     'reportes'             => ['public' => false],
     'reporte-pdf'          => ['public' => false],
     'api/estado'           => ['public' => true],
@@ -59,7 +63,7 @@ if (!empty($def['admin']) && !auth_is_admin()) {
 // Registro de navegación para el CRON: cada visita GET a una página real.
 // (Las mutaciones se registran en el modelo; la API en api_require; el propio
 //  CRON y los endpoints técnicos se excluyen para no ensuciar la bitácora.)
-$navRoutes = ['dashboard', 'comprobantes', 'comprobante-form', 'escanear', 'reportes', 'proveedores', 'usuarios', 'api-keys', 'papelera'];
+$navRoutes = ['dashboard', 'comprobantes', 'comprobante-form', 'escanear', 'reportes', 'proveedores', 'usuarios', 'api-keys', 'papelera', 'gproveedores', 'gproveedor-form', 'gastos', 'gasto-form'];
 if (function_exists('log_app') && method() === 'GET' && in_array($route, $navRoutes, true) && auth_user()) {
     log_app('ver.' . $route, ['tipo' => 'nav', 'detalle' => 'Ingresó a la página «' . $route . '»']);
 }

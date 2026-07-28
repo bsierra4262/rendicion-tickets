@@ -8,8 +8,10 @@ $nav = [
     'dashboard'    => ['Panel', 'dashboard'],
     'comprobantes' => ['Comprobantes', 'receipt'],
     'escanear'     => ['Escanear', 'scan'],
+    'gastos'       => ['Gastos recurrentes', 'repeat'],
     'reportes'     => ['Reportes', 'chart'],
-    'proveedores'  => ['Proveedores', 'users'],
+    'gproveedores' => ['Proveedores', 'users'],
+    'proveedores'  => ['Prov. comprob.', 'users'],
     'categorias'   => ['Conceptos', 'tag'],
 ];
 if ($u && ($u['rol'] ?? '') === 'admin') {
