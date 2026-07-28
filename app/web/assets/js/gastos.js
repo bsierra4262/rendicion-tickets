@@ -104,7 +104,8 @@
         };
         var best = null, bestScore = 0;
         PROVS.forEach(function (p) {
-            var hay = (p.nombre + ' ' + (alias[p.nombre.toLowerCase()] || '')).toLowerCase();
+            // Matchear por nombre, RUBRO y alias (ej. rubro "EXPENSAS" aparece en la factura).
+            var hay = (p.nombre + ' ' + (p.rubro || '') + ' ' + (alias[p.nombre.toLowerCase()] || '')).toLowerCase();
             var toks = hay.split(/[^a-záéíóúñ0-9]+/).filter(function (x) { return x.length >= 4; });
             var score = 0;
             toks.forEach(function (tk) { if (low.indexOf(tk) > -1) { score++; } });
@@ -112,6 +113,18 @@
         });
         return bestScore > 0 ? best : null;
     }
+
+    // Lee el comprobante de PAGO: fecha de pago + marca "pagado" (y valor si falta).
+    function parsePago(text) {
+        text = text || '';
+        var dates = findDates(text), amounts = findAmounts(text);
+        return {
+            fecha_pago: dates.length ? dates[dates.length - 1].iso : '',
+            valor: amounts.length ? amounts.reduce(function (a, b) { return b.v > a.v ? b : a; }, amounts[0]).v : null,
+            estado: 'pagado'
+        };
+    }
+    window.parsePagoGasto = parsePago;
 
     function parseFactura(text) {
         text = text || '';
@@ -199,4 +212,34 @@
             showPopup(parseFactura(text));
         });
     });
+
+    // ---- Leer el comprobante de PAGO ----
+    var pagoInput = form.querySelector('input[name="pago"]');
+    var btnPago = document.getElementById('leerPago');
+    var pagoStatus = document.getElementById('leerPagoEstado');
+    function fillPago(d) {
+        setVal('fecha_pago', d.fecha_pago);
+        setVal('estado', 'pagado');
+        if (d.valor != null) {
+            var vf = form.querySelector('[name="valor_mensual"]');
+            if (vf && !vf.value.trim()) { vf.value = String(d.valor).replace('.', ','); }
+        }
+        var el = pagoStatus || statusEl;
+        if (el) {
+            el.textContent = 'Pago leído: ' + (d.fecha_pago ? fmtFecha(d.fecha_pago) : 'sin fecha') + ' · marcado como Pagado.';
+            el.className = 'flash flash-success';
+        }
+    }
+    if (btnPago && pagoInput) {
+        btnPago.addEventListener('click', function () {
+            var f = pagoInput.files && pagoInput.files[0];
+            var el = pagoStatus || statusEl;
+            if (!f) { if (el) { el.textContent = 'Elegí primero el PDF del pago.'; el.className = 'flash flash-info'; } return; }
+            if (el) { el.textContent = 'Leyendo el pago…'; el.className = 'flash flash-info'; }
+            extractText(f, function (text) {
+                if (!text) { if (el) { el.textContent = 'No pude leer el texto del pago. Cargá la fecha a mano.'; el.className = 'flash flash-error'; } return; }
+                fillPago(parsePago(text));
+            });
+        });
+    }
 })();

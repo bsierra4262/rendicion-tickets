@@ -803,6 +803,19 @@ ok('comprobantes: «Nuevo comprobante» va al escáner', (bool)preg_match('/url\
 ok('gasto-form: diseño coherente con el escáner (scan-panel + filefield + secciones)', strpos($gf47, 'scan-panel') !== false && strpos($gf47, 'data-filefield') !== false && strpos($gf47, '1 · Factura') !== false && strpos($gf47, '2 · Revisá y corregí') !== false);
 ok('gasto-form: botón Leer factura + wire de gastos.js intactos', strpos($gf47, 'id="leerFactura"') !== false && strpos($gf47, 'id="gastoForm"') !== false && strpos($gf47, 'assets/js/gastos.js') !== false);
 
+echo "== v2.48 — fix cuelgue (subida a Drive en 2° plano) + Leer pago + parser por rubro ==\n";
+$hlp48 = $readf("$SRC/helpers.php");
+$gd48  = $readf("$SRC/google_drive.php");
+$gfp48 = $readf("$SRC/pages/gasto-form.php");
+$gfv48 = $readf("$VIEWS/gasto-form.php");
+$gjs48 = $readf("$ASSETS/js/gastos.js");
+ok('gasto: helper finish_request (responde y sigue en 2° plano)', strpos($hlp48, 'function finish_request') !== false && strpos($hlp48, 'finish_request()') !== false);
+ok('gasto: guardado NO bloquea — Drive en segundo plano', strpos($gfp48, 'finish_request();') !== false && strpos($gfp48, 'drive_gasto_subir($savedId') !== false && stripos($gfp48, 'segundo plano') !== false);
+ok('drive: connect timeout (no cuelga si no llega a Google)', strpos($gd48, 'CURLOPT_CONNECTTIMEOUT') !== false);
+ok('gasto: parser matchea también por RUBRO (ej. EXPENSAS)', strpos($gjs48, "p.nombre + ' ' + (p.rubro") !== false);
+ok('gasto: Leer PAGO (fecha + marca pagado)', strpos($gjs48, 'function parsePago') !== false && strpos($gjs48, "setVal('estado', 'pagado')") !== false && strpos($gfv48, 'id="leerPago"') !== false);
+ok('gasto: __gprov con rubro + gastos.js v2', strpos($gfv48, "'rubro' => \$p['rubro']") !== false && (bool)preg_match('/gastos\.js[^\n]*\?v=2/', $gfv48));
+
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);
 if ($F) { echo "FALLARON:\n - " . implode("\n - ", $fails) . "\n"; }

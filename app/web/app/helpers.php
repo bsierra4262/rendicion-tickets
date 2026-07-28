@@ -35,6 +35,23 @@ function redirect(string $path): void
     exit;
 }
 
+/**
+ * Envía la respuesta ya armada al cliente y deja el script corriendo en segundo
+ * plano (si el SAPI lo permite: LiteSpeed/FPM). Sirve para no hacer esperar al
+ * usuario por tareas lentas (p. ej. subir a Drive). Cerrá la sesión antes.
+ */
+function finish_request(): void
+{
+    if (function_exists('ignore_user_abort')) { ignore_user_abort(true); }
+    if (function_exists('session_write_close')) { @session_write_close(); }
+    if (function_exists('fastcgi_finish_request')) { fastcgi_finish_request(); }
+    elseif (function_exists('litespeed_finish_request')) { litespeed_finish_request(); }
+    elseif (!headers_sent()) {
+        // Fallback: cerrar el buffer/conexión para que el navegador no espere.
+        @ob_end_flush(); @flush();
+    }
+}
+
 /** Método HTTP actual. */
 function method(): string
 {

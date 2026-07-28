@@ -513,3 +513,10 @@ Mejora de UX pedida por el cliente para reducir solapas y unificar el flujo de a
 - **Comprobantes**: se **quitó la solapa "Escanear"** del menú. El botón **"Nuevo comprobante"** ahora abre directamente el **escáner** (que ya tiene el OCR + los campos para revisar/corregir). El título del escáner pasó a «Nuevo comprobante».
 - **Gastos recurrentes**: "Nuevo gasto" abre el formulario que **analiza la factura y autocompleta**, ahora con el **mismo diseño del escáner**: «1 · Factura» (zona de subida + botón «Leer factura (autocompletar)»), «2 · Revisá y corregí los datos», «3 · Comprobante de pago (opcional)». Coherente y consistente con el resto de la app.
 - **+4 tests → 418/418.** Deploy a testing.
+
+## 55. v2.48 — Fix del cuelgue al guardar gasto + "Leer pago" + parser por rubro (2026-07-28)
+Bug reportado: al guardar un gasto con PDF, la página "quedaba cargando y nunca subía". Causa: la subida a Drive era **sincrónica** y `max_execution_time=0` → si Drive tardaba, la request nunca terminaba.
+- **Fix (subida en 2° plano)**: helper `finish_request()` (usa `litespeed_finish_request`, confirmado disponible en el hosting). Al guardar un gasto con archivos, se responde el **redirect al instante** y la subida a Drive (factura + pago) sigue **en segundo plano** — el usuario no espera. Además `CURLOPT_CONNECTTIMEOUT` en las llamadas a Drive (si no llega a Google, falla rápido, no cuelga). Verificado: guardado con PDF redirige en **0,75s**.
+- **"Leer pago"**: botón nuevo que lee el PDF del pago → extrae la **fecha de pago** y marca el gasto como **Pagado** (y completa el valor si falta).
+- **Parser por RUBRO**: `detectProv` ahora matchea proveedor también por el **rubro** (ej. una factura de "EXPENSAS" detecta al proveedor cuyo rubro es EXPENSAS). Validado contra facturas reales: EXPENSAS ahora se detecta, sin romper los demás.
+- **+6 tests → 424/424.** `gastos.js?v=2`. Deploy a testing.

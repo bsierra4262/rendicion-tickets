@@ -125,6 +125,7 @@ function drive_http(string $method, string $url, $body = null, array $headers = 
     $opt = [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT        => $timeout,
+        CURLOPT_CONNECTTIMEOUT => 10,
         CURLOPT_CUSTOMREQUEST  => $method,
         CURLOPT_HTTPHEADER     => $headers,
     ];

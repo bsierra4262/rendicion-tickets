@@ -99,6 +99,8 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
             </label>
             <p class="filefield__name" data-empty="Sin archivo seleccionado">Sin archivo seleccionado</p>
         </div>
+        <button type="button" id="leerPago" class="btn btn-ghost btn-sm" style="margin-top:.85rem"><?= icon('scan', 15) ?>Leer pago (fecha + marcar pagado)</button>
+        <div id="leerPagoEstado" style="margin-top:8px"></div>
         <?php if (!empty($v['drive_pago_link'])): ?>
             <p class="muted small" style="margin-top:8px"><?= icon('cloud', 14) ?> Pago ya cargado · <a href="<?= e($v['drive_pago_link']) ?>" target="_blank" rel="noopener">ver en Drive</a></p>
         <?php endif; ?>
@@ -111,6 +113,6 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
 </form>
 
 <script>
-window.__gprov = <?= json_encode(array_map(fn($p) => ['id' => (int)$p['id'], 'nombre' => $p['nombre'], 'cuit' => $p['cuit'] ?? ''], $proveedores), JSON_UNESCAPED_UNICODE) ?>;
+window.__gprov = <?= json_encode(array_map(fn($p) => ['id' => (int)$p['id'], 'nombre' => $p['nombre'], 'rubro' => $p['rubro'] ?? '', 'cuit' => $p['cuit'] ?? ''], $proveedores), JSON_UNESCAPED_UNICODE) ?>;
 </script>
-<script defer src="<?= e(url('assets/js/gastos.js')) ?>?v=1"></script>
+<script defer src="<?= e(url('assets/js/gastos.js')) ?>?v=2"></script>

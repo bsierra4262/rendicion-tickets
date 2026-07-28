@@ -13,13 +13,26 @@ if (is_post()) {
     [$errors, $c] = gr_validar($_POST);
     if (!$errors) {
         $savedId = gr_save($c, $editing ? $id : null, current_user_id() ?? 0);
-        // Subida a Drive (factura + pago) — estructura Proveedor/Año/Mes. Auditado.
-        $g = gr_find($savedId);
-        if ($g) {
-            if (!empty($_FILES['factura']['name'])) { drive_gasto_subir($savedId, $g, 'factura', $_FILES['factura']); }
-            if (!empty($_FILES['pago']['name']))    { drive_gasto_subir($savedId, $g, 'pago', $_FILES['pago']); }
+        $subeFactura = !empty($_FILES['factura']['name']);
+        $subePago    = !empty($_FILES['pago']['name']);
+        $files = $_FILES; // capturar antes de cerrar la request
+
+        $msg = $editing ? 'Gasto actualizado.' : 'Gasto cargado.';
+        if ($subeFactura || $subePago) { $msg .= ' La factura/pago se están respaldando en Drive.'; }
+        flash($msg, 'success');
+
+        // Respondemos el redirect YA y subimos a Drive en SEGUNDO PLANO: el usuario
+        // no espera la subida (evita el "queda cargando" con max_execution_time=0).
+        if ($subeFactura || $subePago) {
+            header('Location: ' . url('gastos'), true, 302);
+            finish_request();
+            $g = gr_find($savedId);
+            if ($g) {
+                if ($subeFactura) { drive_gasto_subir($savedId, $g, 'factura', $files['factura']); }
+                if ($subePago)    { drive_gasto_subir($savedId, $g, 'pago', $files['pago']); }
+            }
+            exit;
         }
-        flash($editing ? 'Gasto actualizado.' : 'Gasto cargado.', 'success');
         redirect('gastos');
     }
     $v = array_merge((array)$v, $_POST);
