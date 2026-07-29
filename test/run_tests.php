@@ -170,7 +170,7 @@ ok('período reportes = calendario',            strpos($rep2, 'type="month"') !=
 
 $css2 = $readf("$ASSETS/css/app.css");
 ok('bug acciones: sin columna sticky',         strpos($css2, 'td.acts{position:sticky') === false);
-ok('sin scroll interno (max-height fuera)',    strpos($css2, 'max-height:calc(100vh') === false);
+ok('nav drawer con alto acotado y scroll propio (no empuja la página)', strpos($css2, 'max-height:calc(100vh - 58px);overflow-y:auto') !== false);
 ok('css: control segmentado (pestañas)',       strpos($css2, '.seg-item') !== false);
 ok('css: input month estilizado',              strpos($css2, 'input[type="month"]') !== false);
 
@@ -773,7 +773,7 @@ $idx44  = $readf("$WEB/index.php");
 $lay44  = $readf("$VIEWS/layout.php");
 ok('gastos: bootstrap carga el módulo', strpos($boot44, "require APP . '/gastos.php'") !== false);
 ok('gastos: rutas registradas', strpos($idx44, "'gproveedores'") !== false && strpos($idx44, "'gasto-form'") !== false);
-ok('gastos: nav con Gastos recurrentes + Proveedores', strpos($lay44, "'gastos'       => ['Gastos recurrentes'") !== false && strpos($lay44, "'gproveedores' => ['Proveedores'") !== false);
+ok('gastos: nav con Gastos + Proveedores', strpos($lay44, "'gastos'       => ['Gastos'") !== false && strpos($lay44, "'gproveedores' => ['Proveedores'") !== false);
 ok('gastos: páginas y vistas existen', is_file("$SRC/pages/gproveedores.php") && is_file("$SRC/pages/gasto-form.php") && is_file("$VIEWS/gastos.php") && is_file("$VIEWS/gproveedor-form.php"));
 ok('gastos: form sube factura + pago a Drive', strpos($readf("$SRC/pages/gasto-form.php"), "drive_gasto_subir(\$savedId, \$g, 'factura'") !== false && strpos($readf("$SRC/pages/gasto-form.php"), "'pago'") !== false);
 // Fase 2: lectura automática de la factura (parser + popup)
@@ -851,11 +851,40 @@ ok('gasto: impuesto ABL toma el monto (no la valuación del terreno)', strpos($g
 ok('gasto: proveedor admite VARIOS CUIT (validación server)', strpos($gs52, "preg_split('/[,;\\s]+/'") !== false && strpos($gs52, "implode(' ', \$cuits)") !== false);
 ok('gasto: cuit column varchar(160) para varios CUIT', (bool)preg_match('/`cuit`\s+varchar\(160\)/', $readf(dirname($WEB) . '/db/schema.sql')));
 ok('gasto: matcheo por cualquiera de los CUIT del proveedor (texto y QR)', strpos($gjs50, "(PROVS[i].cuit || '').split(/\\s+/)") !== false);
-ok('gasto: form del proveedor acepta varios CUIT + formateo', strpos($gpf52, 'gp_cuits_fmt') !== false && strpos($gs52, 'function gp_cuits_fmt') !== false);
+ok('gasto: form del proveedor acepta varios CUIT (cuit[] + helper + validación array)', strpos($gpf52, 'name="cuit[]"') !== false && strpos($gs52, 'function gp_cuits_fmt') !== false && strpos($gs52, 'is_array($rawCuit)') !== false);
 ok('gasto: NET2PHONE sembrado con CUIT del emisor (IDT) + keyword', strpos($gs52, "'30707397809'") !== false && strpos($gjs50, 'idt corporation') !== false);
 // OCR de imagen (perezoso) para facturas escaneadas sin texto ni QR.
 ok('gasto: OCR de imagen perezoso (PaddleOCR) sólo si no hay texto ni QR', strpos($gjs50, 'function ocrCanvas') !== false && strpos($gjs50, 'function loadPaddle') !== false && strpos($gjs50, 'paddleocr.js') !== false);
 ok('gasto: importmap onnxruntime en el gasto-form (para el OCR)', strpos($readf("$VIEWS/gasto-form.php"), 'importmap') !== false && strpos($readf("$VIEWS/gasto-form.php"), 'onnxruntime-web') !== false);
+
+echo "== v2.54 — diseño profesional y consistente (guardas de UI) ==\n";
+// Requisito del cliente: toda la app debe verse profesional y coherente con el sistema de
+// diseño (módulo comprobantes = referencia), responsive sin scroll horizontal. Estas guardas
+// evitan que vuelvan a colarse controles crudos / estilos ad-hoc. Ver md/REQUERIMIENTOS.md.
+$css   = $readf("$ASSETS/css/app.css");
+$gpf   = $readf("$VIEWS/gproveedor-form.php");
+$glist = $readf("$VIEWS/gastos.php");
+$lay   = $readf("$VIEWS/layout.php");
+// Responsive: el nav no debe poder empujar la página (scroll horizontal) y colapsa a drawer.
+ok('ui: topnav con red anti-overflow (overflow-x oculto) + drawer ≤1400', strpos($css, 'overflow-x:auto;scrollbar-width:none') !== false && (bool)preg_match('/@media\s*\(max-width:1400px\)/', $css));
+ok('ui: app.css versionado en el layout', (bool)preg_match('/app\.css[^\n]*\?v=15/', $lay));
+// Controles nativos con marca (nada de checkbox azul del sistema).
+ok('ui: checkbox/radio nativos con color de marca', (bool)preg_match('/input\[type=checkbox\][^\n]*accent-color:var\(--primary\)/', $css));
+// Toggle switch reutilizable + usado en el estado del proveedor (no checkbox crudo con style inline).
+ok('ui: componente toggle .switch existe y se usa en Estado del proveedor', strpos($css, '.switch .track') !== false && strpos($css, '.switch .knob') !== false && strpos($gpf, 'class="switch"') !== false);
+ok('ui: form del proveedor sin checkbox crudo con style inline', strpos($gpf, 'style="display:flex;align-items:center;gap:.5rem;padding:.4rem 0"') === false);
+// Campo repetible de CUITs (intuitivo), no un texto con comas.
+ok('ui: multi-CUIT con lista repetible (.multi-list + agregar/quitar)', strpos($css, '.multi-list') !== false && strpos($css, '.multi-del') !== false && strpos($gpf, 'data-cuit-add') !== false && strpos($gpf, 'name="cuit[]"') !== false);
+// Filtros de gastos con el patrón estándar (como comprobantes/reportes), sin estilos ad-hoc.
+ok('ui: filtros de gastos usan .filters/.filter-grid (no card+urow con inline)', strpos($glist, 'class="filters card no-print"') !== false && strpos($glist, 'filter-grid') !== false && strpos($glist, 'style="padding:12px;margin-bottom:14px"') === false);
+ok('ui: filtro de gastos sin selects con style inline', strpos($glist, 'style="padding:.55rem;border:1px solid var(--line);border-radius:9px"') === false);
+// Formularios agrupan en secciones con <h2 class="sec"> (coherencia con comprobantes).
+ok('ui: form del proveedor con header de sección .sec', strpos($gpf, '<h2 class="sec">') !== false);
+// Badges siempre con variante (nunca .badge pelado = transparente).
+ok('ui: badges de Drive con variante (badge-info), no pelados', strpos($glist, 'class="badge badge-info badge-link"') !== false);
+ok('ui: gproveedores sin badge pelado en categoría', strpos($readf("$VIEWS/gproveedores.php"), "'badge-ok' : ''") === false);
+// Multi-CUIT en listados usa el formateador (soporta varios), no formatear_cuit (uno solo).
+ok('ui: gproveedores muestra varios CUIT con gp_cuits_fmt', strpos($readf("$VIEWS/gproveedores.php"), 'gp_cuits_fmt($r[\'cuit\'])') !== false);
 ok('gasto: CUIT solo de cabecera + validación dígito (evita falso positivo de tablas)', strpos($gjs50, 'function validCuit') !== false && strpos($gjs50, '.filter(validCuit)') !== false && strpos($gjs50, "search(/detalle de") !== false);
 ok('gasto: importe = TOTAL A PAGAR (par total/total+recargo, ignora %)', strpos($gjs50, 'function parseTotal') !== false && strpos($gjs50, 'A * f') !== false && strpos($gjs50, "(?!\\s*%)") !== false);
 

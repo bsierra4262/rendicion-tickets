@@ -7,7 +7,7 @@ $appName = $GLOBALS['CONFIG']['app']['name'] ?? 'Rendición de Tickets';
 $nav = [
     'dashboard'    => ['Panel', 'dashboard'],
     'comprobantes' => ['Comprobantes', 'receipt'],
-    'gastos'       => ['Gastos recurrentes', 'repeat'],
+    'gastos'       => ['Gastos', 'repeat'],
     'reportes'     => ['Reportes', 'chart'],
     'gproveedores' => ['Proveedores', 'users'],
     'proveedores'  => ['Prov. comprob.', 'users'],
@@ -40,7 +40,7 @@ $brandOrg  = $GLOBALS['CONFIG']['app']['org'] ?? 'INTELLIHELP';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $asset('assets/css/app.css') ?>?v=14">
+    <link rel="stylesheet" href="<?= $asset('assets/css/app.css') ?>?v=15">
     <?php if (!empty($brand['primary']) || !empty($brand['accent'])): ?>
     <style>:root{<?php if (!empty($brand['primary'])): ?>--primary:<?= e($brand['primary']) ?>;<?php endif; ?><?php if (!empty($brand['accent'])): ?>--accent:<?= e($brand['accent']) ?>;<?php endif; ?>}</style>
     <?php endif; ?>

@@ -53,11 +53,14 @@ img{max-width:100%}
 
 /* ---------- Inputs ---------- */
 input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink)}
-.fld input,.fld select,.fld textarea,.filters input,.filters select,.urow select,.login-form input{
+.fld input,.fld select,.fld textarea,.filters input,.filters select,.urow select,.urow input,.login-form input{
   width:100%;padding:.6rem .75rem;border:1px solid var(--line);border-radius:var(--radius-xs);
   background:var(--surface);transition:.15s;min-height:40px}
-.fld input:focus,.fld select:focus,.fld textarea:focus,.filters input:focus,.filters select:focus,.login-form input:focus{
+.fld input:focus,.fld select:focus,.fld textarea:focus,.filters input:focus,.filters select:focus,.urow input:focus,.login-form input:focus{
   outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-050)}
+/* Controles nativos con color de marca (checkbox/radio) — coherentes en toda la app. */
+input[type=checkbox],input[type=radio]{accent-color:var(--primary);width:16px;height:16px;cursor:pointer;margin:0}
+.switch input[type=checkbox]{width:0;height:0}   /* el toggle usa su propio track, no la casilla nativa */
 
 /* ---------- Login ---------- */
 body.auth{min-height:100vh;display:flex;align-items:center;justify-content:center;
@@ -85,9 +88,12 @@ body.app{background:var(--bg);min-height:100vh;display:flex;flex-direction:colum
 .brand{display:flex;align-items:center;flex-shrink:0}
 .nav-toggle{display:none;background:none;border:1px solid var(--line);border-radius:9px;width:38px;height:38px;
   cursor:pointer;color:var(--ink);align-items:center;justify-content:center}
-.topnav{display:flex;gap:2px;flex:1}
-.topnav a{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem .8rem;border-radius:9px;
-  color:var(--muted);font-weight:600;font-size:13.5px;white-space:nowrap}
+/* min-width:0 + overflow-x oculto: red de seguridad para que las solapas NUNCA empujen la
+   página (scroll horizontal). En pantallas donde no entran, pasa a drawer (ver media query). */
+.topnav{display:flex;gap:1px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.topnav::-webkit-scrollbar{display:none}
+.topnav a{display:inline-flex;align-items:center;gap:.4rem;padding:.45rem .6rem;border-radius:9px;
+  color:var(--muted);font-weight:600;font-size:13px;white-space:nowrap}
 .topnav a:hover{background:var(--soft);color:var(--ink)}
 .topnav a.active{background:var(--primary);color:#fff}
 .user-box{display:flex;align-items:center;gap:.75rem;flex-shrink:0}
@@ -199,6 +205,7 @@ table.grid tfoot .totals td{background:var(--soft);font-weight:700;border-top:2p
 .badge-rej{background:var(--danger-bg);color:var(--danger)}
 .badge-info{background:var(--primary-050);color:var(--primary-700)}
 .badge-neutral{background:var(--line-soft);color:var(--muted)}
+.badge-link{transition:.15s} .badge-link:hover{filter:brightness(.96);box-shadow:0 0 0 1px var(--primary-050)}
 
 /* ---------- Control segmentado (pestañas CRON) ---------- */
 .seg{display:inline-flex;background:var(--soft);border:1px solid var(--line);border-radius:var(--pill);padding:3px;gap:2px}
@@ -227,6 +234,10 @@ table.grid tfoot .totals td{background:var(--soft);font-weight:700;border-top:2p
 .chk{display:inline-flex;align-items:center;gap:.4rem;font-size:13px}
 .urow{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
 .urow select{width:auto;min-width:110px}
+/* En pantallas angostas los controles de una fila flex ocupan el 100% (no desbordan el card). */
+@media (max-width:520px){ .urow>input,.urow>select{min-width:0;flex-basis:100%;width:100%} }
+/* En desktop la celda es nowrap; permitir que los códigos/URL largos (.mono) igual corten. */
+table.grid td .mono{white-space:normal}
 .uinfo{display:flex;align-items:center;gap:.6rem}
 .scan-panel .scan-file{display:block;margin-bottom:.75rem;font-size:13.5px}
 .scan-preview{max-width:100%;max-height:340px;border-radius:var(--radius-sm);border:1px solid var(--line);margin-top:.75rem}
@@ -263,19 +274,46 @@ table.grid tfoot .totals td{background:var(--soft);font-weight:700;border-top:2p
 .th-arrow.on{opacity:1;color:var(--primary)}
 .th-sort:hover .th-arrow{opacity:.75}
 
-/* ---------- Responsive nav ---------- */
+/* ---------- Responsive nav ----------
+   Con muchas solapas, la barra pasa a menú desplegable (drawer) apenas dejan de entrar,
+   así la página NUNCA scrollea en horizontal. Arriba de 1400px entran cómodas. */
+@media (max-width:1400px){
+  .nav-toggle{display:inline-flex}
+  .topnav{position:fixed;top:58px;left:0;right:0;background:var(--surface);flex-direction:column;gap:2px;
+    padding:.6rem;border-bottom:1px solid var(--line);box-shadow:var(--shadow-lg);
+    transform:translateY(-160%);transition:transform .2s;z-index:29;max-height:calc(100vh - 58px);overflow-y:auto}
+  body.nav-open .topnav{transform:translateY(0)}
+  .topnav a{padding:.7rem .8rem;font-size:14.5px}
+}
 @media (max-width:900px){
   .topbar{gap:.75rem;padding:0 1rem}
-  .nav-toggle{display:inline-flex}
   .user-meta{display:none}
-  .topnav{position:fixed;top:58px;left:0;right:0;background:var(--surface);flex-direction:column;gap:2px;
-    padding:.75rem;border-bottom:1px solid var(--line);box-shadow:var(--shadow);
-    transform:translateY(-145%);transition:transform .2s;z-index:29}
-  body.nav-open .topnav{transform:translateY(0)}
-  .topnav a{padding:.7rem .8rem;font-size:15px}
   .content{padding:1rem}
+}
+@media (max-width:768px){
   .table-card{background:transparent;border:none;box-shadow:none}
 }
+
+/* ---------- Toggle / switch (estado activo, etc.) ---------- */
+.switch{display:inline-flex;align-items:center;gap:.6rem;cursor:pointer;user-select:none;padding:.15rem 0}
+.switch input{position:absolute;opacity:0;width:0;height:0}
+.switch .track{position:relative;width:42px;height:24px;background:var(--line);border-radius:var(--pill);
+  transition:background .16s ease;flex:none}
+.switch .knob{position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;
+  box-shadow:0 1px 3px rgba(0,0,0,.28);transition:transform .16s ease}
+.switch input:checked + .track{background:var(--primary)}
+.switch input:checked + .track .knob{transform:translateX(18px)}
+.switch input:focus-visible + .track{outline:2px solid var(--primary);outline-offset:2px}
+.switch .switch-txt{font-size:14px;font-weight:600;color:var(--ink)}
+
+/* ---------- Lista de CUITs (repetible, intuitivo) ---------- */
+.multi-list{display:flex;flex-direction:column;gap:.5rem}
+.multi-row{display:flex;align-items:center;gap:.5rem}
+.multi-row input{flex:1;min-width:0}
+.multi-del{flex:none;width:38px;height:38px;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-sm);
+  color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:0}
+.multi-del:hover{background:var(--danger-bg);color:var(--danger);border-color:transparent}
+.multi-add{align-self:flex-start;margin-top:.15rem}
 
 /* ---------- Impresión ---------- */
 @media print{

@@ -7,21 +7,32 @@
     <a href="<?= e(url('gasto-form')) ?>" class="btn btn-primary"><?= icon('plus') ?>Nuevo gasto</a>
 </div>
 
-<form method="get" action="<?= e(url('gastos')) ?>" class="card" style="padding:12px;margin-bottom:14px">
-    <div class="urow">
-        <input type="month" name="periodo" value="<?= e($f['periodo']) ?>" style="padding:.55rem;border:1px solid var(--line);border-radius:9px">
-        <select name="proveedor_id" style="padding:.55rem;border:1px solid var(--line);border-radius:9px">
-            <option value="">Todos los proveedores</option>
-            <?php foreach ($proveedores as $p): ?>
-                <option value="<?= (int)$p['id'] ?>" <?= (int)$f['proveedor_id'] === (int)$p['id'] ? 'selected' : '' ?>><?= e($p['nombre']) ?></option>
-            <?php endforeach; ?>
-        </select>
-        <select name="estado" style="padding:.55rem;border:1px solid var(--line);border-radius:9px">
-            <option value="">Todos</option>
-            <option value="pendiente" <?= $f['estado'] === 'pendiente' ? 'selected' : '' ?>>Pendiente</option>
-            <option value="pagado" <?= $f['estado'] === 'pagado' ? 'selected' : '' ?>>Pagado</option>
-        </select>
-        <button type="submit" class="btn btn-ghost"><?= icon('search') ?>Filtrar</button>
+<form method="get" action="<?= e(url('gastos')) ?>" class="filters card no-print">
+    <div class="filter-grid">
+        <label>
+            <span>Período</span>
+            <input type="month" name="periodo" value="<?= e($f['periodo']) ?>">
+        </label>
+        <label>
+            <span>Proveedor</span>
+            <select name="proveedor_id">
+                <option value="">Todos los proveedores</option>
+                <?php foreach ($proveedores as $p): ?>
+                    <option value="<?= (int)$p['id'] ?>" <?= (int)$f['proveedor_id'] === (int)$p['id'] ? 'selected' : '' ?>><?= e($p['nombre']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+        <label>
+            <span>Estado</span>
+            <select name="estado">
+                <option value="">Todos</option>
+                <option value="pendiente" <?= $f['estado'] === 'pendiente' ? 'selected' : '' ?>>Pendiente</option>
+                <option value="pagado" <?= $f['estado'] === 'pagado' ? 'selected' : '' ?>>Pagado</option>
+            </select>
+        </label>
+    </div>
+    <div class="filter-actions">
+        <button type="submit" class="btn btn-primary"><?= icon('search') ?>Filtrar</button>
     </div>
 </form>
 
@@ -47,8 +58,8 @@
                     <td data-label="Vencimiento" class="prio-2 muted small"><?= $r['fecha_vencimiento'] ? e(date('d/m/Y', strtotime($r['fecha_vencimiento']))) : '—' ?></td>
                     <td data-label="Estado"><span class="badge <?= $r['estado'] === 'pagado' ? 'badge-ok' : 'badge-pend' ?>"><?= e(ucfirst($r['estado'])) ?></span></td>
                     <td data-label="Archivos" class="prio-3">
-                        <?php if (!empty($r['drive_factura_link'])): ?><a href="<?= e($r['drive_factura_link']) ?>" target="_blank" rel="noopener" class="badge" title="Factura en Drive">Factura</a> <?php endif; ?>
-                        <?php if (!empty($r['drive_pago_link'])): ?><a href="<?= e($r['drive_pago_link']) ?>" target="_blank" rel="noopener" class="badge" title="Pago en Drive">Pago</a><?php endif; ?>
+                        <?php if (!empty($r['drive_factura_link'])): ?><a href="<?= e($r['drive_factura_link']) ?>" target="_blank" rel="noopener" class="badge badge-info badge-link" title="Factura en Drive"><?= icon('cloud', 13) ?>Factura</a> <?php endif; ?>
+                        <?php if (!empty($r['drive_pago_link'])): ?><a href="<?= e($r['drive_pago_link']) ?>" target="_blank" rel="noopener" class="badge badge-info badge-link" title="Pago en Drive"><?= icon('cloud', 13) ?>Pago</a><?php endif; ?>
                         <?php if (empty($r['drive_factura_link']) && empty($r['drive_pago_link'])): ?><span class="muted">—</span><?php endif; ?>
                     </td>
                     <td class="acts" data-label="Acciones">

@@ -30,10 +30,10 @@ $cats = gp_categorias(); $moms = gp_momentos();
                 <tr>
                     <td data-label="Proveedor"><strong><?= e($r['nombre']) ?></strong>
                         <?php if (!empty($r['nombre_gasto'])): ?><br><span class="muted small"><?= e($r['nombre_gasto']) ?></span><?php endif; ?>
-                        <?php if (!empty($r['cuit'])): ?><br><span class="muted small"><?= e(formatear_cuit($r['cuit'])) ?></span><?php endif; ?>
+                        <?php if (!empty($r['cuit'])): ?><br><span class="muted small"><?= e(gp_cuits_fmt($r['cuit'])) ?></span><?php endif; ?>
                     </td>
                     <td data-label="Rubro" class="prio-2"><?= e($r['rubro'] ?: '—') ?></td>
-                    <td data-label="Categoría"><span class="badge <?= $r['categoria'] === 'recurrente' ? 'badge-ok' : '' ?>"><?= e($cats[$r['categoria']] ?? $r['categoria']) ?></span></td>
+                    <td data-label="Categoría"><span class="badge <?= $r['categoria'] === 'recurrente' ? 'badge-ok' : 'badge-neutral' ?>"><?= e($cats[$r['categoria']] ?? $r['categoria']) ?></span></td>
                     <td data-label="Facturación" class="prio-3 muted small"><?= e($r['momento_facturacion'] ? ($moms[$r['momento_facturacion']] ?? '') : '—') ?></td>
                     <td data-label="Tipo fact." class="prio-3 muted small"><?= e($r['tipo_factura'] ?: '—') ?></td>
                     <td class="num prio-4" data-label="Gastos"><?= (int)$r['usos'] ?></td>

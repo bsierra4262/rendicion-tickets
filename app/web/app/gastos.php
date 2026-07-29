@@ -84,9 +84,11 @@ function gp_validar(array $in): array
     $c['nombre_gasto'] = trim((string)($in['nombre_gasto'] ?? '')) ?: null;
 
     // Puede haber VARIOS CUIT por proveedor (ej. EXPENSAS o BANCOS agrupan varias empresas).
-    // Se aceptan separados por coma, punto y coma o espacio; se validan todos y se guardan
-    // como dígitos separados por espacio.
-    $tokens = preg_split('/[,;\s]+/', trim((string)($in['cuit'] ?? '')), -1, PREG_SPLIT_NO_EMPTY);
+    // El form manda `cuit[]` (una entrada por CUIT); también se acepta un string con
+    // separadores. Se validan todos y se guardan como dígitos separados por espacio.
+    $rawCuit = $in['cuit'] ?? '';
+    if (is_array($rawCuit)) { $rawCuit = implode(' ', $rawCuit); }
+    $tokens = preg_split('/[,;\s]+/', trim((string)$rawCuit), -1, PREG_SPLIT_NO_EMPTY);
     $cuits = [];
     foreach ($tokens as $tk) {
         $dg = preg_replace('/\D/', '', $tk);

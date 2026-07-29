@@ -24,6 +24,16 @@
 - [ ] **Ventanas emergentes profesionales** (modal branded, nunca `confirm()` del navegador).
 - [ ] Solo se sube al server el contenido de **`app/`** (webroot `public_html/comprobantes`).
 
+## 🎨 Diseño / UI — profesional y CONSISTENTE (auditar, no parchar)
+> Se audita **de raíz**, no solo lo que el cliente señala. El **módulo comprobantes** es el patrón de referencia; todo lo nuevo lo copia. Guardado por tests en `test/run_tests.php` (sección «diseño/UI»).
+- [ ] **Responsive sin scroll horizontal en NINGÚN ancho** (desktop/laptop/notebook/tablet/celular). El menú superior colapsa a **drawer ≤1400px** y tiene red anti-overflow; todo se **reacomoda/redimensiona**, nunca aparece una barra horizontal.
+- [ ] **Sin controles nativos crudos**: para on/off usar el **toggle `.switch`**; checkboxes/radios restantes con `accent-color:var(--primary)`. Selects → `combobox.js`; fechas → `datepicker.js` (nunca `style=` inline en select/date/month: es código muerto).
+- [ ] **Filtros**: `class="filters card"` + `.filter-grid` + `<label><span>`. **Formularios**: `.form-card card` con `<h2 class="sec">` + `.fld`/`.grid-fields`. Sin estilos inline ad-hoc.
+- [ ] **Campos repetibles** (ej. varios CUIT): lista `.multi-list` con botones Agregar/Quitar, no un texto con comas.
+- [ ] **Badges** siempre con variante (`badge-ok`/`badge-info`/…), nunca `.badge` pelado (sale transparente).
+- [ ] **Colores/spacing por variables CSS** (`var(--…)`), nunca hex crudo ni px a ojo.
+- [ ] Tablas en `.table-scroll` con `data-label` + `prio-*` (modo tarjeta en ≤768px).
+
 ## 🟣 OCR / Escaneo
 - [ ] **Solo PaddleOCR** (PP-OCRv6 **medium**, el más avanzado). **Tesseract DESHABILITADO** hasta nuevo aviso.
 - [ ] **Optimizar al máximo sin limitar** el trabajo (no saltear pasos/orientaciones; sí acelerar).
