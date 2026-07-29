@@ -814,7 +814,7 @@ ok('gasto: guardado sube a Drive SINCRÓNICO (links al volver, como comprobantes
 ok('drive: connect timeout (no cuelga si no llega a Google)', strpos($gd48, 'CURLOPT_CONNECTTIMEOUT') !== false);
 ok('gasto: parser matchea por keyword (ej. EXPENSAS) sin falsos positivos', strpos($gjs48, "'expensas'") !== false && strpos($gjs48, 'var STOP') !== false);
 ok('gasto: Leer PAGO (fecha + marca pagado)', strpos($gjs48, 'function parsePago') !== false && strpos($gjs48, "setVal('estado', 'pagado')") !== false && strpos($gfv48, 'id="leerPago"') !== false);
-ok('gasto: __gprov con rubro + gastos.js versionado', strpos($gfv48, "'rubro' => \$p['rubro']") !== false && (bool)preg_match('/gastos\.js[^\n]*\?v=8/', $gfv48));
+ok('gasto: __gprov con rubro + gastos.js versionado', strpos($gfv48, "'rubro' => \$p['rubro']") !== false && (bool)preg_match('/gastos\.js[^\n]*\?v=9/', $gfv48));
 
 echo "== v2.49 — fixes de gastos: form se completa visible + carpeta Drive real ==\n";
 $gjs49 = $readf("$ASSETS/js/gastos.js");
@@ -834,10 +834,28 @@ $lay50 = $readf("$VIEWS/layout.php");
 ok('datepicker: sincroniza cambios EXTERNOS del hidden (OCR/autocompletar)', strpos($dp50, "hidden.addEventListener('change', syncLabel)") !== false);
 ok('gasto: período desde etiqueta (Liquidación/Período), no de la fecha', strpos($gjs50, 'function parsePeriodoLabel') !== false && strpos($gjs50, 'liquidaci') !== false && strpos($gjs50, 'parsePeriodoLabel(text) ||') !== false);
 ok('gasto: no usa el vencimiento como emisión', strpos($gjs50, "d.iso !== venc.iso") !== false);
-ok('assets versionados: datepicker v4 + gastos v8', (bool)preg_match('/datepicker\.js[^\n]*\?v=4/', $lay50) && (bool)preg_match('/gastos\.js[^\n]*\?v=8/', $readf("$VIEWS/gasto-form.php")));
+ok('assets versionados: datepicker v4 + gastos v9', (bool)preg_match('/datepicker\.js[^\n]*\?v=4/', $lay50) && (bool)preg_match('/gastos\.js[^\n]*\?v=9/', $readf("$VIEWS/gasto-form.php")));
 ok('gasto: lee QR AFIP (render PDF + jsQR + datos exactos)', strpos($gjs50, 'function scanFacturaQr') !== false && strpos($gjs50, 'function parseAfipQr') !== false && strpos($gjs50, 'function mergeQr') !== false && strpos($readf("$VIEWS/gasto-form.php"), 'jsqr@1.4.0') !== false);
 ok('gasto: QR = datos exactos (CUIT emisor→proveedor, importe, fecha)', strpos($gjs50, 'provByCuit(String(qr.cuit))') !== false && strpos($gjs50, 'd.valor = +qr.importe') !== false && strpos($gjs50, 'd.desde_qr') !== false);
-ok('gasto: detectProv por CUIT + keywords curados + caso Personal/Telecom', strpos($gjs50, 'var KEYWORDS') !== false && strpos($gjs50, "indexOf('PERSONAL')") !== false && strpos($gjs50, 'PROVS[i].cuit && cuits.indexOf') !== false);
+ok('gasto: detectProv por CUIT + keywords curados + caso Personal/Telecom', strpos($gjs50, 'var KEYWORDS') !== false && strpos($gjs50, "indexOf('PERSONAL')") !== false && strpos($gjs50, 'cuits.indexOf(pc[kc])') !== false);
+
+echo "== v2.52 — parser US (NET2PHONE/CHATGPT), ABL, multi-CUIT y OCR de imagen ==\n";
+$gs52  = $readf("$SRC/gastos.php");
+$gpf52 = $readf("$VIEWS/gproveedor-form.php");
+// Formato de número US (1,234.56) vs AR (1.234,56): NET2PHONE (IDT) y CHATGPT (OpenAI) usan US.
+ok('gasto: findAmounts detecta formato US vs AR (NET2PHONE/CHATGPT)', strpos($gjs50, 'function isUSFormat') !== false && strpos($gjs50, "replace(/,/g, '')") !== false);
+ok('gasto: fechas en inglés ("September 12, 2025") + meses jan/apr/aug/dec', strpos($gjs50, 'jan: 1') !== false && strpos($gjs50, 'date of issue') !== false);
+ok('gasto: total por etiqueta PEGADA antes del par-recargo (NET2PHONE "Total:")', strpos($gjs50, 'var TLABS') !== false && strpos($gjs50, "'amount due'") !== false && strpos($gjs50, "'total:'") !== false);
+ok('gasto: impuesto ABL toma el monto (no la valuación del terreno)', strpos($gjs50, 'valuaci') !== false && strpos($gjs50, 'porcentual fiscal') !== false);
+// Multi-CUIT (EXPENSAS/BANCOS agrupan varias empresas).
+ok('gasto: proveedor admite VARIOS CUIT (validación server)', strpos($gs52, "preg_split('/[,;\\s]+/'") !== false && strpos($gs52, "implode(' ', \$cuits)") !== false);
+ok('gasto: cuit column varchar(160) para varios CUIT', (bool)preg_match('/`cuit`\s+varchar\(160\)/', $readf(dirname($WEB) . '/db/schema.sql')));
+ok('gasto: matcheo por cualquiera de los CUIT del proveedor (texto y QR)', strpos($gjs50, "(PROVS[i].cuit || '').split(/\\s+/)") !== false);
+ok('gasto: form del proveedor acepta varios CUIT + formateo', strpos($gpf52, 'gp_cuits_fmt') !== false && strpos($gs52, 'function gp_cuits_fmt') !== false);
+ok('gasto: NET2PHONE sembrado con CUIT del emisor (IDT) + keyword', strpos($gs52, "'30707397809'") !== false && strpos($gjs50, 'idt corporation') !== false);
+// OCR de imagen (perezoso) para facturas escaneadas sin texto ni QR.
+ok('gasto: OCR de imagen perezoso (PaddleOCR) sólo si no hay texto ni QR', strpos($gjs50, 'function ocrCanvas') !== false && strpos($gjs50, 'function loadPaddle') !== false && strpos($gjs50, 'paddleocr.js') !== false);
+ok('gasto: importmap onnxruntime en el gasto-form (para el OCR)', strpos($readf("$VIEWS/gasto-form.php"), 'importmap') !== false && strpos($readf("$VIEWS/gasto-form.php"), 'onnxruntime-web') !== false);
 ok('gasto: CUIT solo de cabecera + validación dígito (evita falso positivo de tablas)', strpos($gjs50, 'function validCuit') !== false && strpos($gjs50, '.filter(validCuit)') !== false && strpos($gjs50, "search(/detalle de") !== false);
 ok('gasto: importe = TOTAL A PAGAR (par total/total+recargo, ignora %)', strpos($gjs50, 'function parseTotal') !== false && strpos($gjs50, 'A * f') !== false && strpos($gjs50, "(?!\\s*%)") !== false);
 

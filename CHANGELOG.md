@@ -7,6 +7,13 @@ y el versionado, [SemVer](https://semver.org/lang/es/).
 ## [Unreleased]
 
 ### Added
+- **Módulo Gastos recurrentes**: maestro de proveedores + carga de la factura con respaldo
+  en Drive por proveedor/año/mes; auditoría completa.
+- **Lectura de factura de gastos** en cascada: QR de ARCA (datos exactos) → texto del PDF →
+  OCR de imagen (PaddleOCR) sólo si es un escaneo/foto sin texto ni QR.
+- Parser de gastos con soporte de número **AR** (`1.234,56`) y **US** (`1,234.56`) y de
+  facturas en inglés (OpenAI/ChatGPT: fecha «September 12, 2025», importe en USD).
+- Un proveedor de gastos puede tener **varios CUIT** (expensas/bancos agrupan empresas).
 - Padrón nacional offline (~1,13 M empresas) con validación cruzada CUIT ↔ razón social.
 - Orientación automática de la foto por IA (modelo ONNX `doc_ori`).
 - Unión de varias fotos en un solo comprobante (tickets ultra-largos).
@@ -14,8 +21,10 @@ y el versionado, [SemVer](https://semver.org/lang/es/).
 - Auditoría completa en el CRON de cada acción y error (cliente y servidor).
 
 ### Changed
+- La aplicación se sirve desde `/comprobantes` (antes `/tickets`).
 - Terminología alineada al Excel de rendición: «Categoría» → «Concepto».
 - Lectura adaptativa por franjas para recibos largos.
+- Impuesto Inmobiliario/ABL: se toma el monto a pagar y no la valuación del terreno.
 
 ### Security
 - `config.php` (credenciales de DB + secreto de Google) fuera del control de versiones.

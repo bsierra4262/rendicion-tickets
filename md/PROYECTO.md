@@ -552,3 +552,15 @@ El cliente probó y la factura de expensas detectaba **EDENOR** (mal). Causa: el
 - Re-evaluado: EXPENSAS → ADMINISTRACION SILVANA ✓ (ya no EDENOR), sin regresiones.
 - **cuitonline.com**: confirmado Cloudflare (bloquea al server). Alternativas probadas (`api.cuitonline.com`, `soa.afip.gob.ar/sr-padron`) → no accesibles sin cert. El padrón offline solo tiene EMPRESAS (no personas, ej. Guaycochea) → pendiente conseguir una fuente online CUIT↔razón (personas incluidas) no bloqueada.
 - **+2 tests → 436/436.** `gastos.js?v=7`. Datos de prueba limpiados.
+
+## 60. v2.53 — Gastos: QR AFIP + formato US + ABL + multi-CUIT + OCR de imagen (2026-07-29)
+Ronda grande de mejoras de lectura de factura del módulo de gastos, sobre las 19 carpetas reales.
+- **Lectura del QR de ARCA** (como en comprobantes): `scanFacturaQr` renderiza la 1ª página del PDF (pdf.js) y busca el QR de factura electrónica (`?p=` base64 JSON). Si está, es **fuente de verdad** (`mergeQr`): CUIT del emisor → proveedor, importe → valor, fecha → fecha/período, DOL → USD. El popup avisa «Datos exactos del QR de AFIP». 6 facturas traen QR (EXPENSAS, MAURICIO, COLLINET, GUPAZ, CLARO, OSDE).
+- **Formato de número US** (`isUSFormat`): NET2PHONE (IDT Corporation) y CHATGPT (OpenAI) facturan en formato `1,234.56` (coma miles, punto decimal), no AR. Se detecta la convención por documento y se parsea bien. Antes NET2PHONE fallaba (leía `26,64` en vez de `26.645,40`) y CHATGPT no leía el importe. También **fechas en inglés** («September 12, 2025») y etiqueta «Amount due».
+- **Total por etiqueta pegada**: si el importe está inmediatamente después de una etiqueta de pago (`Total:`, `Amount due`, `Total a pagar`, ≤22 car.) gana esa; recién si no, el par total/total+recargo por mora (EXPENSAS 470.895,74 vs +3% 485.022,74). Evita confundir una alícuota de IVA («base → base+N%») con el total (NET2PHONE).
+- **Impuesto Inmobiliario/ABL**: se ignora la «valuación del terreno» (número enorme) y se toma el monto a pagar (el que se repite). Antes tomaba $50 M en vez de $96.690,90.
+- **COLLINET**: ahora toma «Importe Total» ($834.900 = neto $690.000 + 21% IVA), antes el neto.
+- **Varios CUIT por proveedor**: rubros como EXPENSAS o BANCOS agrupan varias empresas. La columna `cuit` pasó a `varchar(160)`; se cargan/validan varios (separados por coma/espacio) y el match (texto y QR) prueba cualquiera. Form del proveedor y `gp_cuits_fmt` para mostrarlos formateados. NET2PHONE sembrado con el CUIT del emisor IDT (30707397809).
+- **OCR de imagen (perezoso)**: si la factura es un escaneo/foto **sin texto ni QR**, recién ahí se carga PaddleOCR (motor de comprobantes) bajo demanda y se lee la imagen. En uso normal (PDF con texto/QR) no pesa nada.
+- **Eval 19/19** en facturas reales (GOOGLE es un email sin monto y BANCOS no tiene proveedor único: casos de dato, no del parser). **+13 tests → 449/449.** `gastos.js?v=9`.
+- **cuitonline / fuente online CUIT**: sigue bloqueada por Cloudflare (403); afipsdk/soa.afip también. Se documenta y se usa el padrón offline; pendiente una API paga/autenticada si el cliente la quiere.

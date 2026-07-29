@@ -91,30 +91,74 @@
             || scanQrRegion(base, 1.6, [0, 0.5, 1, 0.5]) || scanQrRegion(base, 1.6, [0, 0, 1, 0.5]);
     }
     // Renderiza la 1ª página del PDF a canvas y busca el QR AFIP. Devuelve el objeto QR o null.
+    // Renderiza la 1ª página del PDF (o la imagen) a un canvas. Devuelve el canvas o null.
+    function renderFacturaCanvas(file, cb) {
+        if (file && /^image\//.test(file.type)) {   // ya es imagen (foto/escaneo): cargarla directo
+            var url = URL.createObjectURL(file), img = new Image();
+            img.onload = function () {
+                var c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+                c.getContext('2d').drawImage(img, 0, 0); URL.revokeObjectURL(url); cb(c);
+            };
+            img.onerror = function () { URL.revokeObjectURL(url); cb(null); };
+            img.src = url;
+            return;
+        }
+        loadPdfJs(function (okP) {
+            if (!okP) { return cb(null); }
+            var fr = new FileReader();
+            fr.onload = function () {
+                window.pdfjsLib.getDocument({ data: new Uint8Array(fr.result) }).promise
+                    .then(function (pdf) { return pdf.getPage(1); })
+                    .then(function (page) {
+                        var vp = page.getViewport({ scale: 2.5 });
+                        var c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+                        return page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise.then(function () { return c; });
+                    })
+                    .then(function (canvas) { cb(canvas); })
+                    .catch(function () { cb(null); });
+            };
+            fr.readAsArrayBuffer(file);
+        });
+    }
     function scanFacturaQr(file, cb) {
         loadJsQr(function (okQ) {
-            if (!okQ) { return cb(null); }
-            loadPdfJs(function (okP) {
-                if (!okP) { return cb(null); }
-                var fr = new FileReader();
-                fr.onload = function () {
-                    window.pdfjsLib.getDocument({ data: new Uint8Array(fr.result) }).promise
-                        .then(function (pdf) { return pdf.getPage(1); })
-                        .then(function (page) {
-                            var vp = page.getViewport({ scale: 2.5 });
-                            var c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
-                            return page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise.then(function () { return c; });
-                        })
-                        .then(function (canvas) { cb(scanAfipQr(canvas)); })
-                        .catch(function () { cb(null); });
-                };
-                fr.readAsArrayBuffer(file);
+            if (!okQ) { return cb(null, null); }
+            renderFacturaCanvas(file, function (canvas) {
+                if (!canvas) { return cb(null, null); }
+                cb(scanAfipQr(canvas), canvas);   // devuelve el QR y el canvas (reutilizable para OCR)
             });
+        });
+    }
+
+    // OCR de imagen (perezoso): sólo para facturas escaneadas/foto SIN texto ni QR. Reutiliza el
+    // motor PaddleOCR de comprobantes (assets/js/paddleocr.js), cargado bajo demanda.
+    function loadPaddle(cb) {
+        if (window.PaddleOCR && window.PaddleOCR.ready) { return window.PaddleOCR.ready.then(function (ok) { cb(ok); }); }
+        var s = document.createElement('script');
+        s.src = (window.APP_BASE || '') + 'assets/js/paddleocr.js?v=18';
+        s.onload = function () {
+            if (window.PaddleOCR && window.PaddleOCR.ready) { window.PaddleOCR.ready.then(function (ok) { cb(ok); }); }
+            else { cb(false); }
+        };
+        s.onerror = function () { cb(false); };
+        document.head.appendChild(s);
+    }
+    // Corre OCR sobre un canvas ya renderizado. cb(texto|'').
+    function ocrCanvas(canvas, cb) {
+        if (!canvas) { return cb(''); }
+        loadPaddle(function (ok) {
+            if (!ok || !window.PaddleOCR.recognize) { return cb(''); }
+            try {
+                window.PaddleOCR.recognize(canvas).then(function (txt) { cb(txt || ''); }).catch(function () { cb(''); });
+            } catch (e) { cb(''); }
         });
     }
     function provByCuit(cuit) {
         cuit = (cuit || '').replace(/\D/g, '');
-        for (var i = 0; i < PROVS.length; i++) { if (PROVS[i].cuit && PROVS[i].cuit === cuit) { return PROVS[i]; } }
+        if (!cuit) { return null; }
+        for (var i = 0; i < PROVS.length; i++) {
+            if ((PROVS[i].cuit || '').split(/\s+/).indexOf(cuit) > -1) { return PROVS[i]; }
+        }
         return null;
     }
     function qrFecha(f) { f = String(f || ''); return /^\d{8}$/.test(f) ? (f.slice(0, 4) + '-' + f.slice(4, 6) + '-' + f.slice(6, 8)) : f.slice(0, 10); }
@@ -130,7 +174,8 @@
     window.scanAfipQrGasto = scanAfipQr; // para tests
 
     // ---- Parser (expuesto para tests) ----
-    var MESES = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12 };
+    var MESES = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12,
+        jan: 1, apr: 4, aug: 8, dec: 12 };  // + inglés (feb/mar/may/jun/jul/sep/oct/nov coinciden)
     function digits(s) { return (s || '').replace(/\D/g, ''); }
     function toISO(d, m, y) { if (y < 100) { y += 2000; } return y + '-' + ('0' + m).slice(-2) + '-' + ('0' + d).slice(-2); }
 
@@ -141,20 +186,38 @@
             var d = +m[1], mo = +m[2], y = +m[3];
             if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12) { out.push({ iso: toISO(d, mo, y), idx: m.index }); }
         }
-        var re2 = /\b(\d{1,2})\s+([a-zA-Záéíóú]{3,})\.?\s+(\d{4})\b/g;
+        var re2 = /\b(\d{1,2})\s+([a-zA-Záéíóú]{3,})\.?\s+(\d{4})\b/g;   // "12 septiembre 2025"
         while ((m = re2.exec(t))) {
             var mm = MESES[m[2].slice(0, 3).toLowerCase()];
             if (mm) { out.push({ iso: toISO(+m[1], mm, +m[3]), idx: m.index }); }
         }
+        var re3 = /\b([a-zA-Z]{3,})\.?\s+(\d{1,2}),?\s+(\d{4})\b/g;       // "September 12, 2025" (inglés, mes primero)
+        while ((m = re3.exec(t))) {
+            var m3 = MESES[m[1].slice(0, 3).toLowerCase()];
+            if (m3) { out.push({ iso: toISO(+m[2], m3, +m[3]), idx: m.index }); }
+        }
         return out;
     }
+    // Convención de decimales del documento. Algunas facturas (IDT/NET2PHONE, OpenAI/CHATGPT)
+    // usan formato US "1,234.56"; la mayoría AR "1.234,56". Detectar mal rompe el importe.
+    function isUSFormat(t) {
+        var us = (t.match(/\d{1,3}(?:,\d{3})+\.\d{2}/g) || []).length;   // 1,234.56 (miles con coma)
+        var ar = (t.match(/\d{1,3}(?:\.\d{3})+,\d{2}/g) || []).length;   // 1.234,56 (miles con punto)
+        if (us || ar) { return us >= ar && us > 0; }
+        // Sin miles agrupados: decidir por el separador decimal predominante.
+        var pd = (t.match(/\d\.\d{2}(?!\d)/g) || []).length;            // 20.00
+        var cd = (t.match(/\d,\d{2}(?!\d)/g) || []).length;             // 20,00
+        return pd > cd;
+    }
     function findAmounts(t) {
-        var out = [], m;
-        // Importes AR; el (?!\s*%) descarta porcentajes (ej. "3,00%").
-        var re = /(\d{1,3}(?:\.\d{3})+,\d{2}|\d+,\d{2})(?!\s*%)/g;
-        while ((m = re.exec(t))) {
-            var v = parseFloat(m[1].replace(/\./g, '').replace(',', '.'));
-            if (v > 0) { out.push({ v: v, idx: m.index }); }
+        var out = [], m, v;
+        // El (?!\s*%) descarta porcentajes (ej. "3,00%").
+        if (isUSFormat(t)) {
+            var reu = /(\d{1,3}(?:,\d{3})+\.\d{2}|\d+\.\d{2})(?!\s*%)/g;  // US: 1,234.56 / 20.00
+            while ((m = reu.exec(t))) { v = parseFloat(m[1].replace(/,/g, '')); if (v > 0) { out.push({ v: v, idx: m.index }); } }
+        } else {
+            var re = /(\d{1,3}(?:\.\d{3})+,\d{2}|\d+,\d{2})(?!\s*%)/g;    // AR: 1.234,56 / 20,00
+            while ((m = re.exec(t))) { v = parseFloat(m[1].replace(/\./g, '').replace(',', '.')); if (v > 0) { out.push({ v: v, idx: m.index }); } }
         }
         return out;
     }
@@ -162,6 +225,24 @@
     // factura tiene recargo por mora ("Luego del … - N%"): el TOTAL A PAGAR es el menor.
     function parseTotal(text, amounts) {
         if (!amounts.length) { return null; }
+        // Impuesto Inmobiliario/ABL: no hay etiqueta "total"; la VALUACIÓN DEL TERRENO es un
+        // número enorme que NO es lo que se paga. El monto a pagar (cuota/total) se repite;
+        // la valuación aparece una sola vez → gana el más frecuente (desempate: el menor).
+        if (/valuaci[óo]n del terreno|porcentual fiscal|inmobiliario y abl/i.test(text)) {
+            var freq = {};
+            amounts.forEach(function (a) { freq[a.v] = (freq[a.v] || 0) + 1; });
+            var mode = amounts.slice().sort(function (a, b) { return (freq[b.v] - freq[a.v]) || (a.v - b.v); })[0];
+            if (mode) { return mode; }
+        }
+        // 1) Etiqueta PEGADA al importe (el número sigue a la etiqueta en ≤ ~22 caracteres):
+        //    señal muy confiable (NET2PHONE "Total: $ 26,645.40", OpenAI "Amount due $20.00").
+        //    Va ANTES del par-recargo para no confundir alícuotas de IVA con el total (NET2PHONE).
+        var TLABS = ['total a pagar', 'amount due', 'balance due', 'total due', 'importe total',
+            'total en usd', 'neto a pagar', 'saldo a pagar', 'total factura', 'total:'];
+        var tight = nearLabel(text, TLABS, amounts, 22);
+        if (tight) { return tight; }
+        // 2) Par (total, total+recargo) por mora cuando la etiqueta está LEJOS del número
+        //    (EXPENSAS: "TOTAL A PAGAR … 470.895,74 … +3% 485.022,74"): el a pagar es el menor.
         var pctM = text.match(/(\d{1,2}(?:[.,]\d{1,2})?)\s*%/);
         if (pctM) {
             var pct = parseFloat(pctM[1].replace(',', '.'));
@@ -178,10 +259,12 @@
                 }
             }
         }
-        var t = nearLabel(text, ['total a pagar', 'importe total', 'total del plan', 'total en usd', 'neto a pagar', 'saldo a pagar', 'total factura'], amounts, 1200);
+        // 3) Etiqueta con ventana amplia (por si el número quedó algo lejos).
+        var t = nearLabel(text, ['total a pagar', 'importe total', 'total del plan', 'total en usd', 'neto a pagar', 'saldo a pagar', 'total factura', 'amount due', 'balance due', 'total due'], amounts, 1200);
         if (t) { return t; }
         t = nearLabel(text, ['total'], amounts, 200);
         if (t) { return t; }
+        // 4) Último recurso: el mayor.
         return amounts.reduce(function (a, b) { return b.v > a.v ? b : a; }, amounts[0]);
     }
     function nearLabel(text, labels, items, win) {
@@ -203,7 +286,7 @@
         'ADMINISTRACION SILVANA LORENA GUAYCOCHEA': ['expensas', 'guaycochea'],
         'MAURICIO SZTERN': ['sztern'],
         'ESTUDIO COLLINET': ['collinet'],
-        'NET2PHONE': ['net2phone', 'net 2 phone'],
+        'NET2PHONE': ['net2phone', 'net 2 phone', 'idt corporation', 'idt corp'],
         'GUPAZ': ['gupaz', 'everfull'],
         'CLARO EMPRESAS': ['claro'],
         'TELECOM EMPRESAS': ['telecom argentina'],
@@ -243,8 +326,12 @@
             var per = PROVS.filter(function (p) { return p.nombre.toUpperCase().indexOf('PERSONAL') > -1; })[0];
             if (per) { return per; }
         }
-        // 1) CUIT exacto del emisor (lo más confiable).
-        for (i = 0; i < PROVS.length; i++) { if (PROVS[i].cuit && cuits.indexOf(PROVS[i].cuit) > -1) { return PROVS[i]; } }
+        // 1) CUIT exacto del emisor (lo más confiable). Un proveedor puede tener VARIOS CUIT
+        //    (EXPENSAS/BANCOS agrupan varias empresas) → guardados separados por espacio.
+        for (i = 0; i < PROVS.length; i++) {
+            var pc = (PROVS[i].cuit || '').split(/\s+/);
+            for (var kc = 0; kc < pc.length; kc++) { if (pc[kc] && cuits.indexOf(pc[kc]) > -1) { return PROVS[i]; } }
+        }
         // 2) Keyword curado: gana la coincidencia MÁS LARGA (más específica).
         var best = null, bestLen = 0;
         PROVS.forEach(function (p) {
@@ -291,8 +378,8 @@
         text = text || '';
         var dates = findDates(text), amounts = findAmounts(text);
         var isUSD = /US\$|\bUSD\b|d[óo]lar/i.test(text);
-        var emis = nearLabel(text, ['emisi', 'fecha de la factura', 'fecha de factura'], dates);
-        var venc = nearLabel(text, ['vencimiento', '1° vto', '1�vto', '1 vto', 'vto.', 'vto ', 'vto:'], dates);
+        var emis = nearLabel(text, ['emisi', 'fecha de la factura', 'fecha de factura', 'date of issue'], dates);
+        var venc = nearLabel(text, ['vencimiento', '1° vto', '1�vto', '1 vto', 'vto.', 'vto ', 'vto:', 'date due', 'due date'], dates);
         // Importe: usar la CABECERA (antes del detalle/histórico) para no agarrar
         // números de las tablas de movimientos.
         var cut = text.toLowerCase().search(/detalle de (egresos|movimientos|gastos)|movimientos del|hist[oó]rico de/);
@@ -384,11 +471,18 @@
         if (!f) { if (statusEl) { statusEl.textContent = 'Elegí primero el PDF de la factura.'; statusEl.className = 'flash flash-info'; } return; }
         if (statusEl) { statusEl.textContent = 'Leyendo la factura…'; statusEl.className = 'flash flash-info'; }
         extractText(f, function (text) {
-            scanFacturaQr(f, function (qr) {
-                if (!text && !qr) { if (statusEl) { statusEl.textContent = 'No pude leer el PDF (¿es una imagen escaneada, sin texto ni QR?). Cargá los datos a mano.'; statusEl.className = 'flash flash-error'; } return; }
-                var d = parseFactura(text || '');
-                if (qr) { d = mergeQr(d, qr); }  // QR AFIP = datos exactos
-                showPopup(d);
+            scanFacturaQr(f, function (qr, canvas) {
+                function finish(txt) {
+                    if (!txt && !qr) { if (statusEl) { statusEl.textContent = 'No pude leer la factura (ni texto, ni QR, ni OCR). Cargá los datos a mano.'; statusEl.className = 'flash flash-error'; } return; }
+                    var d = parseFactura(txt || '');
+                    if (qr) { d = mergeQr(d, qr); }  // QR AFIP = datos exactos (manda sobre el texto/OCR)
+                    showPopup(d);
+                }
+                var hasText = text && text.replace(/\s/g, '').length > 20;
+                if (hasText || qr) { return finish(text); }
+                // Sin texto ni QR (factura escaneada / foto): recién ahí se activa el OCR de imagen.
+                if (statusEl) { statusEl.textContent = 'La factura no tiene texto ni QR; leyéndola con OCR (puede tardar unos segundos)…'; statusEl.className = 'flash flash-info'; }
+                ocrCanvas(canvas, function (ocrText) { finish(ocrText); });
             });
         });
     });

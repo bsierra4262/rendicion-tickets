@@ -148,7 +148,7 @@ CREATE TABLE `gastos_proveedores` (
   `tipo_factura` varchar(60) DEFAULT NULL,
   `vigencia_descuento` date DEFAULT NULL,
   `nombre_gasto` varchar(150) DEFAULT NULL,
-  `cuit` char(11) DEFAULT NULL,
+  `cuit` varchar(160) DEFAULT NULL,
   `drive_folder` varchar(150) DEFAULT NULL,
   `drive_folder_id` varchar(128) DEFAULT NULL,
   `activo` tinyint(4) NOT NULL DEFAULT 1,

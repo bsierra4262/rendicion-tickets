@@ -112,8 +112,14 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
     </div>
 </form>
 
+<!-- Import map para el OCR de imagen (PaddleOCR se carga bajo demanda sólo si la factura
+     no tiene texto ni QR). Debe ir antes de cualquier import de módulos. -->
+<script type="importmap">
+{ "imports": { "onnxruntime-web": "https://esm.sh/onnxruntime-web@1.23.2?target=es2022" } }
+</script>
 <script>
+window.APP_BASE = <?= json_encode(url('')) ?>;
 window.__gprov = <?= json_encode(array_map(fn($p) => ['id' => (int)$p['id'], 'nombre' => $p['nombre'], 'rubro' => $p['rubro'] ?? '', 'cuit' => $p['cuit'] ?? ''], $proveedores), JSON_UNESCAPED_UNICODE) ?>;
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-<script defer src="<?= e(url('assets/js/gastos.js')) ?>?v=8"></script>
+<script defer src="<?= e(url('assets/js/gastos.js')) ?>?v=9"></script>

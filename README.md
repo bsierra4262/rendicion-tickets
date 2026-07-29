@@ -24,6 +24,7 @@
 - [Descripción](#descripción)
 - [Características](#características)
 - [Arquitectura del pipeline](#arquitectura-del-pipeline)
+- [Gastos recurrentes](#gastos-recurrentes)
 - [Stack técnico](#stack-técnico)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Puesta en marcha](#puesta-en-marcha)
@@ -56,6 +57,7 @@ borrador hasta su **revisión y aprobación** por un operador.
 - **Parser fiscal argentino.** CUIT con dígito verificador (módulo 11), tipo y letra, punto de venta y número, importes en formato local, tasas de IVA (21 / 10,5 / 27) y CAE.
 - **Padrón nacional offline (~1,13 M de empresas).** Resolución cruzada CUIT ↔ razón social: no asigna datos ambiguos (desambigua homónimos, descarta el CUIT del comprador, recupera lecturas con un error).
 - **Categorización auto-entrenada.** El concepto de cada proveedor se ajusta con el uso.
+- **Gastos recurrentes.** Módulo aparte para servicios y gastos fijos (electricidad, expensas, alquiler, seguros, telefonía, impuestos): maestro de proveedores + lectura automática de la factura (QR de ARCA / texto / OCR) y respaldo en Drive por proveedor, año y mes. Ver [Gastos recurrentes](#gastos-recurrentes).
 - **Respaldo en Google Drive.** Cada imagen se replica en Drive con estructura por año y mes; la copia local se conserva como respaldo.
 - **Control de sesión.** Cierre automático por inactividad y por tiempo máximo, con validación del lado del servidor.
 - **Auditoría completa.** Cada acción y cada error (cliente y servidor) queda registrado.
@@ -82,6 +84,28 @@ Cada capa incorpora un mecanismo de degradación controlada: si el QR no está p
 aplica OCR; si el modelo de orientación no carga, se evalúan las cuatro rotaciones; si el
 padrón no resuelve, el dato se completa manualmente. El sistema no interrumpe el flujo ni
 infiere datos que no puede verificar.
+
+## Gastos recurrentes
+
+Módulo independiente del flujo de comprobantes para gestionar los **gastos fijos** de la
+organización (electricidad, expensas, alquiler, estudio contable, telefonía, medicina
+prepaga, seguros, impuestos, suscripciones). Reemplaza la planilla y las carpetas manuales.
+
+- **Maestro de proveedores.** Cada proveedor con su rubro, categoría (recurrente / única
+  vez), momento de facturación (mes adelantado / vencido), tipo de factura, vigencia de
+  descuento, carpeta de Drive y **uno o varios CUIT** (rubros como expensas o bancos
+  agrupan varias empresas: el match por CUIT del emisor acepta cualquiera de ellos).
+- **Lectura automática de la factura** (botón «Leer factura»), en cascada de mayor a menor
+  confiabilidad:
+  1. **QR de ARCA** (`?p=` base64 JSON) → datos exactos: CUIT del emisor, importe, fecha.
+  2. **Texto del PDF** (pdf.js) + parser: proveedor por CUIT/razón, importe = *total a
+     pagar*, fecha de emisión, primer vencimiento y período. Soporta formato de número
+     **AR** (`1.234,56`) y **US** (`1,234.56`) y facturas en inglés (OpenAI/ChatGPT).
+  3. **OCR de imagen** (PaddleOCR) sólo si la factura es un escaneo/foto sin texto ni QR.
+- **Confirmación antes de guardar.** Un popup muestra lo leído; el operador revisa y
+  corrige antes de persistir (nunca se guarda a ciegas).
+- **Respaldo en Drive.** Factura y comprobante de pago se suben a `Proveedor / Año / Mes`.
+- **Auditoría completa.** Alta, edición, lectura y subida a Drive quedan registradas.
 
 ## Stack técnico
 

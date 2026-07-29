@@ -51,8 +51,9 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
                 <input type="text" name="nombre_gasto" value="<?= $val('nombre_gasto') ?>" maxlength="150">
             </label>
             <label class="fld">
-                <span>CUIT (opcional)</span>
-                <input type="text" name="cuit" value="<?= $val('cuit') ?>" maxlength="13" placeholder="30-12345678-9">
+                <span>CUIT(s) (opcional)</span>
+                <input type="text" name="cuit" value="<?= e(gp_cuits_fmt($v['cuit'] ?? '')) ?>" maxlength="180" placeholder="30-70739780-9, 27-23807553-5">
+                <em class="muted small">Podés cargar <strong>varios</strong> (ej. EXPENSAS o BANCOS agrupan varias empresas): separalos con coma o espacio. El match por CUIT del emisor usa cualquiera de ellos.</em>
                 <?= $err('cuit') ?>
             </label>
             <label class="fld">

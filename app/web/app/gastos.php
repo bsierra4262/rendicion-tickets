@@ -12,6 +12,16 @@ declare(strict_types=1);
 function gp_categorias(): array   { return ['recurrente' => 'Gasto recurrente', 'unica_vez' => 'Única vez']; }
 function gp_momentos(): array     { return ['adelantado' => 'Mes adelantado', 'vencido' => 'Mes vencido']; }
 
+/** Formatea los CUIT guardados (dígitos separados por espacio) para mostrarlos: "30-70739780-9, …". */
+function gp_cuits_fmt(?string $cuits): string
+{
+    $out = [];
+    foreach (preg_split('/\s+/', trim((string)$cuits), -1, PREG_SPLIT_NO_EMPTY) as $c) {
+        $out[] = strlen($c) === 11 ? substr($c, 0, 2) . '-' . substr($c, 2, 8) . '-' . substr($c, 10, 1) : $c;
+    }
+    return implode(', ', $out);
+}
+
 // ============================================================
 //  Maestro de proveedores
 // ============================================================
@@ -73,9 +83,18 @@ function gp_validar(array $in): array
     }
     $c['nombre_gasto'] = trim((string)($in['nombre_gasto'] ?? '')) ?: null;
 
-    $cuit = preg_replace('/\D/', '', (string)($in['cuit'] ?? '')) ?? '';
-    if ($cuit !== '' && !validar_cuit($cuit)) { $err['cuit'] = 'CUIT inválido (dígito verificador).'; }
-    $c['cuit'] = $cuit !== '' ? $cuit : null;
+    // Puede haber VARIOS CUIT por proveedor (ej. EXPENSAS o BANCOS agrupan varias empresas).
+    // Se aceptan separados por coma, punto y coma o espacio; se validan todos y se guardan
+    // como dígitos separados por espacio.
+    $tokens = preg_split('/[,;\s]+/', trim((string)($in['cuit'] ?? '')), -1, PREG_SPLIT_NO_EMPTY);
+    $cuits = [];
+    foreach ($tokens as $tk) {
+        $dg = preg_replace('/\D/', '', $tk);
+        if ($dg === '') { continue; }
+        if (strlen($dg) !== 11 || !validar_cuit($dg)) { $err['cuit'] = 'CUIT inválido (dígito verificador): ' . $tk; continue; }
+        if (!in_array($dg, $cuits, true)) { $cuits[] = $dg; }
+    }
+    $c['cuit'] = $cuits ? implode(' ', $cuits) : null;
 
     $c['drive_folder'] = trim((string)($in['drive_folder'] ?? '')) ?: null;
 
@@ -146,7 +165,7 @@ function gp_seed(): int
         ['ADMINISTRACION SILVANA LORENA GUAYCOCHEA', 'EXPENSAS', 'recurrente', 'adelantado', '02.EXPENSAS', '27238075535'],
         ['MAURICIO SZTERN', 'ALQUILER OFICINA', 'recurrente', 'adelantado', '03.MAURICIO STERN', '30702102045'],
         ['ESTUDIO COLLINET', 'ESTUDIO CONTABLE', 'recurrente', 'vencido', '04.ESTUDIO COLLINET', '20169624373'],
-        ['NET2PHONE', 'SERVICIO TELEFONIA', 'recurrente', 'vencido', '05.NET2PHONE', ''],
+        ['NET2PHONE', 'SERVICIO TELEFONIA', 'recurrente', 'vencido', '05.NET2PHONE', '30707397809'],
         ['GUPAZ', 'SERVICIO AGUA', 'recurrente', 'vencido', '06.GUPAZ - EVERFULL', ''],
         ['CLARO EMPRESAS', 'SERVICIO CELULARES', 'recurrente', 'vencido', '07.CLARO EMPRESAS', '30663288497'],
         ['TELECOM EMPRESAS', 'SERVICIO INTERNET', 'recurrente', 'vencido', '08.TELECOM EMPRESAS', '30639453738'],
