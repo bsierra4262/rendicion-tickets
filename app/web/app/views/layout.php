@@ -19,6 +19,12 @@ if ($u && ($u['rol'] ?? '') === 'admin') {
     $nav['api-keys'] = ['API', 'key'];
     $nav['cron']     = ['CRON', 'activity'];
 }
+// Campana de alertas (solo admin). Evaluación automática con throttle para tener el conteo al día.
+$alertasNoLeidas = 0;
+if ($u && ($u['rol'] ?? '') === 'admin' && function_exists('alertas_no_leidas')) {
+    if (function_exists('alertas_autoeval')) { try { alertas_autoeval(); } catch (\Throwable $e) {} }
+    $alertasNoLeidas = alertas_no_leidas();
+}
 $asset = fn($p) => e(url($p));
 $extraHead = $extraHead ?? '';
 $extraFoot = $extraFoot ?? '';
@@ -40,7 +46,7 @@ $brandOrg  = $GLOBALS['CONFIG']['app']['org'] ?? 'INTELLIHELP';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $asset('assets/css/app.css') ?>?v=18">
+    <link rel="stylesheet" href="<?= $asset('assets/css/app.css') ?>?v=19">
     <?php if (!empty($brand['primary']) || !empty($brand['accent'])): ?>
     <style>:root{<?php if (!empty($brand['primary'])): ?>--primary:<?= e($brand['primary']) ?>;<?php endif; ?><?php if (!empty($brand['accent'])): ?>--accent:<?= e($brand['accent']) ?>;<?php endif; ?>}</style>
     <?php endif; ?>
@@ -92,6 +98,12 @@ $brandOrg  = $GLOBALS['CONFIG']['app']['org'] ?? 'INTELLIHELP';
                 <a href="<?= $asset($r) ?>" class="<?= $route === $r ? 'active' : '' ?>"><?= icon($ic) ?><?= e($label) ?></a>
             <?php endforeach; ?>
         </nav>
+        <?php if ($u && ($u['rol'] ?? '') === 'admin'): ?>
+            <a href="<?= $asset('alertas') ?>" class="bell <?= $route === 'alertas' ? 'active' : '' ?>" title="Alertas" aria-label="Alertas">
+                <?= icon('alert', 20) ?>
+                <?php if ($alertasNoLeidas): ?><span class="bell-badge"><?= $alertasNoLeidas > 99 ? '99+' : (int)$alertasNoLeidas ?></span><?php endif; ?>
+            </a>
+        <?php endif; ?>
         <div class="user-box">
             <div class="user-meta">
                 <span class="user-name"><?= e($u['nombre']) ?></span>

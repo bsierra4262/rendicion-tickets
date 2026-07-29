@@ -58,6 +58,7 @@ borrador hasta su **revisión y aprobación** por un operador.
 - **Padrón nacional offline (~1,13 M de empresas).** Resolución cruzada CUIT ↔ razón social: no asigna datos ambiguos (desambigua homónimos, descarta el CUIT del comprador, recupera lecturas con un error).
 - **Categorización auto-entrenada.** El concepto de cada proveedor se ajusta con el uso.
 - **Gastos recurrentes.** Módulo aparte para servicios y gastos fijos (electricidad, expensas, alquiler, seguros, telefonía, impuestos): maestro de proveedores + lectura automática de la factura (QR de ARCA / texto / OCR) y respaldo en Drive por proveedor, año y mes. Ver [Gastos recurrentes](#gastos-recurrentes).
+- **Alertas centralizadas.** Un módulo de alertas (bandeja dentro del sistema + campana con contador) que avisa, por ejemplo, cuando un pago de gasto quedó vencido. El administrador configura por tipo si además se envían por Email (SMTP propio) o ITHOS (que puede reenviar por WhatsApp).
 - **Respaldo en Google Drive.** Cada imagen se replica en Drive con estructura por año y mes; la copia local se conserva como respaldo.
 - **Control de sesión.** Cierre automático por inactividad y por tiempo máximo, con validación del lado del servidor.
 - **Auditoría completa.** Cada acción y cada error (cliente y servidor) queda registrado.

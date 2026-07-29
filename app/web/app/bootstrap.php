@@ -53,6 +53,8 @@ require APP . '/google.php';
 require APP . '/google_drive.php';
 require APP . '/comprobantes.php';
 require APP . '/gastos.php';
+require APP . '/mail.php';
+require APP . '/alertas.php';
 require APP . '/icons.php';
 require APP . '/apiauth.php';
 

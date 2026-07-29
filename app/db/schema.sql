@@ -48,6 +48,29 @@ CREATE TABLE IF NOT EXISTS `app_settings` (
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`clave`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---- Módulo de Alertas (centralizado) ----
+-- Cada condición de la app genera una alerta idempotente (clave única). Vive DENTRO del
+-- sistema (bandeja) por default y, según config, se envía por Email / ITHOS.
+CREATE TABLE IF NOT EXISTS `alertas` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `tipo` varchar(60) NOT NULL,
+  `severidad` enum('info','warn','danger') NOT NULL DEFAULT 'info',
+  `titulo` varchar(200) NOT NULL,
+  `mensaje` text DEFAULT NULL,
+  `entidad` varchar(40) DEFAULT NULL,
+  `entidad_id` bigint(20) unsigned DEFAULT NULL,
+  `url` varchar(255) DEFAULT NULL,
+  `clave` varchar(120) NOT NULL,
+  `canales` varchar(120) DEFAULT NULL,
+  `leida_en` datetime DEFAULT NULL,
+  `resuelta_en` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_alerta_clave` (`clave`),
+  KEY `idx_alerta_estado` (`resuelta_en`, `leida_en`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS `comprobantes` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `periodo` char(7) NOT NULL,

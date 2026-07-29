@@ -678,7 +678,7 @@ $boot38 = $readf("$SRC/bootstrap.php");
 ok('bootstrap: fallback a config_env por entorno', strpos($boot38, "config_env.php") !== false && strpos($boot38, "getenv('DB_HOST')") !== false && strpos($boot38, 'server-config/config.php') !== false);
 // esquema
 $sch = $readf("$ROOT/app/db/schema.sql");
-ok('schema.sql: existe con las 10 tablas',   substr_count($sch, 'CREATE TABLE') === 10);
+ok('schema.sql: existe con las 11 tablas',   substr_count($sch, 'CREATE TABLE') === 11);
 ok('schema.sql: incluye las tablas de gastos', strpos($sch, 'CREATE TABLE `gastos_proveedores`') !== false && strpos($sch, 'CREATE TABLE `gastos_recurrentes`') !== false);
 ok('schema.sql: incluye columnas de Drive + FULLTEXT del padrón', strpos($sch, 'drive_link') !== false && strpos($sch, 'drive_file_id') !== false && strpos($sch, 'FULLTEXT') !== false);
 ok('schema.sql: sin AUTO_INCREMENT= (contadores reseteados)', strpos($sch, 'AUTO_INCREMENT=') === false);
@@ -867,7 +867,7 @@ $glist = $readf("$VIEWS/gastos.php");
 $lay   = $readf("$VIEWS/layout.php");
 // Responsive: el nav no debe poder empujar la página (scroll horizontal) y colapsa a drawer.
 ok('ui: topnav con red anti-overflow (overflow-x oculto) + drawer ≤1400', strpos($css, 'overflow-x:auto;scrollbar-width:none') !== false && (bool)preg_match('/@media\s*\(max-width:1400px\)/', $css));
-ok('ui: app.css versionado en el layout', (bool)preg_match('/app\.css[^\n]*\?v=18/', $lay));
+ok('ui: app.css versionado en el layout', (bool)preg_match('/app\.css[^\n]*\?v=19/', $lay));
 ok('ui: autofocus solo al crear proveedor (no al editar)', strpos($gpf, "\$editing ? '' : 'autofocus'") !== false);
 ok('ui: botones compactos (min-height:36px) y switch chico (36x20)', strpos($css, 'white-space:nowrap;min-height:36px') !== false && strpos($css, '.switch .track{position:relative;width:36px;height:20px') !== false);
 // Controles nativos con marca (nada de checkbox azul del sistema).
@@ -920,6 +920,24 @@ ok('re-escaneo: el guardado AJAX es solo del escáner (data-ocr-async)', strpos(
 ok('re-escaneo: editar comprobante tiene botón "Re-escanear el archivo cargado"', strpos($cfv, 'id="rescanBtn"') !== false && strpos($cfv, 'data-rescan-src') !== false && strpos($cfv, "comprobante-imagen') . '?id='") !== false);
 ok('re-escaneo: editar carga el motor OCR (importmap + paddleocr + escanear.js)', strpos($cfv, 'importmap') !== false && strpos($cfv, 'paddleocr.js') !== false && strpos($cfv, 'escanear.js') !== false && strpos($cfv, 'id="scanFile"') !== false && strpos($cfv, 'id="scanBtn"') !== false);
 ok('re-escaneo: trae la imagen del server (proxy Drive) y no re-sube (no duplica)', strpos($cfv, 'ithScanFile(file)') !== false && strpos($cfv, 'r.blob()') !== false);
+
+echo "== v2.57 — módulo de Alertas (centralizado, canales, admin) [#3] ==\n";
+$al  = $readf("$SRC/alertas.php"); $ml = $readf("$SRC/mail.php");
+$alp = $readf("$SRC/pages/alertas.php"); $alv = $readf("$VIEWS/alertas.php");
+$boot = $readf("$SRC/bootstrap.php"); $idx = $readf("$WEB/index.php"); $layA = $readf("$VIEWS/layout.php");
+$sch = $readf(dirname($WEB) . '/db/schema.sql');
+ok('alertas: tabla alertas en el schema (clave única, idempotente)', (bool)preg_match('/CREATE TABLE.*`alertas`/s', $sch) && strpos($sch, 'uq_alerta_clave') !== false);
+ok('alertas: motor centralizado (push idempotente + evaluar + autoeval throttle)', strpos($al, 'function alerta_push') !== false && strpos($al, 'function alertas_evaluar') !== false && strpos($al, 'function alertas_autoeval') !== false);
+ok('alertas: regla pago vencido (N días) + por vencer + resolver ausentes', strpos($al, "'gasto_pago_vencido'") !== false && strpos($al, 'DATEDIFF(CURDATE(), g.fecha_vencimiento)') !== false && strpos($al, 'function alertas_resolver_ausentes') !== false);
+ok('alertas: canales in-sistema (default) + Email + ITHOS (WhatsApp por ITHOS)', strpos($al, 'function alerta_enviar_email') !== false && strpos($al, 'function alerta_enviar_ithos') !== false && strpos($al, "'canal_sugerido' => 'whatsapp'") !== false);
+ok('alertas: config por tipo (activo/email/ithos) solo se despacha al crear', strpos($al, 'function alertas_config') !== false && strpos($al, 'alerta_despachar($id') !== false);
+ok('alertas: SMTP propio sin dependencias (mail_enviar, ssl)', strpos($ml, 'function mail_enviar') !== false && strpos($ml, 'ssl://') !== false && strpos($ml, 'AUTH LOGIN') !== false);
+ok('alertas: mail configurable por config.php o app_settings (mail_*)', strpos($ml, 'function mail_cfg') !== false && strpos($ml, "setting_get('mail_'") !== false);
+ok('alertas: página admin con acciones (leer/resolver/evaluar/config/ithos)', strpos($alp, "'evaluar'") !== false && strpos($alp, "'config'") !== false && strpos($alp, "'ithos'") !== false && strpos($alp, 'alertas_evaluar()') !== false);
+ok('alertas: vista con bandeja + config de canales (switches por tipo)', strpos($alv, 'Bandeja') !== false && strpos($alv, 'name="email[') !== false && strpos($alv, 'name="ithos[') !== false && strpos($alv, 'class="switch"') !== false);
+ok('alertas: bootstrap carga mail + alertas', strpos($boot, "/mail.php'") !== false && strpos($boot, "/alertas.php'") !== false);
+ok('alertas: ruta alertas (admin) registrada', (bool)preg_match("/'alertas'\s*=>\s*\['public'\s*=>\s*false,\s*'admin'\s*=>\s*true\]/", $idx));
+ok('alertas: campana en la topbar con conteo (solo admin) + autoeval', strpos($layA, 'class="bell') !== false && strpos($layA, 'bell-badge') !== false && strpos($layA, 'alertas_autoeval()') !== false && strpos($layA, 'alertas_no_leidas()') !== false);
 ok('gasto: CUIT solo de cabecera + validación dígito (evita falso positivo de tablas)', strpos($gjs50, 'function validCuit') !== false && strpos($gjs50, '.filter(validCuit)') !== false && strpos($gjs50, "search(/detalle de") !== false);
 ok('gasto: importe = TOTAL A PAGAR (par total/total+recargo, ignora %)', strpos($gjs50, 'function parseTotal') !== false && strpos($gjs50, 'A * f') !== false && strpos($gjs50, "(?!\\s*%)") !== false);
 
