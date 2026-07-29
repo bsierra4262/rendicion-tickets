@@ -89,7 +89,7 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
                     <div class="multi-list" data-ent-list>
                         <?php foreach ($entArr as $ent): ?>
                             <div class="multi-row ent-row">
-                                <input type="text" name="ent_nombre[]" value="<?= e($ent['nombre'] ?? '') ?>" maxlength="150" placeholder="Nombre / razón social (ej. Banco Galicia)" class="ent-nombre"<?= $multiEnt ? '' : ' disabled' ?>>
+                                <input type="text" name="ent_nombre[]" value="<?= e($ent['nombre'] ?? '') ?>" maxlength="150" placeholder="Nombre / razón social de la entidad" class="ent-nombre"<?= $multiEnt ? '' : ' disabled' ?>>
                                 <input type="text" name="ent_cuit[]" value="<?= e($fmtCuit($ent['cuit'] ?? '')) ?>" maxlength="13" inputmode="numeric" placeholder="30-11111111-1" class="ent-cuit"<?= $multiEnt ? '' : ' disabled' ?>>
                                 <button type="button" class="multi-del" data-ent-del title="Quitar" aria-label="Quitar esta entidad"><?= icon('trash', 16) ?></button>
                             </div>

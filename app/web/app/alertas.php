@@ -183,25 +183,61 @@ function alerta_enviar_email(array $a): bool
     if (!$dests) { return false; }
     $pfx = alerta_prefijo();
     $titulo = (string)($a['titulo'] ?? 'Alerta');
-    $msg = (string)($a['mensaje'] ?? '');
-    $url = (string)($a['url'] ?? '');
-    $link = $url ? '<p><a href="' . htmlspecialchars($url) . '" style="color:#663399;font-weight:600">Ver en el sistema</a></p>' : '';
-    $testBanner = $pfx ? '<div style="background:#fff3cd;color:#8a6d00;padding:8px 14px;font-size:12px;font-weight:700;border-bottom:1px solid #ffe69c">⚠ MODO TEST — esto es una prueba, no es un aviso real de producción.</div>' : '';
-    $html = '<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto">'
-        . $testBanner
-        . '<div style="background:#663399;color:#fff;padding:14px 18px;border-radius:' . ($testBanner ? '0' : '10px 10px 0 0') . ';font-weight:700">INTELLIHELP · Alerta</div>'
-        . '<div style="border:1px solid #eee;border-top:0;padding:18px;border-radius:0 0 10px 10px">'
-        . '<h2 style="margin:0 0 8px;font-size:17px;color:#161922">' . htmlspecialchars($pfx . $titulo) . '</h2>'
-        . '<p style="color:#444;line-height:1.5">' . nl2br(htmlspecialchars($msg)) . '</p>' . $link
-        . '<p style="color:#999;font-size:12px;margin-top:16px">Rendición de comprobantes · INTELLIHELP</p>'
-        . '</div></div>';
+    $html = alerta_email_html($titulo, (string)($a['mensaje'] ?? ''), (string)($a['url'] ?? ''),
+        (string)($a['severidad'] ?? 'info'), $pfx !== '');
+    $asunto = $pfx . '[INTELLIHELP] ' . $titulo;
     $ok = false;
     foreach ($dests as $to) {
         $err = null;
-        if (mail_enviar($to, $pfx . '[INTELLIHELP] ' . $titulo, $html, $err)) { $ok = true; }
+        if (mail_enviar($to, $asunto, $html, $err)) { $ok = true; }
         elseif (function_exists('log_app')) { log_app('alerta.email_error', ['detalle' => $to . ': ' . $err]); }
     }
     return $ok;
+}
+
+/** Plantilla HTML del correo de alerta — branded, responsive y con color según criticidad. */
+function alerta_email_html(string $titulo, string $mensaje, string $url, string $sev, bool $test): string
+{
+    // Paleta por criticidad (coherente con la app).
+    $map = [
+        'danger' => ['#dc2626', '#fee2e2', '#991b1b', 'URGENTE'],
+        'warn'   => ['#d97706', '#fef3c7', '#92400e', 'ATENCIÓN'],
+        'info'   => ['#663399', '#efe9f7', '#4a2570', 'AVISO'],
+    ];
+    [$c, $cSoft, $cDark, $sevTxt] = $map[$sev] ?? $map['info'];
+    $E = fn($s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+    $pfx = $test ? '[TEST] ' : '';
+
+    $testBanner = $test
+        ? '<tr><td style="background:#fef3c7;color:#92400e;padding:10px 28px;font:600 12px/1.4 Arial,sans-serif;border-bottom:1px solid #fde68a">⚠︎ Modo de prueba · este es un envío de test, no un aviso real de producción.</td></tr>'
+        : '';
+    $cta = $url
+        ? '<tr><td style="padding:4px 28px 28px"><a href="' . $E($url) . '" style="display:inline-block;background:' . $c . ';color:#ffffff;text-decoration:none;font:700 14px/1 Arial,sans-serif;padding:13px 22px;border-radius:10px">Ver en el sistema →</a></td></tr>'
+        : '';
+
+    return '<!doctype html><html><body style="margin:0;padding:0;background:#f3f2f7">'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f2f7;padding:24px 12px">'
+        . '<tr><td align="center">'
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(22,25,34,.08)">'
+        // barra de criticidad
+        . '<tr><td style="height:6px;background:' . $c . '"></td></tr>'
+        . $testBanner
+        // header marca + severidad
+        . '<tr><td style="padding:22px 28px 6px">'
+        .   '<table role="presentation" width="100%"><tr>'
+        .     '<td style="font:800 16px/1 Arial,sans-serif;color:#663399;letter-spacing:.5px">INTELLIHELP</td>'
+        .     '<td align="right"><span style="display:inline-block;background:' . $cSoft . ';color:' . $cDark . ';font:700 11px/1 Arial,sans-serif;padding:6px 10px;border-radius:999px;letter-spacing:.4px">' . $sevTxt . '</span></td>'
+        .   '</tr></table>'
+        . '</td></tr>'
+        // título
+        . '<tr><td style="padding:10px 28px 4px;font:700 20px/1.3 Arial,sans-serif;color:#161922">' . $E($pfx . $titulo) . '</td></tr>'
+        // mensaje
+        . '<tr><td style="padding:6px 28px 18px;font:400 15px/1.6 Arial,sans-serif;color:#3f4451">' . nl2br($E($mensaje)) . '</td></tr>'
+        . $cta
+        // footer
+        . '<tr><td style="padding:16px 28px;border-top:1px solid #eeecf3;font:400 12px/1.5 Arial,sans-serif;color:#9aa0ac">Rendición de comprobantes · INTELLIHELP<br>Recibís este aviso porque sos responsable de la gestión en el sistema.</td></tr>'
+        . '</table>'
+        . '</td></tr></table></body></html>';
 }
 
 // ITHOS (Jarvis): POST del payload a su endpoint (WhatsApp se resuelve del lado de ITHOS).
@@ -312,7 +348,7 @@ function alertas_evaluar(): int
 }
 
 /** Evaluación automática con throttle (para no correr en cada request). */
-function alertas_autoeval(int $cada = 1800): void
+function alertas_autoeval(int $cada = 180): void
 {
     $last = (int) setting_get('alertas_last_eval', '0');
     if (time() - $last < $cada) { return; }

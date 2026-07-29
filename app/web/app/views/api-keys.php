@@ -6,7 +6,7 @@ $b = $host . url('api');
 <div class="page-head">
     <div>
         <h1>API y tokens</h1>
-        <p class="muted">Para que ITHOS/Jarvis (u otro servicio) consulte los datos en tiempo real, con permisos por token</p>
+        <p class="muted">Permití que ITHOS u otro servicio autorizado consulte los datos en tiempo real, con permisos por token.</p>
     </div>
 </div>
 
@@ -67,7 +67,7 @@ $b = $host . url('api');
     <form method="post" action="<?= e(url('api-keys')) ?>" class="urow" style="margin-bottom:14px">
         <?= csrf_field() ?>
         <input type="hidden" name="accion" value="crear">
-        <input type="text" name="nombre" placeholder="Nombre — ej. ITHOS, App de Nicolás" maxlength="80" style="flex:1;min-width:220px">
+        <input type="text" name="nombre" placeholder="Nombre del token (para identificar quién lo usa)" maxlength="80" style="flex:1;min-width:220px">
         <select name="scope" title="Permiso del token" style="min-width:200px">
             <option value="lectura">Lectura (consultas)</option>
             <option value="root">Root (acceso total)</option>

@@ -64,12 +64,12 @@ $qs = array_filter([
     <?php if ($esApp): ?>
         <strong>CRON de la aplicación.</strong> Todo lo que hace cada usuario: navegación, altas, ediciones, verificaciones, borrados, gestión de usuarios/tokens, ingresos y salidas, y <strong>errores</strong> del sistema.
     <?php else: ?>
-        <strong>CRON de la API.</strong> Cada pedido que recibe la API de solo lectura (tu Jarvis u otro servicio): qué token consultó, cuándo y desde qué IP. Incluye los rechazos por token inválido.
+        <strong>CRON de la API.</strong> Cada pedido que recibe la API de solo lectura (por ejemplo, ITHOS u otro servicio autorizado): qué token consultó, cuándo y desde qué IP. Incluye los rechazos por token inválido.
     <?php endif; ?>
 </div>
 
 <?php if (!empty($data['sin_tabla'])): ?>
-    <div class="flash flash-error">La tabla de actividad todavía no está creada en la base. Ejecutá <code class="mono">app/db/actividad.sql</code> y el registro empezará a poblarse solo.</div>
+    <div class="flash flash-error">El registro de actividad todavía no está disponible. Se habilitará automáticamente cuando el sistema termine de configurarse.</div>
 <?php endif; ?>
 
 <?php

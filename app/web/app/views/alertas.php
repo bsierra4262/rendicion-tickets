@@ -6,12 +6,12 @@ $noLeidas = 0; foreach ($alertas as $a) { if (empty($a['leida_en'])) { $noLeidas
 $enTest = ($entorno ?? 'testing') === 'testing';
 ?>
 <?php if ($enTest): ?>
-    <div class="flash flash-info" style="display:flex;align-items:center;gap:.5rem"><?= icon('alert', 16) ?> <strong>Modo TEST activo</strong> — las alertas que se envían por Email/ITHOS/WhatsApp llevan el prefijo <code>[TEST]</code>. Cambialo a Producción abajo (o avisá) cuando esté listo.</div>
+    <div class="flash flash-info" style="display:flex;align-items:center;gap:.5rem"><?= icon('alert', 16) ?> <strong>Modo de prueba</strong> — los envíos por Email e ITHOS se marcan con el prefijo <code>[TEST]</code>. Cambiá el entorno a «Producción» cuando esté listo.</div>
 <?php endif; ?>
 <div class="page-head">
     <div>
         <h1>Alertas</h1>
-        <p class="muted">Avisos del sistema centralizados. Por default se ven acá; el admin puede enviarlas también por Email o ITHOS.</p>
+        <p class="muted">Avisos del sistema centralizados. Se muestran acá dentro del sistema; el administrador puede enviarlos además por Email o WhatsApp.</p>
     </div>
     <div class="head-actions">
         <form method="post" action="<?= e(url('alertas')) ?>" class="inline-form">
@@ -39,7 +39,7 @@ $enTest = ($entorno ?? 'testing') === 'testing';
             </tr></thead>
             <tbody>
             <?php if (!$alertas): ?>
-                <tr><td colspan="5" class="empty"><?= icon('check', 26) ?><br>No hay alertas <?= $verTodas ? '' : 'activas' ?>. Todo al día 👌</td></tr>
+                <tr><td colspan="5" class="empty"><?= icon('check', 26) ?><br>No hay alertas <?= $verTodas ? '' : 'activas' ?>. Todo está al día.</td></tr>
             <?php else: foreach ($alertas as $a):
                 [$bc, $bl] = $sevBadge[$a['severidad']] ?? ['badge-neutral', $a['severidad']];
                 $leida = !empty($a['leida_en']); $resuelta = !empty($a['resuelta_en']);
@@ -115,7 +115,7 @@ $enTest = ($entorno ?? 'testing') === 'testing';
 
 <h2 class="sec" style="margin:1.5rem 0 .5rem">Canales externos</h2>
 <div class="cards" style="margin-bottom:1rem">
-    <?php foreach (['sistema' => 'Dentro del sistema', 'email' => 'Email', 'ithos' => 'ITHOS (Jarvis)'] as $ck => $cl): ?>
+    <?php foreach (['sistema' => 'Dentro del sistema', 'email' => 'Email', 'ithos' => 'WhatsApp (vía ITHOS)'] as $ck => $cl): ?>
         <div class="card">
             <div class="card-head"><h2 style="font-size:14px"><?= e($cl) ?></h2>
                 <span class="badge <?= !empty($canales[$ck]['ok']) ? 'badge-ok' : 'badge-neutral' ?>"><?= !empty($canales[$ck]['ok']) ? 'Listo' : 'Falta configurar' ?></span>
@@ -130,14 +130,14 @@ $enTest = ($entorno ?? 'testing') === 'testing';
         <label class="fld">
             <span>Entorno</span>
             <select name="entorno">
-                <option value="testing" <?= ($entorno ?? 'testing') === 'testing' ? 'selected' : '' ?>>Testing (envía con prefijo [TEST])</option>
+                <option value="testing" <?= ($entorno ?? 'testing') === 'testing' ? 'selected' : '' ?>>Pruebas (envía los avisos con el prefijo [TEST])</option>
                 <option value="produccion" <?= ($entorno ?? '') === 'produccion' ? 'selected' : '' ?>>Producción (sin prefijo)</option>
             </select>
-            <em class="muted small">En testing, todo lo externo dice [TEST].</em>
+            <em class="muted small">En modo de pruebas, todos los envíos externos incluyen el prefijo [TEST].</em>
         </label>
         <label class="fld span-all">
             <span>Destinatarios de Email (opcional)</span>
-            <input type="text" name="email_to" value="<?= e($emailTo) ?>" placeholder="Por default, todos los administradores">
+            <input type="text" name="email_to" value="<?= e($emailTo) ?>" placeholder="De forma predeterminada, todos los administradores">
             <em class="muted small">Separá con coma (uno o muchos). Si se deja vacío, se avisa a los administradores.</em>
         </label>
     </div>

@@ -31,7 +31,7 @@ $catOptions = function ($sel) use ($conceptos) {
         </select>
         <button type="submit" class="btn btn-primary"><?= icon('plus') ?>Agregar</button>
     </form>
-    <p class="muted small" style="margin:.7rem 0 0"><?= icon('search', 13) ?> Mientras escribís la razón social (o el CUIT), te sugiere coincidencias del <strong>padrón nacional (1,13&nbsp;M de empresas)</strong>: elegí una y se completan CUIT + razón, sin duplicar. La <strong>concepto sugerido</strong> se aprende sola con el uso.</p>
+    <p class="muted small" style="margin:.7rem 0 0"><?= icon('search', 13) ?> Mientras escribís la razón social (o el CUIT), te sugiere coincidencias del <strong>padrón nacional (1,13&nbsp;M de empresas)</strong>: elegí una y se completan CUIT + razón, sin duplicar. El <strong>concepto sugerido</strong> se ajusta automáticamente según el uso.</p>
 </div>
 
 <form method="get" action="<?= e(url('proveedores')) ?>" class="urow" style="margin-bottom:1rem">
@@ -85,5 +85,5 @@ $catOptions = function ($sel) use ($conceptos) {
         </table>
     </div>
 </div>
-<p class="muted small" style="margin-top:.8rem">Se muestran hasta 300 proveedores. Usá el buscador para encontrar uno puntual. El catálogo crece solo con cada carga y se entrena con el uso.</p>
+<p class="muted small" style="margin-top:.8rem">Se muestran hasta 300 proveedores. Usá el buscador para encontrar uno puntual. El catálogo se completa automáticamente con cada carga y mejora sus sugerencias con el uso.</p>
 <script defer src="<?= e(url('assets/js/padron.js')) ?>?v=1"></script>

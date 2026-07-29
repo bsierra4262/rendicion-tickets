@@ -937,7 +937,7 @@ ok('alertas: página admin con acciones (leer/resolver/evaluar/config/ithos)', s
 ok('alertas: vista con bandeja + config de canales (switches por tipo)', strpos($alv, 'Bandeja') !== false && strpos($alv, 'name="email[') !== false && strpos($alv, 'name="ithos[') !== false && strpos($alv, 'class="switch"') !== false);
 ok('alertas: bootstrap carga mail + alertas', strpos($boot, "/mail.php'") !== false && strpos($boot, "/alertas.php'") !== false);
 ok('alertas: ruta alertas (admin) registrada', (bool)preg_match("/'alertas'\s*=>\s*\['public'\s*=>\s*false,\s*'admin'\s*=>\s*true\]/", $idx));
-ok('alertas: campana en la topbar con conteo (solo admin) + autoeval', strpos($layA, 'class="bell') !== false && strpos($layA, 'bell-badge') !== false && strpos($layA, 'alertas_autoeval()') !== false && strpos($layA, 'alertas_no_leidas()') !== false);
+ok('alertas: campana en la topbar (admin) + eval post-respuesta para cualquier usuario', strpos($layA, 'class="bell') !== false && strpos($layA, 'bell-badge') !== false && strpos($layA, 'alertas_no_leidas()') !== false && strpos($readf("$WEB/index.php"), 'alertas_autoeval()') !== false && strpos($readf("$WEB/index.php"), 'finish_request()') !== false);
 
 echo "== v2.58 — alertas 24/7, modo TEST, API con scopes, ITHOS por defecto ==\n";
 $al2 = $readf("$SRC/alertas.php"); $apiA = $readf("$SRC/apiauth.php"); $cronA = $readf("$SRC/cron-alertas.php");
@@ -947,6 +947,10 @@ $cfv2 = $readf("$VIEWS/gasto-form.php"); $idx2 = $readf("$WEB/index.php");
 ok('alertas: script de cron 24/7 (CLI/URL) que evalúa', strpos($cronA, 'alertas_evaluar()') !== false && strpos($cronA, 'PHP_SAPI') !== false && is_file("$SRC/cron-alertas.php"));
 ok('alertas: endpoint api/alertas (para ITHOS) + ruta pública', is_file("$SRC/pages/api/alertas.php") && strpos($idx2, "'api/alertas'") !== false && strpos($al2, 'function alertas_api') !== false);
 ok('alertas: ITHOS es PULL — la API filtra por el toggle ITHOS por tipo (sin push redundante)', strpos($al2, "array_filter(\$cfg, fn(\$c) => !empty(\$c['ithos']))") !== false && strpos($readf("$VIEWS/alertas.php"), 'name="ithos_url"') === false);
+ok('alertas: email branded con color por criticidad (diseño)', strpos($al2, 'function alerta_email_html') !== false && strpos($al2, "'danger' => ['#dc2626'") !== false && strpos($al2, 'Ver en el sistema') !== false);
+ok('alertas: se disparan estés donde estés (eval post-respuesta, cualquier usuario)', strpos($readf("$WEB/index.php"), 'if (auth_user() && function_exists(\'alertas_autoeval\'))') !== false);
+ok('panel: tableros y accesos de Gastos + Alertas', strpos($readf("$VIEWS/dashboard.php"), 'Gastos por pagar') !== false && strpos($readf("$VIEWS/dashboard.php"), 'Alertas activas') !== false && strpos($readf("$VIEWS/dashboard.php"), "url('gastos')") !== false);
+ok('copy: sin nombres propios ni jerga en placeholders/ayudas', strpos($readf("$VIEWS/api-keys.php"), 'App de Nicolás') === false && strpos($readf("$VIEWS/alertas.php"), '(o avisá)') === false && strpos($readf("$VIEWS/gproveedor-form.php"), 'Banco Galicia') === false);
 // Modo TEST.
 ok('alertas: modo TEST agrega prefijo [TEST] en canales externos', strpos($al2, 'function alerta_prefijo') !== false && strpos($al2, "'[TEST] '") !== false && strpos($al2, 'alerta_prefijo()') !== false);
 // Reenvío de últimas 5 al activar un canal.

@@ -25,7 +25,7 @@ $cats = gp_categorias(); $moms = gp_momentos();
                     No hay proveedores todavía.
                     <form method="post" action="<?= e(url('gproveedores')) ?>" style="display:inline;margin-left:8px">
                         <?= csrf_field() ?><input type="hidden" name="accion" value="sembrar">
-                        <button type="submit" class="btn btn-sm btn-ghost">Cargar los 19 proveedores reales</button>
+                        <button type="submit" class="btn btn-sm btn-ghost">Cargar proveedores iniciales</button>
                     </form>
                 </td></tr>
             <?php else: foreach ($rows as $r): ?>

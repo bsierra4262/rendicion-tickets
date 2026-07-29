@@ -4,7 +4,7 @@
 <div class="page-head">
     <div>
         <h1>Conceptos</h1>
-        <p class="muted">Las conceptos con las que clasificás cada comprobante</p>
+        <p class="muted">Los conceptos con los que clasificás cada comprobante</p>
     </div>
 </div>
 
@@ -14,7 +14,7 @@
           data-confirm="¿Confirmás crear este concepto?" data-confirm-ok="Crear">
         <?= csrf_field() ?>
         <input type="hidden" name="accion" value="crear">
-        <input type="text" name="nombre" placeholder="Nombre de la nuevo concepto — ej. Papelería, Fletes…" maxlength="60" required
+        <input type="text" name="nombre" placeholder="Nombre del nuevo concepto — ej. Papelería, Fletes…" maxlength="60" required
                style="flex:1;min-width:240px;padding:.6rem .75rem;border:1px solid var(--line);border-radius:var(--radius-xs)">
         <button type="submit" class="btn btn-primary"><?= icon('plus') ?>Crear concepto</button>
     </form>

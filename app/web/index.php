@@ -73,3 +73,11 @@ if (function_exists('log_app') && method() === 'GET' && in_array($route, $navRou
 }
 
 require APP . '/pages/' . $route . '.php';
+
+// Alertas: evaluar y despachar (Email/ITHOS) DESPUÉS de responder, para no bloquear la página.
+// Corre para CUALQUIER usuario logueado, en cualquier sección (throttle global) → los avisos
+// no dependen de estar parado en «Alertas». El 24/7 sin nadie navegando lo cubre el cron.
+if (auth_user() && function_exists('alertas_autoeval')) {
+    if (function_exists('finish_request')) { finish_request(); }
+    try { alertas_autoeval(); } catch (\Throwable $e) {}
+}

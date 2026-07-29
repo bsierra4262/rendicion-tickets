@@ -114,7 +114,7 @@ $action = url('comprobante-form') . ($editing ? '?id=' . $id : '');
                 var ext = /pdf/.test(blob.type) ? 'pdf' : 'jpg';
                 var file = new File([blob], 'comprobante.' + ext, { type: blob.type || 'image/jpeg' });
                 if (window.ithScanFile) { window.ithScanFile(file); }
-                else if (st) { st.textContent = 'El motor OCR no está disponible; recargá la página.'; }
+                else if (st) { st.textContent = 'La lectura automática no está disponible; recargá la página.'; }
             })
             .catch(function (e) { if (st) { st.textContent = 'No se pudo traer la imagen: ' + (e && e.message || e); } })
             .then(function () { rb.disabled = false; });

@@ -19,10 +19,10 @@ if ($u && ($u['rol'] ?? '') === 'admin') {
     $nav['api-keys'] = ['API', 'key'];
     $nav['cron']     = ['CRON', 'activity'];
 }
-// Campana de alertas (solo admin). Evaluación automática con throttle para tener el conteo al día.
+// Campana + popup: solo admin. (La evaluación/envío de alertas corre DESPUÉS de responder,
+// en index.php, para cualquier usuario y sin bloquear la página.)
 $alertasNoLeidas = 0; $alertaToast = null;
 if ($u && ($u['rol'] ?? '') === 'admin' && function_exists('alertas_no_leidas')) {
-    if (function_exists('alertas_autoeval')) { try { alertas_autoeval(); } catch (\Throwable $e) {} }
     $alertasNoLeidas = alertas_no_leidas();
     if ($alertasNoLeidas && function_exists('alerta_ultima_no_leida')) { $alertaToast = alerta_ultima_no_leida(); }
 }
