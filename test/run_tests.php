@@ -867,7 +867,7 @@ $glist = $readf("$VIEWS/gastos.php");
 $lay   = $readf("$VIEWS/layout.php");
 // Responsive: el nav no debe poder empujar la página (scroll horizontal) y colapsa a drawer.
 ok('ui: topnav con red anti-overflow (overflow-x oculto) + drawer ≤1400', strpos($css, 'overflow-x:auto;scrollbar-width:none') !== false && (bool)preg_match('/@media\s*\(max-width:1400px\)/', $css));
-ok('ui: app.css versionado en el layout', (bool)preg_match('/app\.css[^\n]*\?v=15/', $lay));
+ok('ui: app.css versionado en el layout', (bool)preg_match('/app\.css[^\n]*\?v=16/', $lay));
 // Controles nativos con marca (nada de checkbox azul del sistema).
 ok('ui: checkbox/radio nativos con color de marca', (bool)preg_match('/input\[type=checkbox\][^\n]*accent-color:var\(--primary\)/', $css));
 // Toggle switch reutilizable + usado en el estado del proveedor (no checkbox crudo con style inline).
@@ -885,6 +885,21 @@ ok('ui: badges de Drive con variante (badge-info), no pelados', strpos($glist, '
 ok('ui: gproveedores sin badge pelado en categoría', strpos($readf("$VIEWS/gproveedores.php"), "'badge-ok' : ''") === false);
 // Multi-CUIT en listados usa el formateador (soporta varios), no formatear_cuit (uno solo).
 ok('ui: gproveedores muestra varios CUIT con gp_cuits_fmt', strpos($readf("$VIEWS/gproveedores.php"), 'gp_cuits_fmt($r[\'cuit\'])') !== false);
+// El módulo Gastos REPLICA el patrón del módulo Comprobantes (misma estructura/tamaños).
+$comp = $readf("$VIEWS/comprobantes.php");
+$glst = $readf("$VIEWS/gastos.php"); $gpl = $readf("$VIEWS/gproveedores.php");
+ok('ui: page-head de gastos replica comprobantes (h1 plano + head-actions)', strpos($glst, '<h1>Gastos recurrentes</h1>') !== false && strpos($glst, 'class="head-actions"') !== false && strpos($glst, 'icon(\'receipt\', 22)') === false);
+ok('ui: page-head de proveedores replica comprobantes (h1 plano + head-actions)', strpos($gpl, '<h1>Proveedores</h1>') !== false && strpos($gpl, 'class="head-actions"') !== false && strpos($gpl, 'icon(\'users\', 22)') === false);
+ok('ui: tablas de gastos/proveedores usan card table-card (como comprobantes)', strpos($glst, 'class="card table-card"') !== false && strpos($gpl, 'class="card table-card"') !== false && strpos($comp, 'class="card table-card"') !== false);
+ok('ui: filtros de gastos con Filtrar+Limpiar (como comprobantes)', strpos($glst, '>Filtrar</button>') !== false && strpos($glst, '>Limpiar</a>') !== false);
+ok('ui: CUIT(s) ocupa la fila completa en el form (span-all) + wrap', strpos($gpf, 'class="fld span-all"') !== false && strpos($css, '.fld.span-all{grid-column:1/-1}') !== false && strpos($css, '.multi-list{display:flex;flex-wrap:wrap') !== false);
+// Paridad fina con comprobantes (comparación Gastos↔Comprobantes).
+$posSubmit = strpos($gpf, 'type="submit" class="btn btn-primary"'); $posCancel = strpos($gpf, '>Cancelar</a>');
+ok('ui: form del proveedor con acción principal primero (como comprobantes)', $posSubmit !== false && $posCancel !== false && $posSubmit < $posCancel);
+ok('ui: form del proveedor con subtítulo (p.muted) como el resto', strpos($gpf, "'Nuevo proveedor' ?></h1>") !== false && strpos($gpf, '<p class="muted">Datos del proveedor') !== false);
+ok('ui: gasto-form usa .fld span-all (sin grid-column inline)', strpos($readf("$VIEWS/gasto-form.php"), 'style="grid-column:1/-1"') === false && strpos($readf("$VIEWS/gasto-form.php"), 'class="fld span-all"') !== false);
+ok('ui: gasto-form estados del OCR con muted small (como escanear)', strpos($readf("$VIEWS/gasto-form.php"), 'id="leerEstado" class="muted small"') !== false && strpos($readf("$VIEWS/gasto-form.php"), 'id="leerPagoEstado" class="muted small"') !== false);
+ok('ui: archivados de proveedores con table-card (como papelera de conceptos)', strpos($gpl, 'class="card table-card" style="margin-top:1.5rem"') !== false);
 ok('gasto: CUIT solo de cabecera + validación dígito (evita falso positivo de tablas)', strpos($gjs50, 'function validCuit') !== false && strpos($gjs50, '.filter(validCuit)') !== false && strpos($gjs50, "search(/detalle de") !== false);
 ok('gasto: importe = TOTAL A PAGAR (par total/total+recargo, ignora %)', strpos($gjs50, 'function parseTotal') !== false && strpos($gjs50, 'A * f') !== false && strpos($gjs50, "(?!\\s*%)") !== false);
 

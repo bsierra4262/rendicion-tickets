@@ -306,14 +306,18 @@ table.grid td .mono{white-space:normal}
 .switch input:focus-visible + .track{outline:2px solid var(--primary);outline-offset:2px}
 .switch .switch-txt{font-size:14px;font-weight:600;color:var(--ink)}
 
-/* ---------- Lista de CUITs (repetible, intuitivo) ---------- */
-.multi-list{display:flex;flex-direction:column;gap:.5rem}
-.multi-row{display:flex;align-items:center;gap:.5rem}
+/* ---------- Lista de valores repetible (ej. varios CUIT) ---------- */
+/* Fluye horizontal y se reacomoda (wrap): en ancho hay varios por fila, en angosto se apilan. */
+.multi-list{display:flex;flex-wrap:wrap;gap:.5rem}
+.multi-row{display:flex;align-items:center;gap:.4rem;flex:1 1 210px;max-width:300px}
 .multi-row input{flex:1;min-width:0}
-.multi-del{flex:none;width:38px;height:38px;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-sm);
-  color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:0}
+.multi-del{flex:none;width:40px;height:40px;border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-xs);
+  color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:0;transition:.15s}
 .multi-del:hover{background:var(--danger-bg);color:var(--danger);border-color:transparent}
 .multi-add{align-self:flex-start;margin-top:.15rem}
+@media (max-width:520px){ .multi-row{flex-basis:100%;max-width:none} }
+/* Campo que ocupa toda la fila de la grilla (para listas/áreas anchas). */
+.fld.span-all{grid-column:1/-1}
 
 /* ---------- Impresión ---------- */
 @media print{

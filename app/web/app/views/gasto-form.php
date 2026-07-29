@@ -25,9 +25,9 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
             <p class="filefield__name" data-empty="Sin archivo seleccionado">Sin archivo seleccionado</p>
         </div>
         <button type="button" id="leerFactura" class="btn btn-primary" style="margin-top:.85rem"><?= icon('scan') ?>Leer factura (autocompletar)</button>
-        <div id="leerEstado" style="margin-top:8px"></div>
+        <div id="leerEstado" class="muted small" style="margin-top:8px"></div>
         <?php if (!empty($v['drive_factura_link'])): ?>
-            <p class="muted small" style="margin-top:8px"><?= icon('cloud', 14) ?> Factura ya cargada · <a href="<?= e($v['drive_factura_link']) ?>" target="_blank" rel="noopener">ver en Drive</a></p>
+            <p class="muted small" style="margin-top:8px"><?= icon('cloud', 15) ?> Factura ya cargada · <a href="<?= e($v['drive_factura_link']) ?>" target="_blank" rel="noopener">ver en Drive</a></p>
         <?php endif; ?>
     </div>
 
@@ -81,7 +81,7 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
                     <option value="pagado" <?= ($v['estado'] ?? '') === 'pagado' ? 'selected' : '' ?>>Pagado</option>
                 </select>
             </label>
-            <label class="fld" style="grid-column:1/-1">
+            <label class="fld span-all">
                 <span>Observaciones</span>
                 <input type="text" name="observaciones" value="<?= $val('observaciones') ?>" maxlength="500" placeholder="Notas (opcional)">
             </label>
@@ -100,9 +100,9 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
             <p class="filefield__name" data-empty="Sin archivo seleccionado">Sin archivo seleccionado</p>
         </div>
         <button type="button" id="leerPago" class="btn btn-ghost btn-sm" style="margin-top:.85rem"><?= icon('scan', 15) ?>Leer pago (fecha + marcar pagado)</button>
-        <div id="leerPagoEstado" style="margin-top:8px"></div>
+        <div id="leerPagoEstado" class="muted small" style="margin-top:8px"></div>
         <?php if (!empty($v['drive_pago_link'])): ?>
-            <p class="muted small" style="margin-top:8px"><?= icon('cloud', 14) ?> Pago ya cargado · <a href="<?= e($v['drive_pago_link']) ?>" target="_blank" rel="noopener">ver en Drive</a></p>
+            <p class="muted small" style="margin-top:8px"><?= icon('cloud', 15) ?> Pago ya cargado · <a href="<?= e($v['drive_pago_link']) ?>" target="_blank" rel="noopener">ver en Drive</a></p>
         <?php endif; ?>
     </div>
 

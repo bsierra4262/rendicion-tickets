@@ -26,6 +26,7 @@
 
 ## 🎨 Diseño / UI — profesional y CONSISTENTE (auditar, no parchar)
 > Se audita **de raíz**, no solo lo que el cliente señala. El **módulo comprobantes** es el patrón de referencia; todo lo nuevo lo copia. Guardado por tests en `test/run_tests.php` (sección «diseño/UI»).
+- [ ] **REPLICAR la sección ya bien diseñada.** Si una sección nueva hace algo parecido/misma filosofía que una existente que ya quedó bien (ej. **Gastos** ↔ **Comprobantes**), se **copia ese diseño** (mismos tamaños, misma estructura: `page-head` con `<h1>` de texto plano + `.head-actions`, filtros `.filters/.filter-grid` con Filtrar+Limpiar, tabla `card table-card`, form con `.sec`) y solo se cambian **campos/lógica/funcionalidad**. Botones de la misma función = mismo componente/tamaño.
 - [ ] **Responsive sin scroll horizontal en NINGÚN ancho** (desktop/laptop/notebook/tablet/celular). El menú superior colapsa a **drawer ≤1400px** y tiene red anti-overflow; todo se **reacomoda/redimensiona**, nunca aparece una barra horizontal.
 - [ ] **Sin controles nativos crudos**: para on/off usar el **toggle `.switch`**; checkboxes/radios restantes con `accent-color:var(--primary)`. Selects → `combobox.js`; fechas → `datepicker.js` (nunca `style=` inline en select/date/month: es código muerto).
 - [ ] **Filtros**: `class="filters card"` + `.filter-grid` + `<label><span>`. **Formularios**: `.form-card card` con `<h2 class="sec">` + `.fld`/`.grid-fields`. Sin estilos inline ad-hoc.

@@ -3,13 +3,15 @@ $cats = gp_categorias(); $moms = gp_momentos();
 ?>
 <div class="page-head">
     <div>
-        <h1><?= icon('users', 22) ?> Proveedores</h1>
+        <h1>Proveedores</h1>
         <p class="muted">Maestro de proveedores de gastos recurrentes. Cada uno con su rubro, categoría y momento de facturación.</p>
     </div>
-    <a href="<?= e(url('gproveedor-form')) ?>" class="btn btn-primary"><?= icon('plus') ?>Nuevo proveedor</a>
+    <div class="head-actions">
+        <a href="<?= e(url('gproveedor-form')) ?>" class="btn btn-primary"><?= icon('plus') ?>Nuevo proveedor</a>
+    </div>
 </div>
 
-<div class="card">
+<div class="card table-card">
     <div class="table-scroll">
         <table class="grid">
             <thead><tr>
@@ -53,8 +55,8 @@ $cats = gp_categorias(); $moms = gp_momentos();
 </div>
 
 <?php if ($eliminados): ?>
-<div class="card" style="margin-top:16px">
-    <div class="card-head"><h2>Archivados</h2></div>
+<div class="card table-card" style="margin-top:1.5rem">
+    <div class="card-head" style="padding:1rem 1.2rem 0"><h2><?= icon('trash', 16) ?> Archivados</h2></div>
     <div class="table-scroll">
         <table class="grid">
             <thead><tr><th>Proveedor</th><th class="prio-2">Rubro</th><th>Archivado</th><th class="acts"></th></tr></thead>

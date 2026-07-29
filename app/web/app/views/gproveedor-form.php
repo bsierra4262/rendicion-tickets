@@ -4,7 +4,10 @@ $val = fn($k) => e((string)($v[$k] ?? ''));
 $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</em>' : '';
 ?>
 <div class="page-head">
-    <div><h1><?= $editing ? 'Editar proveedor' : 'Nuevo proveedor' ?></h1></div>
+    <div>
+        <h1><?= $editing ? 'Editar proveedor' : 'Nuevo proveedor' ?></h1>
+        <p class="muted">Datos del proveedor de gastos recurrentes. El CUIT del emisor permite reconocerlo automáticamente al leer la factura.</p>
+    </div>
     <a href="<?= e(url('gproveedores')) ?>" class="btn btn-ghost"><?= icon('back') ?>Volver</a>
 </div>
 
@@ -51,6 +54,11 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
                 <span>Nombre del gasto (opcional)</span>
                 <input type="text" name="nombre_gasto" value="<?= $val('nombre_gasto') ?>" maxlength="150">
             </label>
+            <label class="fld">
+                <span>Carpeta en Drive</span>
+                <input type="text" name="drive_folder" value="<?= $val('drive_folder') ?>" maxlength="150" placeholder="ej. 02.EXPENSAS">
+                <em class="muted small">Nombre exacto de la carpeta del proveedor en Drive. Si se deja vacío, usa el nombre del proveedor.</em>
+            </label>
             <?php
             $cuitArr = array_map(
                 fn($c) => strlen($c) === 11 ? substr($c, 0, 2) . '-' . substr($c, 2, 8) . '-' . substr($c, 10, 1) : $c,
@@ -58,7 +66,7 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
             );
             if (!$cuitArr) { $cuitArr = ['']; }
             ?>
-            <div class="fld">
+            <div class="fld span-all">
                 <span>CUIT(s) del emisor (opcional)</span>
                 <div class="multi-list" data-cuit-list>
                     <?php foreach ($cuitArr as $c): ?>
@@ -72,11 +80,6 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
                 <em class="muted small">Un proveedor puede tener <strong>varios</strong> (ej. EXPENSAS o BANCOS agrupan varias empresas). El match por CUIT del emisor usa cualquiera de ellos.</em>
                 <?= $err('cuit') ?>
             </div>
-            <label class="fld">
-                <span>Carpeta en Drive</span>
-                <input type="text" name="drive_folder" value="<?= $val('drive_folder') ?>" maxlength="150" placeholder="ej. 02.EXPENSAS">
-                <em class="muted small">Nombre exacto de la carpeta del proveedor en Drive. Si se deja vacío, usa el nombre del proveedor.</em>
-            </label>
             <?php if ($editing): ?>
             <div class="fld">
                 <span>Estado</span>
@@ -107,7 +110,7 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
     })();
     </script>
     <div class="form-actions">
-        <a href="<?= e(url('gproveedores')) ?>" class="btn btn-ghost">Cancelar</a>
         <button type="submit" class="btn btn-primary"><?= icon('save') ?><?= $editing ? 'Guardar cambios' : 'Crear proveedor' ?></button>
+        <a href="<?= e(url('gproveedores')) ?>" class="btn btn-ghost">Cancelar</a>
     </div>
 </form>

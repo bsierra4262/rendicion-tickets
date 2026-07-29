@@ -1,10 +1,12 @@
 <?php /** @var array $rows @var array $f @var array $proveedores */ ?>
 <div class="page-head">
     <div>
-        <h1><?= icon('receipt', 22) ?> Gastos recurrentes</h1>
+        <h1>Gastos recurrentes</h1>
         <p class="muted">Facturas y pagos de gastos recurrentes, por período. La factura y el pago se respaldan en Drive (Proveedor / Año / Mes).</p>
     </div>
-    <a href="<?= e(url('gasto-form')) ?>" class="btn btn-primary"><?= icon('plus') ?>Nuevo gasto</a>
+    <div class="head-actions">
+        <a href="<?= e(url('gasto-form')) ?>" class="btn btn-primary"><?= icon('plus') ?>Nuevo gasto</a>
+    </div>
 </div>
 
 <form method="get" action="<?= e(url('gastos')) ?>" class="filters card no-print">
@@ -32,11 +34,12 @@
         </label>
     </div>
     <div class="filter-actions">
-        <button type="submit" class="btn btn-primary"><?= icon('search') ?>Filtrar</button>
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+        <a href="<?= e(url('gastos')) ?>" class="btn btn-ghost">Limpiar</a>
     </div>
 </form>
 
-<div class="card">
+<div class="card table-card">
     <div class="table-scroll">
         <table class="grid">
             <thead><tr>
