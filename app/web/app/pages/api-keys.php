@@ -12,7 +12,8 @@ if (is_post()) {
             flash('Poné un nombre para identificar el token.', 'error');
             redirect('api-keys');
         }
-        $nueva = api_token_create($nombre, current_user_id() ?? 0);
+        $scope = ($_POST['scope'] ?? 'lectura') === 'root' ? 'root' : 'lectura';
+        $nueva = api_token_create($nombre, current_user_id() ?? 0, $scope);
         // no redirect: mostramos el token una sola vez
     } elseif ($accion === 'toggle') {
         api_token_set_active((int)($_POST['id'] ?? 0), (int)($_POST['activo'] ?? 0) === 1);

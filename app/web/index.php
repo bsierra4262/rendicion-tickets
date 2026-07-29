@@ -39,6 +39,8 @@ $routes = [
     'api/estado'           => ['public' => true],
     'api/comprobantes'     => ['public' => true],
     'api/pendientes'       => ['public' => true],
+    'api/alertas'          => ['public' => true],
+    'gasto-archivo'        => ['public' => false],
     'api-keys'             => ['public' => false, 'admin' => true],
     'papelera'             => ['public' => false, 'admin' => true],
     'cron'                 => ['public' => false, 'admin' => true],

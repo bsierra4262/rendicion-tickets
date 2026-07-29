@@ -14,9 +14,14 @@ $f = [
     'page'  => $_GET['page'] ?? 1,
 ];
 
+// Conteo de eventos de ALERTAS (accion alerta.*) para la carpeta dedicada.
+$alertasN = 0;
+try { $alertasN = (int) q("SELECT COUNT(*) FROM actividad WHERE canal='app' AND accion LIKE 'alerta.%' AND creado_en >= DATE_SUB(NOW(), INTERVAL 4 MONTH)")->fetchColumn(); } catch (\Throwable $e) {}
+
 render('cron', [
-    'f'       => $f,
-    'data'    => actividad_list($f),
-    'resumen' => actividad_resumen($canal),
-    'conteo'  => actividad_conteo_tipos($canal),
+    'f'        => $f,
+    'data'     => actividad_list($f),
+    'resumen'  => actividad_resumen($canal),
+    'conteo'   => actividad_conteo_tipos($canal),
+    'alertasN' => $alertasN,
 ], 'CRON');

@@ -5,15 +5,17 @@ $b = $host . url('api');
 ?>
 <div class="page-head">
     <div>
-        <h1>API de solo lectura</h1>
-        <p class="muted">Para que tu asistente Jarvis (u otro servicio) consulte los datos en tiempo real</p>
+        <h1>API y tokens</h1>
+        <p class="muted">Para que ITHOS/Jarvis (u otro servicio) consulte los datos en tiempo real, con permisos por token</p>
     </div>
 </div>
 
 <div class="flash flash-info">
-    <strong>¿Cómo funciona?</strong> Esta API es para <strong>leer</strong> los datos desde afuera (tu Jarvis).
-    <strong>No usa cron ni nada que configurar acá</strong>: Jarvis hace un pedido HTTP cuando quiere, mandando el header
-    <code class="mono">X-API-Key</code> con un token que creás abajo. Solo lectura (GET), nunca modifica nada.
+    <strong>Dos tipos de token (permisos):</strong>
+    <strong>Lectura</strong> — solo consultar (estado, comprobantes, alertas); ideal para ITHOS. ·
+    <strong>Root</strong> — acceso total, sin límites (para integrar la app en un sistema propio).
+    Se autentica con el header <code class="mono">X-API-Key</code> (o <code class="mono">Authorization: Bearer</code>).
+    <br><span class="small">Ya existe por defecto un token <strong>«ITHOS»</strong> (lectura) para las alertas — ver la sección <a href="<?= e(url('alertas')) ?>">Alertas</a>.</span>
 </div>
 
 <div class="card">
@@ -25,6 +27,7 @@ $b = $host . url('api');
                 <tr><td data-label="Endpoint"><code class="mono"><?= e($b) ?>/estado</code></td><td data-label="Devuelve">Resumen: totales, pendientes, por moneda y por concepto</td></tr>
                 <tr><td data-label="Endpoint"><code class="mono"><?= e($b) ?>/pendientes</code></td><td data-label="Devuelve">Comprobantes «pendientes de revisión»</td></tr>
                 <tr><td data-label="Endpoint"><code class="mono"><?= e($b) ?>/comprobantes</code></td><td data-label="Devuelve">Lista con filtros: <code class="mono">?periodo=&amp;estado=&amp;concepto_id=&amp;moneda=&amp;q=&amp;page=</code></td></tr>
+                <tr><td data-label="Endpoint"><code class="mono"><?= e($b) ?>/alertas</code></td><td data-label="Devuelve">Alertas abiertas (para ITHOS): <code class="mono">?desde=&lt;id&gt;</code></td></tr>
             </tbody>
         </table>
     </div>
@@ -43,7 +46,7 @@ $b = $host . url('api');
 
 <?php if ($nueva): ?>
     <div class="flash flash-success" style="margin-top:16px">
-        <strong>Token «<?= e($nueva['nombre']) ?>» creado.</strong> Copialo ahora — por seguridad no se vuelve a mostrar.
+        <strong>Token «<?= e($nueva['nombre']) ?>» creado</strong> (<?= ($nueva['scope'] ?? 'lectura') === 'root' ? 'ROOT · acceso total' : 'lectura' ?>). Copialo ahora — por seguridad no se vuelve a mostrar.
         <div class="token-box"><code class="mono" id="tk"><?= e($nueva['token']) ?></code>
             <button type="button" class="btn btn-sm btn-ghost" onclick="navigator.clipboard.writeText(document.getElementById('tk').textContent).then(()=>this.textContent='Copiado')">Copiar</button>
         </div>
@@ -55,21 +58,26 @@ $b = $host . url('api');
     <form method="post" action="<?= e(url('api-keys')) ?>" class="urow" style="margin-bottom:14px">
         <?= csrf_field() ?>
         <input type="hidden" name="accion" value="crear">
-        <input type="text" name="nombre" placeholder="Nombre — ej. Jarvis, Contaduría" maxlength="80" style="flex:1;min-width:220px;padding:.6rem .75rem;border:1px solid var(--line);border-radius:9px">
+        <input type="text" name="nombre" placeholder="Nombre — ej. ITHOS, App de Nicolás" maxlength="80" style="flex:1;min-width:220px">
+        <select name="scope" title="Permiso del token" style="min-width:200px">
+            <option value="lectura">Lectura (consultas)</option>
+            <option value="root">Root (acceso total)</option>
+        </select>
         <button type="submit" class="btn btn-primary"><?= icon('plus') ?>Crear token</button>
     </form>
     <div class="table-scroll">
         <table class="grid">
-            <thead><tr><th>Nombre</th><th>Prefijo</th><th class="num">Usos</th><th>Último uso</th><th>Estado</th><th class="acts"></th></tr></thead>
+            <thead><tr><th>Nombre</th><th>Permiso</th><th class="prio-3">Prefijo</th><th class="num">Usos</th><th class="prio-2">Último uso</th><th>Estado</th><th class="acts"></th></tr></thead>
             <tbody>
             <?php if (!$tokens): ?>
-                <tr><td colspan="6" class="empty">Todavía no hay tokens. Creá el primero para Jarvis.</td></tr>
-            <?php else: foreach ($tokens as $t): ?>
+                <tr><td colspan="7" class="empty">Todavía no hay tokens. Creá uno para ITHOS o para tu integración.</td></tr>
+            <?php else: foreach ($tokens as $t): $root = ($t['scope'] ?? 'lectura') === 'root'; ?>
                 <tr>
                     <td data-label="Nombre"><strong><?= e($t['nombre']) ?></strong></td>
-                    <td data-label="Prefijo"><code class="mono">ith_<?= e($t['prefijo']) ?>_…</code></td>
+                    <td data-label="Permiso"><span class="badge <?= $root ? 'badge-rej' : 'badge-info' ?>"><?= $root ? 'Root · total' : 'Lectura' ?></span></td>
+                    <td data-label="Prefijo" class="prio-3"><code class="mono">ith_<?= e($t['prefijo']) ?>_…</code></td>
                     <td class="num" data-label="Usos"><?= number_format((int)$t['usos'], 0, ',', '.') ?></td>
-                    <td data-label="Último uso" class="muted small"><?= $t['ultimo_uso'] ? e(date('d/m/Y H:i', strtotime($t['ultimo_uso']))) : 'nunca' ?></td>
+                    <td data-label="Último uso" class="muted small prio-2"><?= $t['ultimo_uso'] ? e(date('d/m/Y H:i', strtotime($t['ultimo_uso']))) : 'nunca' ?></td>
                     <td data-label="Estado"><span class="badge <?= (int)$t['activo'] === 1 ? 'badge-ok' : 'badge-rej' ?>"><?= (int)$t['activo'] === 1 ? 'Activo' : 'Revocado' ?></span></td>
                     <td class="acts" data-label="Acciones">
                         <form method="post" action="<?= e(url('api-keys')) ?>" style="display:inline">

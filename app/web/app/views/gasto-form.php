@@ -25,9 +25,12 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
             <p class="filefield__name" data-empty="Sin archivo seleccionado">Sin archivo seleccionado</p>
         </div>
         <button type="button" id="leerFactura" class="btn btn-primary" style="margin-top:.85rem"><?= icon('scan') ?>Leer factura (autocompletar)</button>
+        <?php if ($editing && !empty($v['drive_factura_link'])): ?>
+            <button type="button" class="btn btn-ghost btn-sm" style="margin-top:.85rem;margin-left:.4rem" data-releer="factura" data-src="<?= e(url('gasto-archivo') . '?id=' . $id . '&tipo=factura') ?>"><?= icon('scan', 15) ?>Re-leer la factura cargada</button>
+        <?php endif; ?>
         <div id="leerEstado" class="muted small" style="margin-top:8px"></div>
         <?php if (!empty($v['drive_factura_link'])): ?>
-            <p class="muted small" style="margin-top:8px"><?= icon('cloud', 15) ?> Factura ya cargada · <a href="<?= e($v['drive_factura_link']) ?>" target="_blank" rel="noopener">ver en Drive</a></p>
+            <p class="muted small" style="margin-top:8px"><?= icon('cloud', 15) ?> Factura ya cargada · <a href="<?= e($v['drive_factura_link']) ?>" target="_blank" rel="noopener">ver en Drive</a> · no hace falta volver a subirla para re-leerla</p>
         <?php endif; ?>
     </div>
 
@@ -100,6 +103,9 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
             <p class="filefield__name" data-empty="Sin archivo seleccionado">Sin archivo seleccionado</p>
         </div>
         <button type="button" id="leerPago" class="btn btn-ghost btn-sm" style="margin-top:.85rem"><?= icon('scan', 15) ?>Leer pago (fecha + marcar pagado)</button>
+        <?php if ($editing && !empty($v['drive_pago_link'])): ?>
+            <button type="button" class="btn btn-ghost btn-sm" style="margin-top:.85rem;margin-left:.4rem" data-releer="pago" data-src="<?= e(url('gasto-archivo') . '?id=' . $id . '&tipo=pago') ?>"><?= icon('scan', 15) ?>Re-leer el pago cargado</button>
+        <?php endif; ?>
         <div id="leerPagoEstado" class="muted small" style="margin-top:8px"></div>
         <?php if (!empty($v['drive_pago_link'])): ?>
             <p class="muted small" style="margin-top:8px"><?= icon('cloud', 15) ?> Pago ya cargado · <a href="<?= e($v['drive_pago_link']) ?>" target="_blank" rel="noopener">ver en Drive</a></p>
@@ -122,4 +128,4 @@ window.APP_BASE = <?= json_encode(url('')) ?>;
 window.__gprov = <?= json_encode(array_map(fn($p) => ['id' => (int)$p['id'], 'nombre' => $p['nombre'], 'rubro' => $p['rubro'] ?? '', 'cuit' => $p['cuit'] ?? ''], $proveedores), JSON_UNESCAPED_UNICODE) ?>;
 </script>
 <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-<script defer src="<?= e(url('assets/js/gastos.js')) ?>?v=9"></script>
+<script defer src="<?= e(url('assets/js/gastos.js')) ?>?v=10"></script>

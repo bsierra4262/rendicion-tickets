@@ -466,8 +466,9 @@
         if (statusEl) { statusEl.textContent = 'Datos cargados desde la factura. Revisá y guardá.'; statusEl.className = 'flash flash-success'; }
     }
 
-    btn.addEventListener('click', function () {
-        var f = facturaInput.files && facturaInput.files[0];
+    // Lee una factura (File) y muestra el popup. No toca el input → al re-leer un archivo ya
+    // subido (al editar) NO se re-sube (no se duplica en Drive).
+    function leerFacturaDe(f) {
         if (!f) { if (statusEl) { statusEl.textContent = 'Elegí primero el PDF de la factura.'; statusEl.className = 'flash flash-info'; } return; }
         if (statusEl) { statusEl.textContent = 'Leyendo la factura…'; statusEl.className = 'flash flash-info'; }
         extractText(f, function (text) {
@@ -485,7 +486,9 @@
                 ocrCanvas(canvas, function (ocrText) { finish(ocrText); });
             });
         });
-    });
+    }
+    btn.addEventListener('click', function () { leerFacturaDe(facturaInput.files && facturaInput.files[0]); });
+    window.gastoLeerFacturaFile = leerFacturaDe;
 
     // ---- Leer el comprobante de PAGO ----
     var pagoInput = form.querySelector('input[name="pago"]');
@@ -504,16 +507,38 @@
             el.className = 'flash flash-success';
         }
     }
-    if (btnPago && pagoInput) {
-        btnPago.addEventListener('click', function () {
-            var f = pagoInput.files && pagoInput.files[0];
-            var el = pagoStatus || statusEl;
-            if (!f) { if (el) { el.textContent = 'Elegí primero el PDF del pago.'; el.className = 'flash flash-info'; } return; }
-            if (el) { el.textContent = 'Leyendo el pago…'; el.className = 'flash flash-info'; }
-            extractText(f, function (text) {
-                if (!text) { if (el) { el.textContent = 'No pude leer el texto del pago. Cargá la fecha a mano.'; el.className = 'flash flash-error'; } return; }
-                fillPago(parsePago(text));
-            });
+    function leerPagoDe(f) {
+        var el = pagoStatus || statusEl;
+        if (!f) { if (el) { el.textContent = 'Elegí primero el PDF del pago.'; el.className = 'flash flash-info'; } return; }
+        if (el) { el.textContent = 'Leyendo el pago…'; el.className = 'flash flash-info'; }
+        extractText(f, function (text) {
+            if (!text) { if (el) { el.textContent = 'No pude leer el texto del pago. Cargá la fecha a mano.'; el.className = 'flash flash-error'; } return; }
+            fillPago(parsePago(text));
         });
     }
+    if (btnPago && pagoInput) {
+        btnPago.addEventListener('click', function () { leerPagoDe(pagoInput.files && pagoInput.files[0]); });
+    }
+    window.gastoLeerPagoFile = leerPagoDe;
+
+    // Re-leer un archivo YA cargado (al editar): lo trae del server (proxy de Drive) y lo pasa
+    // al lector SIN usar el input → al guardar no se re-sube (no se duplica).
+    form.querySelectorAll('[data-releer]').forEach(function (b) {
+        b.addEventListener('click', function () {
+            var tipo = b.getAttribute('data-releer');       // 'factura' | 'pago'
+            var src = b.getAttribute('data-src');
+            var el = (tipo === 'pago' ? pagoStatus : statusEl) || statusEl;
+            if (el) { el.textContent = 'Trayendo el ' + tipo + ' ya cargado…'; el.className = 'flash flash-info'; }
+            b.disabled = true;
+            fetch(src, { headers: { 'X-Requested-With': 'fetch' } })
+                .then(function (r) { if (!r.ok) { throw new Error('no disponible'); } return r.blob(); })
+                .then(function (blob) {
+                    var ext = /pdf/.test(blob.type) ? 'pdf' : 'jpg';
+                    var file = new File([blob], tipo + '.' + ext, { type: blob.type || 'application/pdf' });
+                    if (tipo === 'pago') { leerPagoDe(file); } else { leerFacturaDe(file); }
+                })
+                .catch(function (e) { if (el) { el.textContent = 'No se pudo traer el ' + tipo + ': ' + (e && e.message || e); el.className = 'flash flash-error'; } })
+                .then(function () { b.disabled = false; });
+        });
+    });
 })();

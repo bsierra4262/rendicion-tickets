@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS `api_tokens` (
   `nombre` varchar(120) NOT NULL,
   `prefijo` varchar(16) NOT NULL,
   `token_hash` char(64) NOT NULL,
+  `scope` varchar(20) NOT NULL DEFAULT 'lectura',
   `activo` tinyint(1) NOT NULL DEFAULT 1,
   `usos` int(10) unsigned NOT NULL DEFAULT 0,
   `ultimo_uso` datetime DEFAULT NULL,

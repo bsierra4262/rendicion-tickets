@@ -3,7 +3,11 @@
  *  @var string $ithosUrl @var string $ithosKey @var string $emailTo */
 $sevBadge = ['danger' => ['badge-rej', 'Urgente'], 'warn' => ['badge-pend', 'Atención'], 'info' => ['badge-info', 'Info']];
 $noLeidas = 0; foreach ($alertas as $a) { if (empty($a['leida_en'])) { $noLeidas++; } }
+$enTest = ($entorno ?? 'testing') === 'testing';
 ?>
+<?php if ($enTest): ?>
+    <div class="flash flash-info" style="display:flex;align-items:center;gap:.5rem"><?= icon('alert', 16) ?> <strong>Modo TEST activo</strong> — las alertas que se envían por Email/ITHOS/WhatsApp llevan el prefijo <code>[TEST]</code>. Cambialo a Producción abajo (o avisá) cuando esté listo.</div>
+<?php endif; ?>
 <div class="page-head">
     <div>
         <h1>Alertas</h1>
@@ -123,6 +127,14 @@ $noLeidas = 0; foreach ($alertas as $a) { if (empty($a['leida_en'])) { $noLeidas
 <form method="post" action="<?= e(url('alertas')) ?>" class="form-card card">
     <?= csrf_field() ?><input type="hidden" name="accion" value="ithos">
     <div class="grid-fields">
+        <label class="fld">
+            <span>Entorno</span>
+            <select name="entorno">
+                <option value="testing" <?= ($entorno ?? 'testing') === 'testing' ? 'selected' : '' ?>>Testing (envía con prefijo [TEST])</option>
+                <option value="produccion" <?= ($entorno ?? '') === 'produccion' ? 'selected' : '' ?>>Producción (sin prefijo)</option>
+            </select>
+            <em class="muted small">En testing, todo lo externo dice [TEST].</em>
+        </label>
         <label class="fld span-all">
             <span>Destinatarios de Email (opcional)</span>
             <input type="text" name="email_to" value="<?= e($emailTo) ?>" placeholder="Por default, todos los administradores">
@@ -142,3 +154,18 @@ $noLeidas = 0; foreach ($alertas as $a) { if (empty($a['leida_en'])) { $noLeidas
         <button type="submit" class="btn btn-primary"><?= icon('save') ?>Guardar canales externos</button>
     </div>
 </form>
+
+<h2 class="sec" style="margin:1.5rem 0 .5rem">API para ITHOS (WhatsApp)</h2>
+<div class="form-card card">
+    <p class="muted small" style="margin-bottom:.8rem">ITHOS consume esta API (solo lectura) y reenvía al grupo de WhatsApp. <strong>Ya viene todo generado</strong>: la API-key de ITHOS existe por defecto (aparece también en la sección <a href="<?= e(url('api-keys')) ?>">API</a>). Guía para integrarlo: <code>md/API-ALERTAS-ITHOS.md</code>.</p>
+    <div class="grid-fields">
+        <label class="fld span-all"><span>Endpoint (GET)</span>
+            <input type="text" readonly value="<?= e(($apiUrl ?? '')) ?>?desde=0" onclick="this.select()">
+        </label>
+        <label class="fld span-all"><span>API-key de ITHOS (header <code>X-API-Key</code>)</span>
+            <input type="text" readonly value="<?= e($ithosApiKey ?: '(se genera al entrar)') ?>" onclick="this.select()">
+            <em class="muted small">Solo lectura de alertas/consultas — no es admin/root. Pegала en ITHOS.</em>
+        </label>
+    </div>
+    <p class="mono" style="display:block;word-break:break-all;margin-top:.6rem">curl -H "X-API-Key: <?= e($ithosApiKey ?: 'TU_KEY') ?>" "<?= e(($apiUrl ?? '')) ?>?desde=0"</p>
+</div>

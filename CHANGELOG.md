@@ -8,9 +8,18 @@ y el versionado, [SemVer](https://semver.org/lang/es/).
 
 ### Added
 - **Módulo de Alertas centralizado**: motor idempotente + bandeja dentro del sistema
-  (campana con contador), configurable por el admin. Canales: sistema (default), Email
-  (SMTP propio) e ITHOS/Jarvis (WhatsApp a través de ITHOS). Primera regla: pago de gasto
-  vencido (días de atraso) y por vencer; + comprobantes sin revisar.
+  (campana con contador + **popup/toast**), configurable por el admin. Canales: sistema
+  (default), Email (SMTP propio, múltiples destinatarios) e ITHOS/Jarvis (WhatsApp a través
+  de ITHOS). Reglas: pago de gasto vencido (días de atraso), por vencer y comprobantes sin
+  revisar. **24/7** por cron (Hostinger) + evaluación on-demand. **Modo TEST** (prefijo
+  `[TEST]` en los envíos externos hasta pasar a producción). Al activar un canal se
+  **reenvían las últimas 5** alertas. Resolver una alerta la saca de la bandeja y la deja en
+  el log (CRON). Filtro **«Alertas»** en el CRON.
+- **API con permisos (scopes)**: token **Lectura** (consultas, ideal ITHOS) o **Root**
+  (acceso total). Endpoint `api/alertas` para que ITHOS consuma y reenvíe a WhatsApp; token
+  «ITHOS» generado por defecto. Guía: `md/API-ALERTAS-ITHOS.md`.
+- **Re-leer al editar (Gastos)**: la factura/pago ya cargados se re-leen con OCR sin volver a
+  subirlos (proxy desde Drive; no se duplican) — como en comprobantes.
 - **Proveedor multi-entidad** (bancos): un proveedor puede agrupar varias entidades, cada
   una con su nombre + CUIT; los proveedores de una sola entidad quedan bloqueados a 1 CUIT.
 - **Re-escanear al editar**: el comprobante trae su archivo ya subido para volver a leerlo

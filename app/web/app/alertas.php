@@ -24,12 +24,19 @@ function alerta_tipos(): array
     ];
 }
 
+// ---- Entorno: en TESTING las alertas externas llevan prefijo [TEST] ----
+function alertas_entorno(): string { return setting_get('app_entorno', 'testing') === 'produccion' ? 'produccion' : 'testing'; }
+function alertas_en_testing(): bool { return alertas_entorno() === 'testing'; }
+function alerta_prefijo(): string { return alertas_en_testing() ? '[TEST] ' : ''; }
+
 // ---- Config por tipo (qué canales) — JSON en app_settings ----
 function alertas_config(): array
 {
     $def = [];
     foreach (alerta_tipos() as $k => $t) {
-        $def[$k] = ['activo' => 1, 'email' => 0, 'ithos' => 0]; // in-sistema SIEMPRE on
+        // Por defecto: in-sistema SIEMPRE; Email e ITHOS quedan CARGADOS pero SIN activar
+        // (vacío/desactivado). Lo que el admin activa PERSISTE entre updates (es un setting).
+        $def[$k] = ['activo' => 1, 'email' => 0, 'ithos' => 0];
     }
     $raw = setting_get('alertas_config', null);
     $cfg = $raw ? (json_decode($raw, true) ?: []) : [];
@@ -38,8 +45,10 @@ function alertas_config(): array
     }
     return $def;
 }
-function alertas_config_guardar(array $post): void
+/** Guarda la config y devuelve los canales que quedaron RECIÉN habilitados (antes off en todo). */
+function alertas_config_guardar(array $post): array
 {
+    $prev = alertas_config();
     $out = [];
     foreach (alerta_tipos() as $k => $t) {
         $out[$k] = [
@@ -50,6 +59,45 @@ function alertas_config_guardar(array $post): void
     }
     setting_set('alertas_config', json_encode($out, JSON_UNESCAPED_UNICODE));
     if (function_exists('log_app')) { log_app('alerta.config', ['detalle' => 'Configuración de canales actualizada']); }
+    $nuevos = [];
+    foreach (['email', 'ithos'] as $canal) {
+        $antes = false; $ahora = false;
+        foreach (alerta_tipos() as $k => $t) { if (!empty($prev[$k][$canal])) { $antes = true; } if (!empty($out[$k][$canal])) { $ahora = true; } }
+        if (!$antes && $ahora) { $nuevos[] = $canal; }
+    }
+    return $nuevos;
+}
+
+/**
+ * Reenvía las últimas N alertas ABIERTAS por un canal recién habilitado (para no perder
+ * las que se generaron antes de activarlo). Respeta la config por tipo. Devuelve cuántas envió.
+ */
+function alertas_reenviar_recientes(string $canal, int $limit = 5): int
+{
+    $rows = q('SELECT * FROM alertas WHERE resuelta_en IS NULL ORDER BY id DESC LIMIT ' . max(1, min(20, $limit)))->fetchAll();
+    $cfg = alertas_config(); $n = 0;
+    foreach ($rows as $r) {
+        $tipo = (string)$r['tipo'];
+        if (empty($cfg[$tipo]['activo']) || empty($cfg[$tipo][$canal])) { continue; }
+        $a = ['titulo' => $r['titulo'], 'mensaje' => $r['mensaje'], 'url' => $r['url'], 'severidad' => $r['severidad']];
+        $ok = false;
+        if ($canal === 'email' && function_exists('mail_configurado') && mail_configurado()) { $ok = alerta_enviar_email($a); }
+        elseif ($canal === 'ithos' && setting_get('alertas_ithos_url')) { $ok = alerta_enviar_ithos($tipo, $a); }
+        if ($ok) {
+            $canales = array_filter(array_map('trim', explode(',', (string)$r['canales'])));
+            if (!in_array($canal, $canales, true)) { $canales[] = $canal; q('UPDATE alertas SET canales = ? WHERE id = ?', [implode(',', $canales), (int)$r['id']]); }
+            $n++;
+        }
+    }
+    return $n;
+}
+
+/** La alerta NO leída más reciente (para el popup/toast). */
+function alerta_ultima_no_leida(): ?array
+{
+    try { return q("SELECT id, tipo, severidad, titulo, mensaje, url FROM alertas
+                     WHERE leida_en IS NULL AND resuelta_en IS NULL ORDER BY id DESC LIMIT 1")->fetch() ?: null; }
+    catch (\Throwable $e) { return null; }
 }
 
 // ---- Estado de los canales (para la UI) ----
@@ -135,21 +183,24 @@ function alerta_enviar_email(array $a): bool
 {
     $dests = alerta_email_destinatarios();
     if (!$dests) { return false; }
+    $pfx = alerta_prefijo();
     $titulo = (string)($a['titulo'] ?? 'Alerta');
     $msg = (string)($a['mensaje'] ?? '');
     $url = (string)($a['url'] ?? '');
     $link = $url ? '<p><a href="' . htmlspecialchars($url) . '" style="color:#663399;font-weight:600">Ver en el sistema</a></p>' : '';
+    $testBanner = $pfx ? '<div style="background:#fff3cd;color:#8a6d00;padding:8px 14px;font-size:12px;font-weight:700;border-bottom:1px solid #ffe69c">⚠ MODO TEST — esto es una prueba, no es un aviso real de producción.</div>' : '';
     $html = '<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto">'
-        . '<div style="background:#663399;color:#fff;padding:14px 18px;border-radius:10px 10px 0 0;font-weight:700">INTELLIHELP · Alerta</div>'
+        . $testBanner
+        . '<div style="background:#663399;color:#fff;padding:14px 18px;border-radius:' . ($testBanner ? '0' : '10px 10px 0 0') . ';font-weight:700">INTELLIHELP · Alerta</div>'
         . '<div style="border:1px solid #eee;border-top:0;padding:18px;border-radius:0 0 10px 10px">'
-        . '<h2 style="margin:0 0 8px;font-size:17px;color:#161922">' . htmlspecialchars($titulo) . '</h2>'
+        . '<h2 style="margin:0 0 8px;font-size:17px;color:#161922">' . htmlspecialchars($pfx . $titulo) . '</h2>'
         . '<p style="color:#444;line-height:1.5">' . nl2br(htmlspecialchars($msg)) . '</p>' . $link
         . '<p style="color:#999;font-size:12px;margin-top:16px">Rendición de comprobantes · INTELLIHELP</p>'
         . '</div></div>';
     $ok = false;
     foreach ($dests as $to) {
         $err = null;
-        if (mail_enviar($to, '[INTELLIHELP] ' . $titulo, $html, $err)) { $ok = true; }
+        if (mail_enviar($to, $pfx . '[INTELLIHELP] ' . $titulo, $html, $err)) { $ok = true; }
         elseif (function_exists('log_app')) { log_app('alerta.email_error', ['detalle' => $to . ': ' . $err]); }
     }
     return $ok;
@@ -162,9 +213,11 @@ function alerta_enviar_ithos(string $tipo, array $a): bool
     $url = (string)setting_get('alertas_ithos_url', '');
     $key = (string)setting_get('alertas_ithos_key', '');
     if ($url === '') { return false; }
+    $pfx = alerta_prefijo();
     $payload = json_encode([
         'origen' => 'rendicion-comprobantes', 'tipo' => $tipo,
-        'titulo' => $a['titulo'] ?? '', 'mensaje' => $a['mensaje'] ?? '',
+        'entorno' => alertas_entorno(), 'test' => alertas_en_testing(),
+        'titulo' => $pfx . (string)($a['titulo'] ?? ''), 'mensaje' => $pfx . (string)($a['mensaje'] ?? ''),
         'severidad' => $a['severidad'] ?? 'info', 'url' => $a['url'] ?? '',
         'canal_sugerido' => 'whatsapp',
     ], JSON_UNESCAPED_UNICODE);
@@ -285,6 +338,26 @@ function alertas_listar(bool $incluirResueltas = false): array
     return q("SELECT * FROM alertas $where ORDER BY (leida_en IS NULL) DESC,
                      FIELD(severidad,'danger','warn','info'), created_at DESC LIMIT 200")->fetchAll();
 }
+// Para la API que consume ITHOS: alertas ABIERTAS con id > $desde (polling incremental),
+// con el prefijo [TEST] aplicado si estamos en testing.
+function alertas_api(int $desde = 0): array
+{
+    $rows = q('SELECT id, tipo, severidad, titulo, mensaje, url, created_at FROM alertas
+                WHERE resuelta_en IS NULL AND id > ? ORDER BY id ASC LIMIT 100', [$desde])->fetchAll();
+    $pfx = alerta_prefijo();
+    return array_map(fn($r) => [
+        'id' => (int)$r['id'], 'tipo' => $r['tipo'], 'severidad' => $r['severidad'],
+        'titulo' => $pfx . (string)$r['titulo'], 'mensaje' => $pfx . (string)$r['mensaje'],
+        'url' => $r['url'], 'creado' => $r['created_at'], 'canal_sugerido' => 'whatsapp',
+    ], $rows);
+}
 function alerta_marcar_leida(int $id): void { q('UPDATE alertas SET leida_en = NOW() WHERE id = ? AND leida_en IS NULL', [$id]); }
 function alertas_marcar_todas(): void { q('UPDATE alertas SET leida_en = NOW() WHERE leida_en IS NULL'); }
-function alerta_resolver(int $id): void { q('UPDATE alertas SET resuelta_en = NOW(), leida_en = COALESCE(leida_en, NOW()) WHERE id = ?', [$id]); }
+// Resolver = SACARLA de la bandeja (queda limpio). El registro se mantiene en el LOG (CRON/actividad).
+function alerta_resolver(int $id): void
+{
+    $a = q('SELECT tipo, titulo FROM alertas WHERE id = ? LIMIT 1', [$id])->fetch();
+    if (!$a) { return; }
+    if (function_exists('log_app')) { log_app('alerta.resuelta', ['entidad' => 'alerta', 'entidad_id' => $id, 'detalle' => 'Resuelta: ' . $a['titulo']]); }
+    q('DELETE FROM alertas WHERE id = ?', [$id]);
+}

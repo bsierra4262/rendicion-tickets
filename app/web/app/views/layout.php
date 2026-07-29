@@ -20,10 +20,11 @@ if ($u && ($u['rol'] ?? '') === 'admin') {
     $nav['cron']     = ['CRON', 'activity'];
 }
 // Campana de alertas (solo admin). Evaluación automática con throttle para tener el conteo al día.
-$alertasNoLeidas = 0;
+$alertasNoLeidas = 0; $alertaToast = null;
 if ($u && ($u['rol'] ?? '') === 'admin' && function_exists('alertas_no_leidas')) {
     if (function_exists('alertas_autoeval')) { try { alertas_autoeval(); } catch (\Throwable $e) {} }
     $alertasNoLeidas = alertas_no_leidas();
+    if ($alertasNoLeidas && function_exists('alerta_ultima_no_leida')) { $alertaToast = alerta_ultima_no_leida(); }
 }
 $asset = fn($p) => e(url($p));
 $extraHead = $extraHead ?? '';
@@ -46,7 +47,7 @@ $brandOrg  = $GLOBALS['CONFIG']['app']['org'] ?? 'INTELLIHELP';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= $asset('assets/css/app.css') ?>?v=19">
+    <link rel="stylesheet" href="<?= $asset('assets/css/app.css') ?>?v=20">
     <?php if (!empty($brand['primary']) || !empty($brand['accent'])): ?>
     <style>:root{<?php if (!empty($brand['primary'])): ?>--primary:<?= e($brand['primary']) ?>;<?php endif; ?><?php if (!empty($brand['accent'])): ?>--accent:<?= e($brand['accent']) ?>;<?php endif; ?>}</style>
     <?php endif; ?>
@@ -126,6 +127,28 @@ $brandOrg  = $GLOBALS['CONFIG']['app']['org'] ?? 'INTELLIHELP';
     <footer class="foot"><?= e($appName) ?> · <?= e($brandOrg) ?> — <?= date('Y') ?></footer>
 <?php else: ?>
     <?= $content ?>
+<?php endif; ?>
+<?php if ($alertaToast): $sevc = ['danger' => 'toast-danger', 'warn' => 'toast-warn', 'info' => 'toast-info'][$alertaToast['severidad']] ?? 'toast-info'; ?>
+    <div id="alertToast" class="alert-toast <?= $sevc ?>" data-alert-id="<?= (int)$alertaToast['id'] ?>" data-count="<?= (int)$alertasNoLeidas ?>" role="status" hidden>
+        <div class="alert-toast__ic"><?= icon('alert', 18) ?></div>
+        <div class="alert-toast__body">
+            <strong><?= e($alertaToast['titulo']) ?></strong>
+            <p><?= e(mb_strimwidth((string)$alertaToast['mensaje'], 0, 120, '…')) ?></p>
+            <a href="<?= $asset('alertas') ?>" class="alert-toast__link">Ver <?= (int)$alertasNoLeidas > 1 ? 'las ' . (int)$alertasNoLeidas . ' alertas' : 'la alerta' ?> →</a>
+        </div>
+        <button type="button" class="alert-toast__x" aria-label="Cerrar" onclick="this.closest('.alert-toast').remove()"><?= icon('x', 16) ?></button>
+    </div>
+    <script>
+    (function () {
+        var t = document.getElementById('alertToast'); if (!t) { return; }
+        var id = t.getAttribute('data-alert-id');
+        try { if (localStorage.getItem('ith_alert_seen') === id && !location.pathname.match(/alertas$/)) { return; } } catch (e) {}
+        t.hidden = false;
+        requestAnimationFrame(function () { t.classList.add('show'); });
+        try { localStorage.setItem('ith_alert_seen', id); } catch (e) {}
+        setTimeout(function () { t.classList.remove('show'); setTimeout(function () { if (t.parentNode) t.remove(); }, 300); }, 9000);
+    })();
+    </script>
 <?php endif; ?>
 <script defer src="<?= $asset('assets/js/viewer.js') ?>?v=5"></script>
 <script defer src="<?= $asset('assets/js/confirm.js') ?>?v=1"></script>

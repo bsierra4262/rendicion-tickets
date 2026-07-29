@@ -91,10 +91,16 @@ $baseFold = array_filter(
     <?php foreach ($folders as $k => [$lbl, $n]):
         // Ocultar carpetas vacías, PERO "Errores" y "Sistema" siempre visibles (auditoría)
         if ($k !== '' && $n === 0 && $f['tipo'] !== $k && $k !== 'error' && $k !== 'sistema') continue;
-        $active = ($f['tipo'] === $k);
+        $active = ($f['tipo'] === $k && ($f['q'] ?? '') !== 'alerta.');
         $href = url('cron') . '?' . http_build_query($baseFold + ($k !== '' ? ['tipo' => $k] : []));
     ?>
         <a href="<?= e($href) ?>" class="folder <?= $active ? 'active' : '' ?>"><?= e($lbl) ?><span class="folder-n"><?= number_format($n, 0, ',', '.') ?></span></a>
+        <?php if ($k === 'auth' && $esApp): // carpeta dedicada de Alertas, al lado de Sesiones
+            $alN = (int)($alertasN ?? 0); $alActive = ($f['q'] ?? '') === 'alerta.';
+            $alHref = url('cron') . '?' . http_build_query(['canal' => $canal, 'q' => 'alerta.'] + array_filter(['desde' => $f['desde'], 'hasta' => $f['hasta']]));
+        ?>
+            <a href="<?= e($alHref) ?>" class="folder <?= $alActive ? 'active' : '' ?>"><?= icon('alert', 14) ?> Alertas<span class="folder-n"><?= number_format($alN, 0, ',', '.') ?></span></a>
+        <?php endif; ?>
     <?php endforeach; ?>
 </div>
 

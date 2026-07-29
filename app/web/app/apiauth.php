@@ -2,10 +2,13 @@
 declare(strict_types=1);
 
 /**
- * API de solo lectura — autenticación por token (X-API-Key) y helpers JSON.
- * Pensada para consumir el estado y los comprobantes desde servicios externos
- * (ej. el asistente "Jarvis"). No expone escritura.
+ * API con tokens y PERMISOS (scopes):
+ *   · 'lectura' → consulta de solo lectura (estado, comprobantes, alertas). Ideal ITHOS.
+ *   · 'root'    → acceso total, sin límites (para integraciones propias, ej. app de Nicolás).
+ * Autenticación por token (X-API-Key / Authorization: Bearer / ?api_key=).
  */
+function api_scopes(): array { return ['lectura' => 'Lectura (consultas)', 'root' => 'Root (acceso total)']; }
+function api_scope_nivel(string $s): int { return $s === 'root' ? 2 : 1; }
 
 /** Lee el token del header X-API-Key (o Authorization: Bearer). */
 function api_read_key(): string
@@ -49,8 +52,8 @@ function api_json($data, int $code = 200): void
     exit;
 }
 
-/** Exige token válido; si falta, corta con 401. */
-function api_require(): array
+/** Exige token válido con el permiso mínimo pedido; si falta, corta con 401/403. */
+function api_require(string $minScope = 'lectura'): array
 {
     $ruta = function_exists('current_route') ? current_route() : 'api';
     $t = api_token_verify();
@@ -59,6 +62,13 @@ function api_require(): array
             log_api($ruta, ['tipo' => 'auth', 'actor' => 'desconocido', 'detalle' => 'Token inválido o ausente (401)']);
         }
         api_json(['ok' => false, 'error' => 'Token inválido o ausente. Enviá el header X-API-Key.'], 401);
+    }
+    $scope = (string)($t['scope'] ?? 'lectura');
+    if (api_scope_nivel($scope) < api_scope_nivel($minScope)) {
+        if (function_exists('log_api')) {
+            log_api($ruta, ['tipo' => 'auth', 'actor' => 'Token: ' . ($t['nombre'] ?? '?'), 'detalle' => 'Permiso insuficiente (' . $minScope . ' requerido, tiene ' . $scope . ') · 403']);
+        }
+        api_json(['ok' => false, 'error' => 'La API-key no tiene permiso: se requiere «' . $minScope . '».'], 403);
     }
     if (function_exists('log_api')) {
         log_api($ruta, ['actor' => 'Token: ' . ($t['nombre'] ?? '?'), 'entidad' => 'token', 'entidad_id' => (int)$t['id'],
@@ -92,22 +102,41 @@ function api_row(array $r): array
 }
 
 // ---- Gestión de tokens (admin) ----
-function api_token_create(string $nombre, int $uid): array
+function api_token_create(string $nombre, int $uid, string $scope = 'lectura'): array
 {
+    $scope = $scope === 'root' ? 'root' : 'lectura';
     $prefijo = bin2hex(random_bytes(4));
     $full = 'ith_' . $prefijo . '_' . bin2hex(random_bytes(24));
-    q('INSERT INTO api_tokens (nombre, prefijo, token_hash, creado_por) VALUES (?, ?, ?, ?)',
-        [$nombre, $prefijo, hash('sha256', $full), $uid]);
+    q('INSERT INTO api_tokens (nombre, prefijo, token_hash, scope, creado_por) VALUES (?, ?, ?, ?, ?)',
+        [$nombre, $prefijo, hash('sha256', $full), $scope, $uid]);
     $tid = (int)db()->lastInsertId();
     if (function_exists('log_app')) {
-        log_app('token.crear', ['entidad' => 'token', 'entidad_id' => $tid, 'detalle' => 'Token «' . $nombre . '» creado']);
+        log_app('token.crear', ['entidad' => 'token', 'entidad_id' => $tid, 'detalle' => 'Token «' . $nombre . '» (' . $scope . ') creado']);
     }
-    return ['id' => $tid, 'nombre' => $nombre, 'prefijo' => $prefijo, 'token' => $full];
+    return ['id' => $tid, 'nombre' => $nombre, 'prefijo' => $prefijo, 'scope' => $scope, 'token' => $full];
 }
 
 function api_tokens_all(): array
 {
-    return q('SELECT id, nombre, prefijo, activo, usos, ultimo_uso, created_at FROM api_tokens ORDER BY created_at DESC')->fetchAll();
+    return q('SELECT id, nombre, prefijo, scope, activo, usos, ultimo_uso, created_at FROM api_tokens ORDER BY created_at DESC')->fetchAll();
+}
+
+/**
+ * Asegura un token por DEFECTO para ITHOS (scope 'lectura'), idempotente. Guarda el texto
+ * plano en un setting para poder mostrarlo/usarlo (ITHOS lo necesita para consumir la API).
+ * No se borra en el reset de testing. Devuelve la key en claro (o '' si no se puede recuperar).
+ */
+function api_token_ithos_asegurar(): string
+{
+    $saved = function_exists('setting_get') ? (string) setting_get('ithos_api_key', '') : '';
+    $ex = q("SELECT id FROM api_tokens WHERE nombre = 'ITHOS' LIMIT 1")->fetch();
+    if ($ex && $saved !== '') { return $saved; }
+    if (!$ex) {
+        $r = api_token_create('ITHOS', 0, 'lectura');
+        if (function_exists('setting_set')) { setting_set('ithos_api_key', $r['token']); }
+        return $r['token'];
+    }
+    return $saved;   // existe pero no está el claro guardado (hash irreversible)
 }
 
 function api_token_set_active(int $id, bool $activo): void

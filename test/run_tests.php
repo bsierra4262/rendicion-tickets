@@ -814,7 +814,7 @@ ok('gasto: guardado sube a Drive SINCRÓNICO (links al volver, como comprobantes
 ok('drive: connect timeout (no cuelga si no llega a Google)', strpos($gd48, 'CURLOPT_CONNECTTIMEOUT') !== false);
 ok('gasto: parser matchea por keyword (ej. EXPENSAS) sin falsos positivos', strpos($gjs48, "'expensas'") !== false && strpos($gjs48, 'var STOP') !== false);
 ok('gasto: Leer PAGO (fecha + marca pagado)', strpos($gjs48, 'function parsePago') !== false && strpos($gjs48, "setVal('estado', 'pagado')") !== false && strpos($gfv48, 'id="leerPago"') !== false);
-ok('gasto: __gprov con rubro + gastos.js versionado', strpos($gfv48, "'rubro' => \$p['rubro']") !== false && (bool)preg_match('/gastos\.js[^\n]*\?v=9/', $gfv48));
+ok('gasto: __gprov con rubro + gastos.js versionado', strpos($gfv48, "'rubro' => \$p['rubro']") !== false && (bool)preg_match('/gastos\.js[^\n]*\?v=10/', $gfv48));
 
 echo "== v2.49 — fixes de gastos: form se completa visible + carpeta Drive real ==\n";
 $gjs49 = $readf("$ASSETS/js/gastos.js");
@@ -834,7 +834,7 @@ $lay50 = $readf("$VIEWS/layout.php");
 ok('datepicker: sincroniza cambios EXTERNOS del hidden (OCR/autocompletar)', strpos($dp50, "hidden.addEventListener('change', syncLabel)") !== false);
 ok('gasto: período desde etiqueta (Liquidación/Período), no de la fecha', strpos($gjs50, 'function parsePeriodoLabel') !== false && strpos($gjs50, 'liquidaci') !== false && strpos($gjs50, 'parsePeriodoLabel(text) ||') !== false);
 ok('gasto: no usa el vencimiento como emisión', strpos($gjs50, "d.iso !== venc.iso") !== false);
-ok('assets versionados: datepicker v4 + gastos v9', (bool)preg_match('/datepicker\.js[^\n]*\?v=4/', $lay50) && (bool)preg_match('/gastos\.js[^\n]*\?v=9/', $readf("$VIEWS/gasto-form.php")));
+ok('assets versionados: datepicker v4 + gastos v10', (bool)preg_match('/datepicker\.js[^\n]*\?v=4/', $lay50) && (bool)preg_match('/gastos\.js[^\n]*\?v=10/', $readf("$VIEWS/gasto-form.php")));
 ok('gasto: lee QR AFIP (render PDF + jsQR + datos exactos)', strpos($gjs50, 'function scanFacturaQr') !== false && strpos($gjs50, 'function parseAfipQr') !== false && strpos($gjs50, 'function mergeQr') !== false && strpos($readf("$VIEWS/gasto-form.php"), 'jsqr@1.4.0') !== false);
 ok('gasto: QR = datos exactos (CUIT emisor→proveedor, importe, fecha)', strpos($gjs50, 'provByCuit(String(qr.cuit))') !== false && strpos($gjs50, 'd.valor = +qr.importe') !== false && strpos($gjs50, 'd.desde_qr') !== false);
 ok('gasto: detectProv por CUIT + keywords curados + caso Personal/Telecom', strpos($gjs50, 'var KEYWORDS') !== false && strpos($gjs50, "indexOf('PERSONAL')") !== false && strpos($gjs50, 'cuits.indexOf(pc[kc])') !== false);
@@ -867,7 +867,7 @@ $glist = $readf("$VIEWS/gastos.php");
 $lay   = $readf("$VIEWS/layout.php");
 // Responsive: el nav no debe poder empujar la página (scroll horizontal) y colapsa a drawer.
 ok('ui: topnav con red anti-overflow (overflow-x oculto) + drawer ≤1400', strpos($css, 'overflow-x:auto;scrollbar-width:none') !== false && (bool)preg_match('/@media\s*\(max-width:1400px\)/', $css));
-ok('ui: app.css versionado en el layout', (bool)preg_match('/app\.css[^\n]*\?v=19/', $lay));
+ok('ui: app.css versionado en el layout', (bool)preg_match('/app\.css[^\n]*\?v=20/', $lay));
 ok('ui: autofocus solo al crear proveedor (no al editar)', strpos($gpf, "\$editing ? '' : 'autofocus'") !== false);
 ok('ui: botones compactos (min-height:36px) y switch chico (36x20)', strpos($css, 'white-space:nowrap;min-height:36px') !== false && strpos($css, '.switch .track{position:relative;width:36px;height:20px') !== false);
 // Controles nativos con marca (nada de checkbox azul del sistema).
@@ -938,6 +938,27 @@ ok('alertas: vista con bandeja + config de canales (switches por tipo)', strpos(
 ok('alertas: bootstrap carga mail + alertas', strpos($boot, "/mail.php'") !== false && strpos($boot, "/alertas.php'") !== false);
 ok('alertas: ruta alertas (admin) registrada', (bool)preg_match("/'alertas'\s*=>\s*\['public'\s*=>\s*false,\s*'admin'\s*=>\s*true\]/", $idx));
 ok('alertas: campana en la topbar con conteo (solo admin) + autoeval', strpos($layA, 'class="bell') !== false && strpos($layA, 'bell-badge') !== false && strpos($layA, 'alertas_autoeval()') !== false && strpos($layA, 'alertas_no_leidas()') !== false);
+
+echo "== v2.58 — alertas 24/7, modo TEST, API con scopes, ITHOS por defecto ==\n";
+$al2 = $readf("$SRC/alertas.php"); $apiA = $readf("$SRC/apiauth.php"); $cronA = $readf("$SRC/cron-alertas.php");
+$apalv = $readf("$VIEWS/api-keys.php"); $apap = $readf("$SRC/pages/api-keys.php"); $gjs = $readf("$ASSETS/js/gastos.js");
+$cfv2 = $readf("$VIEWS/gasto-form.php"); $idx2 = $readf("$WEB/index.php");
+// 24/7: script de cron + endpoint api/alertas.
+ok('alertas: script de cron 24/7 (CLI/URL) que evalúa', strpos($cronA, 'alertas_evaluar()') !== false && strpos($cronA, 'PHP_SAPI') !== false && is_file("$SRC/cron-alertas.php"));
+ok('alertas: endpoint api/alertas (para ITHOS) + ruta pública', is_file("$SRC/pages/api/alertas.php") && strpos($idx2, "'api/alertas'") !== false && strpos($al2, 'function alertas_api') !== false);
+// Modo TEST.
+ok('alertas: modo TEST agrega prefijo [TEST] en canales externos', strpos($al2, 'function alerta_prefijo') !== false && strpos($al2, "'[TEST] '") !== false && strpos($al2, 'alerta_prefijo()') !== false);
+// Reenvío de últimas 5 al activar un canal.
+ok('alertas: al activar un canal reenvía las últimas 5', strpos($al2, 'function alertas_reenviar_recientes') !== false && strpos($readf("$SRC/pages/alertas.php"), 'alertas_reenviar_recientes(') !== false);
+// Popup/toast en la web.
+ok('alertas: popup/toast en la web', strpos($layA, 'id="alertToast"') !== false && strpos($css, '.alert-toast') !== false && strpos($al2, 'function alerta_ultima_no_leida') !== false);
+// API con scopes (lectura/root) + ITHOS por defecto.
+ok('api: scopes lectura/root con enforcement', strpos($apiA, 'function api_scope_nivel') !== false && strpos($apiA, "api_require(string \$minScope") !== false && strpos($apiA, 'api_scope_nivel($minScope)') !== false);
+ok('api: crear token elige scope (lectura/root)', strpos($apap, "'scope'") !== false && strpos($apalv, 'name="scope"') !== false && strpos($apalv, 'value="root"') !== false);
+ok('api: token ITHOS por defecto (lectura), no se borra en reset', strpos($apiA, 'function api_token_ithos_asegurar') !== false && strpos($apiA, "setting_set('ithos_api_key'") !== false);
+ok('api: columna scope en api_tokens (schema)', (bool)preg_match('/`scope`\s+varchar\(20\)/', $sch));
+// Re-leer archivos de GASTOS al editar (como comprobantes).
+ok('gasto: re-leer factura/pago cargados (proxy Drive, sin resubir)', strpos($idx2, "'gasto-archivo'") !== false && is_file("$SRC/pages/gasto-archivo.php") && strpos($gjs, 'window.gastoLeerFacturaFile') !== false && strpos($gjs, 'data-releer') !== false && strpos($cfv2, 'data-releer="factura"') !== false);
 ok('gasto: CUIT solo de cabecera + validación dígito (evita falso positivo de tablas)', strpos($gjs50, 'function validCuit') !== false && strpos($gjs50, '.filter(validCuit)') !== false && strpos($gjs50, "search(/detalle de") !== false);
 ok('gasto: importe = TOTAL A PAGAR (par total/total+recargo, ignora %)', strpos($gjs50, 'function parseTotal') !== false && strpos($gjs50, 'A * f') !== false && strpos($gjs50, "(?!\\s*%)") !== false);
 
