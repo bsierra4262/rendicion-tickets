@@ -147,9 +147,20 @@
         administracion: 1, seguros: 1, medicina: 1, prepaga: 1, salud: 1, gcba: 1, grupo: 1,
         argentina: 1, nacional: 1, federal: 1, publico: 1 };
 
+    function validCuit(c) {
+        if (!/^\d{11}$/.test(c)) { return false; }
+        var w = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2], s = 0, i;
+        for (i = 0; i < 10; i++) { s += (+c[i]) * w[i]; }
+        var dv = 11 - (s % 11); if (dv === 11) { dv = 0; } if (dv === 10) { return false; }
+        return dv === +c[10];
+    }
     function detectProv(text) {
         var low = text.toLowerCase();
-        var cuits = (text.match(/\b\d{2}-?\d{8}-?\d\b/g) || []).map(digits);
+        // CUITs SOLO de la cabecera (antes del detalle/histórico): las tablas de detalle
+        // traen cientos de números y alguno puede coincidir con un CUIT válido (falso positivo).
+        var cut = low.search(/detalle de (egresos|movimientos|gastos)|movimientos del|hist[oó]rico/);
+        var head = (cut > 200) ? text.slice(0, cut) : text;
+        var cuits = (head.match(/\b\d{2}-?\d{8}-?\d\b/g) || []).map(digits).filter(validCuit);
         var i;
         // 0) Telecom PERSONAL comparte CUIT con Telecom: "flow"/"resumen de servicios" ⇒ Personal.
         if (/\bflow\b|resumen de servicios|resumenmkt/.test(low)) {

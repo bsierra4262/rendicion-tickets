@@ -143,7 +143,7 @@ function gp_seed(): int
     // (el CUIT del emisor hace el match exacto; vacío si el PDF no lo expone / es compartido).
     $data = [
         ['EDENOR', 'ELECTRICIDAD', 'recurrente', 'vencido', '01.EDENOR', '30655116202'],
-        ['ADMINISTRACION SILVANA LORENA GUAYCOCHEA', 'EXPENSAS', 'recurrente', 'adelantado', '02.EXPENSAS', '30714470511'],
+        ['ADMINISTRACION SILVANA LORENA GUAYCOCHEA', 'EXPENSAS', 'recurrente', 'adelantado', '02.EXPENSAS', '27238075535'],
         ['MAURICIO SZTERN', 'ALQUILER OFICINA', 'recurrente', 'adelantado', '03.MAURICIO STERN', '30702102045'],
         ['ESTUDIO COLLINET', 'ESTUDIO CONTABLE', 'recurrente', 'vencido', '04.ESTUDIO COLLINET', '20169624373'],
         ['NET2PHONE', 'SERVICIO TELEFONIA', 'recurrente', 'vencido', '05.NET2PHONE', ''],

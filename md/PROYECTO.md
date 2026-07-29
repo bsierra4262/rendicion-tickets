@@ -544,3 +544,11 @@ Ajuste a fondo del parser con las facturas reales del zip (evaluado sobre los 19
 - **cuitonline.com**: el cliente pidió integrarlo (online, más actualizado que el padrón). **Está detrás de Cloudflare** → el servidor recibe "Just a moment…" y no puede consultarlo por scraping directo. Alternativa vigente: el **padrón offline** (1,13 M, ya integrado). Pendiente: evaluar una fuente online no bloqueada.
 - **+3 tests → 435/435.** `gastos.js?v=6`.
 - **Pendiente (pedido cliente)**: leer **QR** de las facturas (AFIP y otras) como en el OCR de comprobantes → datos puros para los PDF-imagen; y fuente online de CUIT↔razón.
+
+## 59. v2.52 — Fix falso positivo de proveedor (CUIT de tablas) + CUIT real de expensas (2026-07-28)
+El cliente probó y la factura de expensas detectaba **EDENOR** (mal). Causa: el CUIT sembrado de EDENOR (30655116202) **aparece por casualidad en la tabla de detalle** de la factura de expensas (cientos de números) y, al ser un CUIT válido, el match lo tomaba.
+- **Fix**: `detectProv` extrae los CUITs **solo de la cabecera** (antes de "detalle de egresos/movimientos/histórico") y los **valida por dígito verificador** (módulo 11). Así los números espurios de las tablas no contaminan el match.
+- **CUIT de expensas corregido**: la administradora real es GUAYCOCHEA SILVANA LORENA (CUIT 27-23807553-5 / 27238075535), no el consorcio. Coincide con el maestro "ADMINISTRACION SILVANA LORENA GUAYCOCHEA". Sembrado.
+- Re-evaluado: EXPENSAS → ADMINISTRACION SILVANA ✓ (ya no EDENOR), sin regresiones.
+- **cuitonline.com**: confirmado Cloudflare (bloquea al server). Alternativas probadas (`api.cuitonline.com`, `soa.afip.gob.ar/sr-padron`) → no accesibles sin cert. El padrón offline solo tiene EMPRESAS (no personas, ej. Guaycochea) → pendiente conseguir una fuente online CUIT↔razón (personas incluidas) no bloqueada.
+- **+2 tests → 436/436.** `gastos.js?v=7`. Datos de prueba limpiados.
