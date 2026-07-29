@@ -115,4 +115,5 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
 <script>
 window.__gprov = <?= json_encode(array_map(fn($p) => ['id' => (int)$p['id'], 'nombre' => $p['nombre'], 'rubro' => $p['rubro'] ?? '', 'cuit' => $p['cuit'] ?? ''], $proveedores), JSON_UNESCAPED_UNICODE) ?>;
 </script>
-<script defer src="<?= e(url('assets/js/gastos.js')) ?>?v=7"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script defer src="<?= e(url('assets/js/gastos.js')) ?>?v=8"></script>

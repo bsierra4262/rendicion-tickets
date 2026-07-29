@@ -53,6 +53,82 @@
         });
     }
 
+    // ---- QR AFIP (datos EXACTOS: CUIT emisor, importe, fecha) ----
+    function loadJsQr(cb) {
+        if (window.jsQR) { return cb(true); }
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+        s.onload = function () { cb(!!window.jsQR); };
+        s.onerror = function () { cb(false); };
+        document.head.appendChild(s);
+    }
+    function parseAfipQr(data) {
+        var m = String(data).match(/[?&]p=([^&\s]+)/);
+        if (!m) { return null; } // sólo el QR de factura electrónica (?p=base64 JSON) trae datos
+        try { return JSON.parse(atob(decodeURIComponent(m[1]))); }
+        catch (e) { try { return JSON.parse(atob(m[1])); } catch (e2) { return null; } }
+    }
+    function scanQrRegion(canvas, scale, crop) {
+        if (!window.jsQR) { return null; }
+        var sx = 0, sy = 0, sw = canvas.width, sh = canvas.height;
+        if (crop) { sx = crop[0] * sw; sy = crop[1] * sh; sw = crop[2] * canvas.width; sh = crop[3] * canvas.height; }
+        var w = Math.round(sw * scale), h = Math.round(sh * scale);
+        if (w < 120 || w > 4200 || h < 120) { return null; }
+        var c = document.createElement('canvas'); c.width = w; c.height = h;
+        c.getContext('2d').drawImage(canvas, sx, sy, sw, sh, 0, 0, w, h);
+        var d = c.getContext('2d').getImageData(0, 0, w, h);
+        var code = window.jsQR(d.data, d.width, d.height, { inversionAttempts: 'attemptBoth' });
+        return (code && code.data) ? parseAfipQr(code.data) : null;
+    }
+    function scanAfipQr(canvas) {
+        var big = Math.max(canvas.width, canvas.height), base = canvas;
+        if (big > 1600) {
+            var s = 1600 / big; base = document.createElement('canvas');
+            base.width = Math.round(canvas.width * s); base.height = Math.round(canvas.height * s);
+            base.getContext('2d').drawImage(canvas, 0, 0, base.width, base.height);
+        }
+        return scanQrRegion(base, 1, null) || scanQrRegion(base, 1.5, null)
+            || scanQrRegion(base, 1.6, [0, 0.5, 1, 0.5]) || scanQrRegion(base, 1.6, [0, 0, 1, 0.5]);
+    }
+    // Renderiza la 1ª página del PDF a canvas y busca el QR AFIP. Devuelve el objeto QR o null.
+    function scanFacturaQr(file, cb) {
+        loadJsQr(function (okQ) {
+            if (!okQ) { return cb(null); }
+            loadPdfJs(function (okP) {
+                if (!okP) { return cb(null); }
+                var fr = new FileReader();
+                fr.onload = function () {
+                    window.pdfjsLib.getDocument({ data: new Uint8Array(fr.result) }).promise
+                        .then(function (pdf) { return pdf.getPage(1); })
+                        .then(function (page) {
+                            var vp = page.getViewport({ scale: 2.5 });
+                            var c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+                            return page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise.then(function () { return c; });
+                        })
+                        .then(function (canvas) { cb(scanAfipQr(canvas)); })
+                        .catch(function () { cb(null); });
+                };
+                fr.readAsArrayBuffer(file);
+            });
+        });
+    }
+    function provByCuit(cuit) {
+        cuit = (cuit || '').replace(/\D/g, '');
+        for (var i = 0; i < PROVS.length; i++) { if (PROVS[i].cuit && PROVS[i].cuit === cuit) { return PROVS[i]; } }
+        return null;
+    }
+    function qrFecha(f) { f = String(f || ''); return /^\d{8}$/.test(f) ? (f.slice(0, 4) + '-' + f.slice(4, 6) + '-' + f.slice(6, 8)) : f.slice(0, 10); }
+    // Fusiona el resultado del texto con el QR (QR = fuente de verdad para CUIT/importe/fecha).
+    function mergeQr(d, qr) {
+        if (qr.cuit) { var p = provByCuit(String(qr.cuit)); if (p) { d.proveedor = p; } d.qr_cuit = String(qr.cuit); }
+        if (qr.importe != null && +qr.importe > 0) { d.valor = +qr.importe; }
+        if (qr.fecha) { d.fecha_factura = qrFecha(qr.fecha); if (!d.periodo && d.fecha_factura) { d.periodo = d.fecha_factura.slice(0, 7); } }
+        if (qr.moneda === 'DOL' || qr.moneda === 'USD') { d.moneda = 'USD'; }
+        d.desde_qr = true;
+        return d;
+    }
+    window.scanAfipQrGasto = scanAfipQr; // para tests
+
     // ---- Parser (expuesto para tests) ----
     var MESES = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12 };
     function digits(s) { return (s || '').replace(/\D/g, ''); }
@@ -253,11 +329,12 @@
         var ov = document.createElement('div');
         ov.className = 'modal-overlay';
         var provNom = d.proveedor ? d.proveedor.nombre : null;
+        var qrNote = d.desde_qr ? '<span style="color:var(--accent-600,#5f8a12);font-weight:600">✓ Datos exactos del QR de AFIP.</span> ' : '';
         ov.innerHTML =
             '<div class="modal" role="dialog" aria-modal="true" style="max-width:440px;text-align:left">' +
                 '<div class="modal-ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><path d="M9 13h6M9 17h4"/></svg></div>' +
                 '<h3 class="modal-title">Datos leídos de la factura</h3>' +
-                '<p class="modal-msg" style="margin-bottom:12px">Revisá y confirmá. Podés corregir cualquier dato después en el formulario.</p>' +
+                '<p class="modal-msg" style="margin-bottom:12px">' + qrNote + 'Revisá y confirmá. Podés corregir cualquier dato después en el formulario.</p>' +
                 '<div class="gp-read">' +
                     row('Proveedor', provNom || '<span style="color:var(--warn)">no detectado (elegilo a mano)</span>') +
                     row('Valor mensual', money(d.valor, d.moneda)) +
@@ -307,8 +384,12 @@
         if (!f) { if (statusEl) { statusEl.textContent = 'Elegí primero el PDF de la factura.'; statusEl.className = 'flash flash-info'; } return; }
         if (statusEl) { statusEl.textContent = 'Leyendo la factura…'; statusEl.className = 'flash flash-info'; }
         extractText(f, function (text) {
-            if (!text) { if (statusEl) { statusEl.textContent = 'No pude leer el texto del PDF (¿es un escaneo/imagen?). Cargá los datos a mano.'; statusEl.className = 'flash flash-error'; } return; }
-            showPopup(parseFactura(text));
+            scanFacturaQr(f, function (qr) {
+                if (!text && !qr) { if (statusEl) { statusEl.textContent = 'No pude leer el PDF (¿es una imagen escaneada, sin texto ni QR?). Cargá los datos a mano.'; statusEl.className = 'flash flash-error'; } return; }
+                var d = parseFactura(text || '');
+                if (qr) { d = mergeQr(d, qr); }  // QR AFIP = datos exactos
+                showPopup(d);
+            });
         });
     });
 
