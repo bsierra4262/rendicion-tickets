@@ -851,7 +851,7 @@ ok('gasto: impuesto ABL toma el monto (no la valuación del terreno)', strpos($g
 ok('gasto: proveedor admite VARIOS CUIT (validación server)', strpos($gs52, "preg_split('/[,;\\s]+/'") !== false && strpos($gs52, "implode(' ', \$cuits)") !== false);
 ok('gasto: cuit column varchar(160) para varios CUIT', (bool)preg_match('/`cuit`\s+varchar\(160\)/', $readf(dirname($WEB) . '/db/schema.sql')));
 ok('gasto: matcheo por cualquiera de los CUIT del proveedor (texto y QR)', strpos($gjs50, "(PROVS[i].cuit || '').split(/\\s+/)") !== false);
-ok('gasto: form del proveedor acepta varios CUIT (cuit[] + helper + validación array)', strpos($gpf52, 'name="cuit[]"') !== false && strpos($gs52, 'function gp_cuits_fmt') !== false && strpos($gs52, 'is_array($rawCuit)') !== false);
+ok('gasto: form del proveedor — CUIT único (single) o entidades (multi)', strpos($gpf52, 'name="cuit"') !== false && strpos($gpf52, 'name="ent_cuit[]"') !== false && strpos($gs52, 'function gp_cuits_fmt') !== false && strpos($gs52, 'is_array($rawCuit)') !== false);
 ok('gasto: NET2PHONE sembrado con CUIT del emisor (IDT) + keyword', strpos($gs52, "'30707397809'") !== false && strpos($gjs50, 'idt corporation') !== false);
 // OCR de imagen (perezoso) para facturas escaneadas sin texto ni QR.
 ok('gasto: OCR de imagen perezoso (PaddleOCR) sólo si no hay texto ni QR', strpos($gjs50, 'function ocrCanvas') !== false && strpos($gjs50, 'function loadPaddle') !== false && strpos($gjs50, 'paddleocr.js') !== false);
@@ -867,7 +867,7 @@ $glist = $readf("$VIEWS/gastos.php");
 $lay   = $readf("$VIEWS/layout.php");
 // Responsive: el nav no debe poder empujar la página (scroll horizontal) y colapsa a drawer.
 ok('ui: topnav con red anti-overflow (overflow-x oculto) + drawer ≤1400', strpos($css, 'overflow-x:auto;scrollbar-width:none') !== false && (bool)preg_match('/@media\s*\(max-width:1400px\)/', $css));
-ok('ui: app.css versionado en el layout', (bool)preg_match('/app\.css[^\n]*\?v=17/', $lay));
+ok('ui: app.css versionado en el layout', (bool)preg_match('/app\.css[^\n]*\?v=18/', $lay));
 ok('ui: autofocus solo al crear proveedor (no al editar)', strpos($gpf, "\$editing ? '' : 'autofocus'") !== false);
 ok('ui: botones compactos (min-height:36px) y switch chico (36x20)', strpos($css, 'white-space:nowrap;min-height:36px') !== false && strpos($css, '.switch .track{position:relative;width:36px;height:20px') !== false);
 // Controles nativos con marca (nada de checkbox azul del sistema).
@@ -876,7 +876,7 @@ ok('ui: checkbox/radio nativos con color de marca', (bool)preg_match('/input\[ty
 ok('ui: componente toggle .switch existe y se usa en Estado del proveedor', strpos($css, '.switch .track') !== false && strpos($css, '.switch .knob') !== false && strpos($gpf, 'class="switch"') !== false);
 ok('ui: form del proveedor sin checkbox crudo con style inline', strpos($gpf, 'style="display:flex;align-items:center;gap:.5rem;padding:.4rem 0"') === false);
 // Campo repetible de CUITs (intuitivo), no un texto con comas.
-ok('ui: multi-CUIT con lista repetible (.multi-list + agregar/quitar)', strpos($css, '.multi-list') !== false && strpos($css, '.multi-del') !== false && strpos($gpf, 'data-cuit-add') !== false && strpos($gpf, 'name="cuit[]"') !== false);
+ok('ui: entidades con lista repetible (.multi-list + agregar/quitar)', strpos($css, '.multi-list') !== false && strpos($css, '.multi-del') !== false && strpos($gpf, 'data-ent-add') !== false && strpos($gpf, 'name="ent_cuit[]"') !== false);
 // Filtros de gastos con el patrón estándar (como comprobantes/reportes), sin estilos ad-hoc.
 ok('ui: filtros de gastos usan .filters/.filter-grid (no card+urow con inline)', strpos($glist, 'class="filters card no-print"') !== false && strpos($glist, 'filter-grid') !== false && strpos($glist, 'style="padding:12px;margin-bottom:14px"') === false);
 ok('ui: filtro de gastos sin selects con style inline', strpos($glist, 'style="padding:.55rem;border:1px solid var(--line);border-radius:9px"') === false);
@@ -902,6 +902,16 @@ ok('ui: form del proveedor con subtítulo (p.muted) como el resto', strpos($gpf,
 ok('ui: gasto-form usa .fld span-all (sin grid-column inline)', strpos($readf("$VIEWS/gasto-form.php"), 'style="grid-column:1/-1"') === false && strpos($readf("$VIEWS/gasto-form.php"), 'class="fld span-all"') !== false);
 ok('ui: gasto-form estados del OCR con muted small (como escanear)', strpos($readf("$VIEWS/gasto-form.php"), 'id="leerEstado" class="muted small"') !== false && strpos($readf("$VIEWS/gasto-form.php"), 'id="leerPagoEstado" class="muted small"') !== false);
 ok('ui: archivados de proveedores con table-card (como papelera de conceptos)', strpos($gpl, 'class="card table-card" style="margin-top:1.5rem"') !== false);
+
+echo "== v2.55 — proveedor multi-entidad inteligente (bancos) ==\n";
+$gs55 = $readf("$SRC/gastos.php"); $gpf55 = $readf("$VIEWS/gproveedor-form.php");
+ok('multi-entidad: columnas multi_entidad + entidades en schema', (bool)preg_match('/`multi_entidad`\s+tinyint/', $readf(dirname($WEB) . '/db/schema.sql')) && (bool)preg_match('/`entidades`\s+text/', $readf(dirname($WEB) . '/db/schema.sql')));
+ok('multi-entidad: validación server (pares nombre+CUIT, JSON; single limita a 1)', strpos($gs55, "!empty(\$in['multi_entidad'])") !== false && strpos($gs55, "\$in['ent_cuit']") !== false && strpos($gs55, 'json_encode($entidades') !== false && strpos($gs55, 'array_slice($cuits, 0, 1)') !== false);
+ok('multi-entidad: gp_save persiste multi_entidad + entidades', strpos($gs55, 'multi_entidad=?, entidades=?') !== false && strpos($gs55, 'multi_entidad, entidades, drive_folder') !== false);
+ok('multi-entidad: BANCOS sembrado como multi-entidad', (bool)preg_match("/'BANCOS'.*'14\\.BANCOS', '', 1\\]/", $gs55));
+ok('multi-entidad: form con toggle + bloques single/multi + pares nombre/CUIT', strpos($gpf55, 'name="multi_entidad"') !== false && strpos($gpf55, 'data-cuit-single') !== false && strpos($gpf55, 'data-cuit-multi') !== false && strpos($gpf55, 'name="ent_nombre[]"') !== false && strpos($gpf55, 'name="ent_cuit[]"') !== false);
+ok('multi-entidad: JS alterna single/multi y deshabilita el bloque inactivo', strpos($gpf55, 'multi.hidden = !on; single.hidden = on') !== false && strpos($gpf55, 'setEnabled(multi, on)') !== false);
+ok('multi-entidad: la lista de proveedores muestra las entidades', strpos($gpl, "!empty(\$r['multi_entidad'])") !== false && strpos($gpl, 'entidad') !== false);
 ok('gasto: CUIT solo de cabecera + validación dígito (evita falso positivo de tablas)', strpos($gjs50, 'function validCuit') !== false && strpos($gjs50, '.filter(validCuit)') !== false && strpos($gjs50, "search(/detalle de") !== false);
 ok('gasto: importe = TOTAL A PAGAR (par total/total+recargo, ignora %)', strpos($gjs50, 'function parseTotal') !== false && strpos($gjs50, 'A * f') !== false && strpos($gjs50, "(?!\\s*%)") !== false);
 

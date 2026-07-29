@@ -60,24 +60,44 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
                 <em class="muted small">Nombre exacto de la carpeta del proveedor en Drive. Si se deja vacío, usa el nombre del proveedor.</em>
             </label>
             <?php
-            $cuitArr = array_map(
-                fn($c) => strlen($c) === 11 ? substr($c, 0, 2) . '-' . substr($c, 2, 8) . '-' . substr($c, 10, 1) : $c,
-                preg_split('/\s+/', trim((string)($v['cuit'] ?? '')), -1, PREG_SPLIT_NO_EMPTY)
-            );
-            if (!$cuitArr) { $cuitArr = ['']; }
+            $multiEnt = !empty($v['multi_entidad']);
+            $fmtCuit = fn($c) => strlen($c) === 11 ? substr($c, 0, 2) . '-' . substr($c, 2, 8) . '-' . substr($c, 10, 1) : $c;
+            // CUIT único (modo single).
+            $singleCuit = $fmtCuit(preg_split('/\s+/', trim((string)($v['cuit'] ?? '')), -1, PREG_SPLIT_NO_EMPTY)[0] ?? '');
+            // Entidades (modo multi): [{nombre, cuit}].
+            $entArr = [];
+            if (!empty($v['entidades'])) { $entArr = json_decode((string)$v['entidades'], true) ?: []; }
+            if (!$entArr) { $entArr = [['nombre' => '', 'cuit' => '']]; }
             ?>
             <div class="fld span-all">
-                <span>CUIT(s) del emisor (opcional)</span>
-                <div class="multi-list" data-cuit-list>
-                    <?php foreach ($cuitArr as $c): ?>
-                        <div class="multi-row">
-                            <input type="text" name="cuit[]" value="<?= e($c) ?>" maxlength="13" inputmode="numeric" placeholder="30-70739780-9" autocomplete="off">
-                            <button type="button" class="multi-del" data-cuit-del title="Quitar" aria-label="Quitar este CUIT"><?= icon('trash', 16) ?></button>
-                        </div>
-                    <?php endforeach; ?>
+                <label class="switch" style="margin-bottom:.55rem">
+                    <input type="checkbox" name="multi_entidad" value="1" id="multiEnt" <?= $multiEnt ? 'checked' : '' ?>>
+                    <span class="track"><span class="knob"></span></span>
+                    <span class="switch-txt">Varias entidades (ej. BANCOS: varios bancos, cada uno con su nombre y CUIT)</span>
+                </label>
+
+                <!-- SINGLE: un solo CUIT (proveedores que existen uno solo, ej. EDENOR) -->
+                <div data-cuit-single<?= $multiEnt ? ' hidden' : '' ?>>
+                    <span class="fld-lbl">CUIT del emisor (opcional)</span>
+                    <input type="text" name="cuit" value="<?= e($singleCuit) ?>" maxlength="13" inputmode="numeric" placeholder="30-70739780-9" autocomplete="off" style="max-width:320px"<?= $multiEnt ? ' disabled' : '' ?>>
+                    <em class="muted small">Permite reconocer al proveedor por el CUIT del emisor al leer la factura.</em>
                 </div>
-                <button type="button" class="btn btn-ghost btn-sm multi-add" data-cuit-add><?= icon('plus', 14) ?>Agregar otro CUIT</button>
-                <em class="muted small">Un proveedor puede tener <strong>varios</strong> (ej. EXPENSAS o BANCOS agrupan varias empresas). El match por CUIT del emisor usa cualquiera de ellos.</em>
+
+                <!-- MULTI: varias entidades (nombre + CUIT) -->
+                <div data-cuit-multi<?= $multiEnt ? '' : ' hidden' ?>>
+                    <span class="fld-lbl">Entidades (nombre + CUIT)</span>
+                    <div class="multi-list" data-ent-list>
+                        <?php foreach ($entArr as $ent): ?>
+                            <div class="multi-row ent-row">
+                                <input type="text" name="ent_nombre[]" value="<?= e($ent['nombre'] ?? '') ?>" maxlength="150" placeholder="Nombre / razón social (ej. Banco Galicia)" class="ent-nombre"<?= $multiEnt ? '' : ' disabled' ?>>
+                                <input type="text" name="ent_cuit[]" value="<?= e($fmtCuit($ent['cuit'] ?? '')) ?>" maxlength="13" inputmode="numeric" placeholder="30-11111111-1" class="ent-cuit"<?= $multiEnt ? '' : ' disabled' ?>>
+                                <button type="button" class="multi-del" data-ent-del title="Quitar" aria-label="Quitar esta entidad"><?= icon('trash', 16) ?></button>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <button type="button" class="btn btn-ghost btn-sm multi-add" data-ent-add><?= icon('plus', 14) ?>Agregar entidad</button>
+                    <em class="muted small">Cada entidad se identifica por su nombre y se reconoce por su CUIT. El nombre se usa para la carpeta en Drive.</em>
+                </div>
                 <?= $err('cuit') ?>
             </div>
             <?php if ($editing): ?>
@@ -94,19 +114,32 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
     </div>
     <script>
     (function () {
-        var list = document.querySelector('[data-cuit-list]'), add = document.querySelector('[data-cuit-add]');
-        if (!list || !add) { return; }
-        add.addEventListener('click', function () {
-            var row = list.querySelector('.multi-row').cloneNode(true);
-            var inp = row.querySelector('input'); inp.value = '';
-            list.appendChild(row); inp.focus();
-        });
-        list.addEventListener('click', function (e) {
-            var del = e.target.closest('[data-cuit-del]'); if (!del) { return; }
-            var rows = list.querySelectorAll('.multi-row');
-            if (rows.length > 1) { del.closest('.multi-row').remove(); }
-            else { del.closest('.multi-row').querySelector('input').value = ''; }
-        });
+        var toggle = document.getElementById('multiEnt');
+        var single = document.querySelector('[data-cuit-single]');
+        var multi  = document.querySelector('[data-cuit-multi]');
+        var entList = document.querySelector('[data-ent-list]');
+        var entAdd  = document.querySelector('[data-ent-add]');
+        if (!toggle || !single || !multi) { return; }
+        function setEnabled(box, on) { box.querySelectorAll('input').forEach(function (i) { i.disabled = !on; }); }
+        function sync() {
+            var on = toggle.checked;
+            multi.hidden = !on; single.hidden = on;         // solo se envía el bloque activo…
+            setEnabled(multi, on); setEnabled(single, !on); // …y sus inputs quedan deshabilitados si no aplica
+        }
+        toggle.addEventListener('change', sync); sync();
+        if (entAdd && entList) {
+            entAdd.addEventListener('click', function () {
+                var row = entList.querySelector('.ent-row').cloneNode(true);
+                row.querySelectorAll('input').forEach(function (i) { i.value = ''; i.disabled = false; });
+                entList.appendChild(row); row.querySelector('input').focus();
+            });
+            entList.addEventListener('click', function (e) {
+                var del = e.target.closest('[data-ent-del]'); if (!del) { return; }
+                var rows = entList.querySelectorAll('.ent-row');
+                if (rows.length > 1) { del.closest('.ent-row').remove(); }
+                else { del.closest('.ent-row').querySelectorAll('input').forEach(function (i) { i.value = ''; }); }
+            });
+        }
     })();
     </script>
     <div class="form-actions">

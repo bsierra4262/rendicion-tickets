@@ -316,6 +316,13 @@ table.grid td .mono{white-space:normal}
 .multi-del:hover{background:var(--danger-bg);color:var(--danger);border-color:transparent}
 .multi-add{align-self:flex-start;margin-top:.15rem}
 @media (max-width:520px){ .multi-row{flex-basis:100%;max-width:none} }
+/* Entidad = nombre + CUIT + quitar (una por fila; en angosto los inputs se apilan). */
+.ent-row{flex-basis:100%;max-width:none}
+.ent-row .ent-nombre{flex:2 1 220px}
+.ent-row .ent-cuit{flex:1 1 140px}
+@media (max-width:560px){ .ent-row{flex-wrap:wrap} .ent-row .ent-nombre,.ent-row .ent-cuit{flex-basis:100%} }
+/* Rótulo tipo .fld>span para bloques que no son .fld directos. */
+.fld-lbl{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:.35rem}
 /* Campo que ocupa toda la fila de la grilla (para listas/áreas anchas). */
 .fld.span-all{grid-column:1/-1}
 

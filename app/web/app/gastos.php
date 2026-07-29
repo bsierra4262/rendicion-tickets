@@ -83,19 +83,40 @@ function gp_validar(array $in): array
     }
     $c['nombre_gasto'] = trim((string)($in['nombre_gasto'] ?? '')) ?: null;
 
-    // Puede haber VARIOS CUIT por proveedor (ej. EXPENSAS o BANCOS agrupan varias empresas).
-    // El form manda `cuit[]` (una entrada por CUIT); también se acepta un string con
-    // separadores. Se validan todos y se guardan como dígitos separados por espacio.
-    $rawCuit = $in['cuit'] ?? '';
-    if (is_array($rawCuit)) { $rawCuit = implode(' ', $rawCuit); }
-    $tokens = preg_split('/[,;\s]+/', trim((string)$rawCuit), -1, PREG_SPLIT_NO_EMPTY);
+    // Un proveedor puede agrupar VARIAS ENTIDADES (ej. BANCOS: cada banco con su nombre +
+    // CUIT). Si NO es multi-entidad (ej. EDENOR: existe uno solo), se limita a 1 CUIT y sin
+    // nombres extra — la UI lo bloquea y el server lo refuerza.
+    $multi = !empty($in['multi_entidad']);
+    $c['multi_entidad'] = $multi ? 1 : 0;
     $cuits = [];
-    foreach ($tokens as $tk) {
-        $dg = preg_replace('/\D/', '', $tk);
-        if ($dg === '') { continue; }
-        if (strlen($dg) !== 11 || !validar_cuit($dg)) { $err['cuit'] = 'CUIT inválido (dígito verificador): ' . $tk; continue; }
-        if (!in_array($dg, $cuits, true)) { $cuits[] = $dg; }
+    $entidades = [];
+    if ($multi) {
+        $noms = (array)($in['ent_nombre'] ?? []);
+        $cus  = (array)($in['ent_cuit'] ?? []);
+        foreach ($cus as $i => $rawC) {
+            $dg  = preg_replace('/\D/', '', (string)$rawC);
+            $nom = trim((string)($noms[$i] ?? ''));
+            if ($dg === '' && $nom === '') { continue; }
+            if (strlen($dg) !== 11 || !validar_cuit($dg)) { $err['cuit'] = 'CUIT inválido (dígito verificador): ' . ($rawC ?: '(vacío)'); continue; }
+            if (in_array($dg, $cuits, true)) { continue; }
+            $cuits[] = $dg;
+            $entidades[] = ['nombre' => $nom, 'cuit' => $dg];
+        }
+        $c['entidades'] = $entidades ? json_encode($entidades, JSON_UNESCAPED_UNICODE) : null;
+    } else {
+        // Single: un solo CUIT (acepta separadores por compatibilidad, pero guarda solo el 1º válido).
+        $rawCuit = $in['cuit'] ?? '';
+        if (is_array($rawCuit)) { $rawCuit = implode(' ', $rawCuit); }
+        foreach (preg_split('/[,;\s]+/', trim((string)$rawCuit), -1, PREG_SPLIT_NO_EMPTY) as $tk) {
+            $dg = preg_replace('/\D/', '', $tk);
+            if ($dg === '') { continue; }
+            if (strlen($dg) !== 11 || !validar_cuit($dg)) { $err['cuit'] = 'CUIT inválido (dígito verificador): ' . $tk; continue; }
+            if (!in_array($dg, $cuits, true)) { $cuits[] = $dg; }
+        }
+        $cuits = array_slice($cuits, 0, 1);   // uno solo cuando no es multi-entidad
+        $c['entidades'] = null;
     }
+    // `cuit` = lista plana (para el match por CUIT del emisor, que usa cualquiera).
     $c['cuit'] = $cuits ? implode(' ', $cuits) : null;
 
     $c['drive_folder'] = trim((string)($in['drive_folder'] ?? '')) ?: null;
@@ -113,9 +134,9 @@ function gp_save(array $c, ?int $id, bool $activo = true): array
 
     if ($id) {
         q("UPDATE gastos_proveedores SET nombre=?, rubro=?, categoria=?, momento_facturacion=?, tipo_factura=?,
-                  vigencia_descuento=?, nombre_gasto=?, cuit=?, drive_folder=?, activo=? WHERE id=?",
+                  vigencia_descuento=?, nombre_gasto=?, cuit=?, multi_entidad=?, entidades=?, drive_folder=?, activo=? WHERE id=?",
             [$c['nombre'], $c['rubro'], $c['categoria'], $c['momento_facturacion'], $c['tipo_factura'],
-             $c['vigencia_descuento'], $c['nombre_gasto'], $c['cuit'], $c['drive_folder'], $activo ? 1 : 0, $id]);
+             $c['vigencia_descuento'], $c['nombre_gasto'], $c['cuit'], $c['multi_entidad'] ?? 0, $c['entidades'] ?? null, $c['drive_folder'], $activo ? 1 : 0, $id]);
         if (function_exists('log_app')) {
             log_app('gproveedor.editar', ['entidad' => 'gasto_proveedor', 'entidad_id' => $id,
                 'detalle' => '«' . $c['nombre'] . '» · ' . ($c['rubro'] ?? '') . ' · ' . $c['categoria']]);
@@ -124,9 +145,9 @@ function gp_save(array $c, ?int $id, bool $activo = true): array
     }
     $orden = (int) db()->query('SELECT COALESCE(MAX(orden),0)+10 FROM gastos_proveedores')->fetchColumn();
     q("INSERT INTO gastos_proveedores (nombre, rubro, categoria, momento_facturacion, tipo_factura,
-              vigencia_descuento, nombre_gasto, cuit, drive_folder, orden, activo) VALUES (?,?,?,?,?,?,?,?,?,?,1)",
+              vigencia_descuento, nombre_gasto, cuit, multi_entidad, entidades, drive_folder, orden, activo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)",
         [$c['nombre'], $c['rubro'], $c['categoria'], $c['momento_facturacion'], $c['tipo_factura'],
-         $c['vigencia_descuento'], $c['nombre_gasto'], $c['cuit'], $c['drive_folder'], $orden]);
+         $c['vigencia_descuento'], $c['nombre_gasto'], $c['cuit'], $c['multi_entidad'] ?? 0, $c['entidades'] ?? null, $c['drive_folder'], $orden]);
     $nid = (int) db()->lastInsertId();
     if (function_exists('log_app')) {
         log_app('gproveedor.crear', ['entidad' => 'gasto_proveedor', 'entidad_id' => $nid,
@@ -176,7 +197,7 @@ function gp_seed(): int
         ['GCBA - ABL', 'ABL', 'recurrente', 'vencido', '11.ABL OFICINA', ''],
         ['GCBA - PATENTES', 'PATENTES', 'recurrente', 'vencido', '12.PATENTES VEHICULOS', ''],
         ['ARCA', 'IMPUESTOS', 'recurrente', 'vencido', '13.ARCA', ''],
-        ['BANCOS', 'BANCOS', 'recurrente', 'vencido', '14.BANCOS', ''],
+        ['BANCOS', 'BANCOS', 'recurrente', 'vencido', '14.BANCOS', '', 1],   // multi-entidad: varios bancos
         ['GOOGLE SUITE', 'GOOGLE SUITE', 'recurrente', 'vencido', '15.GOOGLE SUITE', ''],
         ['HOSPITAL ALEMAN', 'MEDICINA PREPAGA', 'recurrente', 'adelantado', '16.HOSPITAL ALEMAN', '30545843036'],
         ['OSDE', 'MEDICINA PREPAGA', 'recurrente', 'adelantado', '17.OSDE', '30546741253'],
@@ -184,11 +205,13 @@ function gp_seed(): int
         ['PERSONAL FLOW', 'SERVICIO CELULARES', 'recurrente', 'vencido', '19.PERSONAL NICOLAS', ''],
     ];
     $n = 0; $orden = 10;
-    foreach ($data as [$nombre, $rubro, $cat, $mom, $folder, $cuit]) {
+    foreach ($data as $row) {
+        [$nombre, $rubro, $cat, $mom, $folder, $cuit] = $row;
+        $multi = $row[6] ?? 0;
         $ex = q('SELECT id FROM gastos_proveedores WHERE LOWER(nombre) = LOWER(?) LIMIT 1', [$nombre])->fetch();
         if ($ex) { continue; }
-        q("INSERT INTO gastos_proveedores (nombre, rubro, categoria, momento_facturacion, drive_folder, cuit, orden, activo)
-           VALUES (?,?,?,?,?,?,?,1)", [$nombre, $rubro, $cat, $mom, $folder, ($cuit ?: null), $orden]);
+        q("INSERT INTO gastos_proveedores (nombre, rubro, categoria, momento_facturacion, drive_folder, cuit, multi_entidad, orden, activo)
+           VALUES (?,?,?,?,?,?,?,?,1)", [$nombre, $rubro, $cat, $mom, $folder, ($cuit ?: null), $multi, $orden]);
         $orden += 10; $n++;
     }
     return $n;
