@@ -18,7 +18,7 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
         <div class="grid-fields">
             <label class="fld">
                 <span>Proveedor *</span>
-                <input type="text" name="nombre" value="<?= $val('nombre') ?>" maxlength="150" required autofocus>
+                <input type="text" name="nombre" value="<?= $val('nombre') ?>" maxlength="150" required <?= $editing ? '' : 'autofocus' ?>>
                 <?= $err('nombre') ?>
             </label>
             <label class="fld">

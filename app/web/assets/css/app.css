@@ -31,9 +31,9 @@ img{max-width:100%}
 .ic{flex:none;vertical-align:-.15em}
 
 /* ---------- Botones ---------- */
-.btn{display:inline-flex;align-items:center;gap:.5rem;justify-content:center;font-family:inherit;
-  font-size:14px;font-weight:700;line-height:1;padding:.62rem 1.05rem;border-radius:var(--radius-sm);
-  border:1px solid transparent;cursor:pointer;transition:.15s;white-space:nowrap;min-height:40px}
+.btn{display:inline-flex;align-items:center;gap:.45rem;justify-content:center;font-family:inherit;
+  font-size:13.5px;font-weight:600;line-height:1;padding:.5rem .9rem;border-radius:var(--radius-sm);
+  border:1px solid transparent;cursor:pointer;transition:.15s;white-space:nowrap;min-height:36px}
 .btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-primary{background:var(--primary);color:#fff}
@@ -297,14 +297,14 @@ table.grid td .mono{white-space:normal}
 /* ---------- Toggle / switch (estado activo, etc.) ---------- */
 .switch{display:inline-flex;align-items:center;gap:.6rem;cursor:pointer;user-select:none;padding:.15rem 0}
 .switch input{position:absolute;opacity:0;width:0;height:0}
-.switch .track{position:relative;width:42px;height:24px;background:var(--line);border-radius:var(--pill);
+.switch .track{position:relative;width:36px;height:20px;background:var(--line);border-radius:var(--pill);
   transition:background .16s ease;flex:none}
-.switch .knob{position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;
+.switch .knob{position:absolute;top:3px;left:3px;width:14px;height:14px;background:#fff;border-radius:50%;
   box-shadow:0 1px 3px rgba(0,0,0,.28);transition:transform .16s ease}
 .switch input:checked + .track{background:var(--primary)}
-.switch input:checked + .track .knob{transform:translateX(18px)}
+.switch input:checked + .track .knob{transform:translateX(16px)}
 .switch input:focus-visible + .track{outline:2px solid var(--primary);outline-offset:2px}
-.switch .switch-txt{font-size:14px;font-weight:600;color:var(--ink)}
+.switch .switch-txt{font-size:13.5px;font-weight:600;color:var(--ink)}
 
 /* ---------- Lista de valores repetible (ej. varios CUIT) ---------- */
 /* Fluye horizontal y se reacomoda (wrap): en ancho hay varios por fila, en angosto se apilan. */

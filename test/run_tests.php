@@ -867,7 +867,9 @@ $glist = $readf("$VIEWS/gastos.php");
 $lay   = $readf("$VIEWS/layout.php");
 // Responsive: el nav no debe poder empujar la página (scroll horizontal) y colapsa a drawer.
 ok('ui: topnav con red anti-overflow (overflow-x oculto) + drawer ≤1400', strpos($css, 'overflow-x:auto;scrollbar-width:none') !== false && (bool)preg_match('/@media\s*\(max-width:1400px\)/', $css));
-ok('ui: app.css versionado en el layout', (bool)preg_match('/app\.css[^\n]*\?v=16/', $lay));
+ok('ui: app.css versionado en el layout', (bool)preg_match('/app\.css[^\n]*\?v=17/', $lay));
+ok('ui: autofocus solo al crear proveedor (no al editar)', strpos($gpf, "\$editing ? '' : 'autofocus'") !== false);
+ok('ui: botones compactos (min-height:36px) y switch chico (36x20)', strpos($css, 'white-space:nowrap;min-height:36px') !== false && strpos($css, '.switch .track{position:relative;width:36px;height:20px') !== false);
 // Controles nativos con marca (nada de checkbox azul del sistema).
 ok('ui: checkbox/radio nativos con color de marca', (bool)preg_match('/input\[type=checkbox\][^\n]*accent-color:var\(--primary\)/', $css));
 // Toggle switch reutilizable + usado en el estado del proveedor (no checkbox crudo con style inline).
