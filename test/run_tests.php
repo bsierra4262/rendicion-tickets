@@ -951,6 +951,9 @@ ok('alertas: email branded con color por criticidad (diseño)', strpos($al2, 'fu
 ok('alertas: se disparan estés donde estés (eval post-respuesta, cualquier usuario)', strpos($readf("$WEB/index.php"), 'if (auth_user() && function_exists(\'alertas_autoeval\'))') !== false);
 ok('panel: tableros y accesos de Gastos + Alertas', strpos($readf("$VIEWS/dashboard.php"), 'Gastos por pagar') !== false && strpos($readf("$VIEWS/dashboard.php"), 'Alertas activas') !== false && strpos($readf("$VIEWS/dashboard.php"), "url('gastos')") !== false);
 ok('copy: sin nombres propios ni jerga en placeholders/ayudas', strpos($readf("$VIEWS/api-keys.php"), 'App de Nicolás') === false && strpos($readf("$VIEWS/alertas.php"), '(o avisá)') === false && strpos($readf("$VIEWS/gproveedor-form.php"), 'Banco Galicia') === false);
+ok('alertas: heartbeat cada 60s (aviso aunque estés idle en otra sección)', is_file("$SRC/pages/alertas-check.php") && strpos($readf("$WEB/index.php"), "'alertas-check'") !== false && strpos($layA2 = $readf("$VIEWS/layout.php"), 'setInterval(tick, 60000)') !== false && strpos($layA2, 'alertas-check') !== false);
+ok('alertas: severidad real llega al email (no queda info)', strpos($al2, "\$a['severidad'] = \$sev;") !== false);
+ok('alertas: URL absoluta en los links (email/cron), no relativa', strpos($al2, 'function alerta_base_url') !== false && strpos($al2, "alerta_base_url() . '/gasto-form?id='") !== false);
 // Modo TEST.
 ok('alertas: modo TEST agrega prefijo [TEST] en canales externos', strpos($al2, 'function alerta_prefijo') !== false && strpos($al2, "'[TEST] '") !== false && strpos($al2, 'alerta_prefijo()') !== false);
 // Reenvío de últimas 5 al activar un canal.

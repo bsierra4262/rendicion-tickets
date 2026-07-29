@@ -24,6 +24,17 @@ function alerta_tipos(): array
     ];
 }
 
+// URL ABSOLUTA para los links de las alertas (email/ITHOS y también desde el cron CLI, que no
+// tiene HTTP_HOST). Se toma de la config `app_base_url`; si no, del host actual o producción.
+function alerta_base_url(): string
+{
+    $b = trim((string) setting_get('app_base_url', ''));
+    if ($b !== '') { return rtrim($b, '/'); }
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    if ($host !== '') { return 'https://' . $host . (defined('BASE_PATH') ? BASE_PATH : ''); }
+    return 'https://intellihelp.tech/comprobantes';
+}
+
 // ---- Entorno: en TESTING las alertas externas llevan prefijo [TEST] ----
 function alertas_entorno(): string { return setting_get('app_entorno', 'testing') === 'produccion' ? 'produccion' : 'testing'; }
 function alertas_en_testing(): bool { return alertas_entorno() === 'testing'; }
@@ -138,6 +149,7 @@ function alerta_push(string $tipo, array $a): int
         [$tipo, $sev, $a['titulo'] ?? '', $a['mensaje'] ?? null, $a['entidad'] ?? null,
          $a['entidad_id'] ?? null, $a['url'] ?? null, $clave]);
     $id = (int) db()->lastInsertId();
+    $a['severidad'] = $sev;                          // que el email/ITHOS reciban la criticidad real
     alerta_despachar($id, $tipo, $cfg[$tipo], $a);   // sólo al crear
     return $id;
 }
@@ -296,7 +308,7 @@ function alertas_evaluar(): int
         $vigVenc = []; $vigPorVenc = [];
         foreach ($rows as $r) {
             $dias = (int)$r['dias'];              // >0 vencido, <0 faltan días
-            $url = url('gasto-form') . '?id=' . (int)$r['id'];
+            $url = alerta_base_url() . '/gasto-form?id=' . (int)$r['id'];
             $imp = $r['valor_mensual'] !== null ? ' · $' . number_format((float)$r['valor_mensual'], 2, ',', '.') : '';
             if ($dias > 0) {
                 $clave = 'gasto_pago_vencido:' . (int)$r['id'];
@@ -332,7 +344,7 @@ function alertas_evaluar(): int
         $cant = (int) q("SELECT COUNT(*) FROM comprobantes WHERE estado='pendiente_revision' AND eliminado_en IS NULL")->fetchColumn();
         if ($cant > 0) {
             alerta_push('comprobante_pendiente', [
-                'clave' => 'comprobante_pendiente:global', 'entidad' => 'comprobante', 'url' => url('comprobantes?estado=pendiente_revision'),
+                'clave' => 'comprobante_pendiente:global', 'entidad' => 'comprobante', 'url' => alerta_base_url() . '/comprobantes?estado=pendiente_revision',
                 'titulo' => $cant . ' comprobante' . ($cant === 1 ? '' : 's') . ' sin revisar',
                 'mensaje' => 'Hay ' . $cant . ' comprobante' . ($cant === 1 ? '' : 's') . ' cargado' . ($cant === 1 ? '' : 's') . ' por OCR esperando revisión.',
             ]);
@@ -348,7 +360,7 @@ function alertas_evaluar(): int
 }
 
 /** Evaluación automática con throttle (para no correr en cada request). */
-function alertas_autoeval(int $cada = 180): void
+function alertas_autoeval(int $cada = 60): void
 {
     $last = (int) setting_get('alertas_last_eval', '0');
     if (time() - $last < $cada) { return; }

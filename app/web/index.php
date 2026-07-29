@@ -47,6 +47,7 @@ $routes = [
     'usuarios'             => ['public' => false, 'admin' => true],
     'usuario-guardar'      => ['public' => false, 'admin' => true],
     'alertas'              => ['public' => false, 'admin' => true],
+    'alertas-check'        => ['public' => false],
 ];
 
 if (!isset($routes[$route])) {

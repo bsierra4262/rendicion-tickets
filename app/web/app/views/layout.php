@@ -150,6 +150,48 @@ $brandOrg  = $GLOBALS['CONFIG']['app']['org'] ?? 'INTELLIHELP';
     })();
     </script>
 <?php endif; ?>
+<?php if ($u && ($u['rol'] ?? '') === 'admin'): ?>
+<script>
+// Heartbeat de alertas: con la app abierta, evalúa y avisa cada 60s aunque estés idle en
+// cualquier sección (no depende de navegar ni de estar parado en «Alertas»).
+(function () {
+    var CHECK = <?= json_encode(url('alertas-check')) ?>, ALERTAS = <?= json_encode(url('alertas')) ?>;
+    var SEV = { danger: 'toast-danger', warn: 'toast-warn', info: 'toast-info' };
+    function setBadge(n) {
+        var bell = document.querySelector('.bell'); if (!bell) { return; }
+        var b = bell.querySelector('.bell-badge');
+        if (n > 0) { if (!b) { b = document.createElement('span'); b.className = 'bell-badge'; bell.appendChild(b); } b.textContent = n > 99 ? '99+' : n; }
+        else if (b) { b.remove(); }
+    }
+    function toast(a) {
+        var old = document.getElementById('alertToast'); if (old) { old.remove(); }
+        var t = document.createElement('div');
+        t.id = 'alertToast'; t.className = 'alert-toast ' + (SEV[a.severidad] || 'toast-info');
+        t.innerHTML = '<div class="alert-toast__ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>'
+            + '<div class="alert-toast__body"><strong></strong><p></p><a class="alert-toast__link" href="' + ALERTAS + '">Ver la alerta →</a></div>'
+            + '<button type="button" class="alert-toast__x" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
+        t.querySelector('strong').textContent = a.titulo || 'Alerta';
+        t.querySelector('p').textContent = a.mensaje || '';
+        t.querySelector('.alert-toast__x').addEventListener('click', function () { t.remove(); });
+        document.body.appendChild(t);
+        requestAnimationFrame(function () { t.classList.add('show'); });
+        setTimeout(function () { t.classList.remove('show'); setTimeout(function () { if (t.parentNode) { t.remove(); } }, 300); }, 9000);
+    }
+    function tick() {
+        fetch(CHECK, { headers: { 'X-Requested-With': 'fetch' } }).then(function (r) { return r.json(); }).then(function (d) {
+            if (!d || !d.ok) { return; }
+            setBadge(d.n || 0);
+            if (d.last) {
+                var seen = null; try { seen = localStorage.getItem('ith_alert_seen'); } catch (e) {}
+                if (String(d.last.id) !== seen) { toast(d.last); try { localStorage.setItem('ith_alert_seen', String(d.last.id)); } catch (e) {} }
+            }
+        }).catch(function () {});
+    }
+    setInterval(tick, 60000);
+    setTimeout(tick, 8000);   // primer chequeo a los 8s de abrir
+})();
+</script>
+<?php endif; ?>
 <script defer src="<?= $asset('assets/js/viewer.js') ?>?v=5"></script>
 <script defer src="<?= $asset('assets/js/confirm.js') ?>?v=1"></script>
 <script defer src="<?= $asset('assets/js/filefield.js') ?>?v=1"></script>

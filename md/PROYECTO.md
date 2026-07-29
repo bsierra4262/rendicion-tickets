@@ -588,3 +588,10 @@ Sobre el módulo de alertas (v2.57), pedidos del cliente para dejarlo listo y pr
 - **Copy profesional (auditoría UX):** placeholders sin nombres propios, sin «(o avisá)», concordancias corregidas (conceptos), sin anglicismos («por default»→predeterminado, «testing»→pruebas), sin apodos internos («Jarvis») ni jerga técnica en pantallas de negocio, sin rutas de archivos internos en la UI. Regla nueva: nada de código/proyecto visible al usuario (solo API/CRON) → REQUERIMIENTOS + memoria.
 - **ITHOS unificado:** un solo token de lectura para alertas + consultas; la API filtra por el toggle ITHOS por tipo (pull). Detalle técnico solo en la sección API.
 - **Performance:** `.htaccess` con **gzip** + **caché immutable de assets** (CSS/JS versionados, imágenes, fuentes, modelos ONNX) → repetir visitas es instantáneo. `finish_request` saca el envío de correo del camino de render. Sin cambiar funcionalidades. **512 tests.**
+
+## 64. v2.60 — Fix alertas: heartbeat en vivo, severidad y URL del correo (2026-07-29)
+Tras prueba real del cliente, tres fallas resueltas y verificadas end-to-end en el server:
+- **Se avisaba solo estando parado en «Alertas».** La evaluación in-app corría solo en cada carga de página; estando idle no se disparaba nada. Fix: **heartbeat** `alertas-check` que el front (admin) pinguea cada 60s → evalúa/despacha (Email/ITHOS) y actualiza campana + popup **aunque estés idle en cualquier sección**, sin navegar. (El 24/7 sin nadie logueado sigue necesitando el cron de Hostinger/hPanel.) `finish_request` confirmado que continúa en LiteSpeed.
+- **El correo no mostraba la criticidad** (salía «info»/violeta para un VENCIDO): `alerta_push` no pasaba la severidad resuelta a `alerta_despachar`. Fix: `$a['severidad'] = $sev`. Verificado: severidad=danger → correo rojo «URGENTE».
+- **El botón «Ver en el sistema» iba a una URL rota** (`http:///comprobantes/…`): `url()` es relativa y en el cron CLI no hay host. Fix: `alerta_base_url()` (absoluta, de `app_base_url` / host / producción). Verificado: `https://intellihelp.tech/comprobantes/gasto-form?id=2`.
+- Throttle de autoeval bajado a 60s. **515 tests.**
