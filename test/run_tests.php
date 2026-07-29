@@ -525,7 +525,7 @@ ok('razón: descarta dirección (Piso/Av/Calle) y label:valor', strpos($esc28, '
 // Franjas: mínimo 8 a 1800px (fragmentación agresiva pedida por el cliente)
 ok('largos: mínimo 10 franjas a 1800px + solape 22%',      strpos($esc28, 'Math.max(10, Math.min(16') !== false && strpos($esc28, '1800 / src.width') !== false && strpos($esc28, 'over = 0.22') !== false);
 // Versión del asset actualizada
-ok('escanear.php versiona escanear.js v36',                strpos($escv28, 'escanear.js') !== false && (bool)preg_match('/escanear\.js[^\n]*\?v=36/', $escv28));
+ok('escanear.php versiona escanear.js v37',                strpos($escv28, 'escanear.js') !== false && (bool)preg_match('/escanear\.js[^\n]*\?v=37/', $escv28));
 
 echo "== v2.29 — padrón nacional offline (empresas) sin certificado ==\n";
 $sch29 = str_replace('`', '', $readf(dirname($WEB) . '/db/schema.sql')); // tolera backticks del dump
@@ -572,7 +572,7 @@ ok('orientación: modelo doc_ori presente en el servidor',   is_file("$ASSETS/mo
 ok('orientación: paddleocr carga doc_ori + expone api.orientation', strpos($pad32, "'assets/models/doc_ori.onnx'") !== false && strpos($pad32, 'function detectOrientation') !== false && strpos($pad32, 'api.orientation = detectOrientation') !== false);
 ok('orientación: preprocesa 224 + normalización ImageNet',  strpos($pad32, '[0.485, 0.456, 0.406]') !== false && strpos($pad32, '(360 - pred) % 360') !== false);
 ok('orientación: escanear usa el modelo con fallback bruteforce', strpos($esc32, 'P.orientation(workCanvas)') !== false && strpos($esc32, 'function bruteForce') !== false && strpos($esc32, "'ocr.orientacion'") !== false);
-ok('escanear.php versiona escanear.js v36 + paddleocr v18', (bool)preg_match('/escanear\.js[^\n]*\?v=36/', $escv32) && (bool)preg_match('/paddleocr\.js[^\n]*\?v=18/', $escv32));
+ok('escanear.php versiona escanear.js v37 + paddleocr v18', (bool)preg_match('/escanear\.js[^\n]*\?v=37/', $escv32) && (bool)preg_match('/paddleocr\.js[^\n]*\?v=18/', $escv32));
 
 echo "== v2.33 — fix resumen (estado real de campos, no lista previa) ==\n";
 $esc33b = $readf("$ASSETS/js/escanear.js");
@@ -912,6 +912,14 @@ ok('multi-entidad: BANCOS sembrado como multi-entidad', (bool)preg_match("/'BANC
 ok('multi-entidad: form con toggle + bloques single/multi + pares nombre/CUIT', strpos($gpf55, 'name="multi_entidad"') !== false && strpos($gpf55, 'data-cuit-single') !== false && strpos($gpf55, 'data-cuit-multi') !== false && strpos($gpf55, 'name="ent_nombre[]"') !== false && strpos($gpf55, 'name="ent_cuit[]"') !== false);
 ok('multi-entidad: JS alterna single/multi y deshabilita el bloque inactivo', strpos($gpf55, 'multi.hidden = !on; single.hidden = on') !== false && strpos($gpf55, 'setEnabled(multi, on)') !== false);
 ok('multi-entidad: la lista de proveedores muestra las entidades', strpos($gpl, "!empty(\$r['multi_entidad'])") !== false && strpos($gpl, 'entidad') !== false);
+
+echo "== v2.56 — editar trae el archivo (re-escanear sin resubir, sin duplicar) ==\n";
+$escjs = $readf("$ASSETS/js/escanear.js"); $cfv = $readf("$VIEWS/comprobante-form.php"); $escv = $readf("$VIEWS/escanear.php");
+ok('re-escaneo: escanear.js expone ithScanFile (OCR sobre un File sin usar el input)', strpos($escjs, 'window.ithScanFile = function') !== false && strpos($escjs, 'function startScan()') !== false);
+ok('re-escaneo: el guardado AJAX es solo del escáner (data-ocr-async)', strpos($escjs, 'compForm.dataset.ocrAsync') !== false && strpos($escv, 'data-ocr-async') !== false);
+ok('re-escaneo: editar comprobante tiene botón "Re-escanear el archivo cargado"', strpos($cfv, 'id="rescanBtn"') !== false && strpos($cfv, 'data-rescan-src') !== false && strpos($cfv, "comprobante-imagen') . '?id='") !== false);
+ok('re-escaneo: editar carga el motor OCR (importmap + paddleocr + escanear.js)', strpos($cfv, 'importmap') !== false && strpos($cfv, 'paddleocr.js') !== false && strpos($cfv, 'escanear.js') !== false && strpos($cfv, 'id="scanFile"') !== false && strpos($cfv, 'id="scanBtn"') !== false);
+ok('re-escaneo: trae la imagen del server (proxy Drive) y no re-sube (no duplica)', strpos($cfv, 'ithScanFile(file)') !== false && strpos($cfv, 'r.blob()') !== false);
 ok('gasto: CUIT solo de cabecera + validación dígito (evita falso positivo de tablas)', strpos($gjs50, 'function validCuit') !== false && strpos($gjs50, '.filter(validCuit)') !== false && strpos($gjs50, "search(/detalle de") !== false);
 ok('gasto: importe = TOTAL A PAGAR (par total/total+recargo, ignora %)', strpos($gjs50, 'function parseTotal') !== false && strpos($gjs50, 'A * f') !== false && strpos($gjs50, "(?!\\s*%)") !== false);
 

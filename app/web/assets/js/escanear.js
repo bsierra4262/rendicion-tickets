@@ -32,7 +32,10 @@
         var el = first && document.querySelector('[name="' + first + '"]');
         if (el && el.focus) { try { el.focus(); } catch (e) {} }
     }
-    if (compForm) {
+    // El guardado por AJAX es SOLO para el escáner (form con data-ocr-async). En "Editar
+    // comprobante" el submit es normal (redirect) para respetar los botones Verificar/Rechazar
+    // y no re-subir la imagen existente.
+    if (compForm && compForm.dataset.ocrAsync) {
         // Guardado por AJAX: si hay error, NO recarga (la imagen + datos quedan intactos);
         // muestra el error inline, corregís y guardás de nuevo sin re-escanear.
         compForm.addEventListener('submit', function (e) {
@@ -187,10 +190,10 @@
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
         return c;
     }
-    function loadImage(f) {
+    function loadImage(f, done) {
         setStatus('Preparando imagen…');
         var img = new Image();
-        img.onload = function () { workCanvas = fitCanvas(img); showPreview(workCanvas); setStatus('Imagen lista. Tocá "Escanear con OCR".'); URL.revokeObjectURL(img.src); };
+        img.onload = function () { workCanvas = fitCanvas(img); showPreview(workCanvas); setStatus('Imagen lista. Tocá "Escanear con OCR".'); URL.revokeObjectURL(img.src); if (done) done(); };
         img.onerror = function () { setStatus('No se pudo leer la imagen.'); };
         img.src = URL.createObjectURL(f);
     }
@@ -208,13 +211,13 @@
         s.onerror = function () { cb(false); };
         document.head.appendChild(s);
     }
-    function loadPdf(f) {
+    function loadPdf(f, done) {
         ensurePdfLib(function (ok) {
             if (!ok) { setStatus('El lector de PDF no está disponible; probá con una foto.'); return; }
-            renderPdf(f);
+            renderPdf(f, done);
         });
     }
-    function renderPdf(f) {
+    function renderPdf(f, done) {
         setStatus('Leyendo PDF…');
         var fr = new FileReader();
         fr.onload = function () {
@@ -225,7 +228,7 @@
                     var c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
                     return page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise.then(function () { return c; });
                 })
-                .then(function (c) { workCanvas = c; showPreview(c); setStatus('PDF listo. Tocá "Escanear con OCR".'); })
+                .then(function (c) { workCanvas = c; showPreview(c); setStatus('PDF listo. Tocá "Escanear con OCR".'); if (done) done(); })
                 .catch(function (e) { setStatus('No se pudo procesar el PDF: ' + (e && e.message || e)); });
         };
         fr.readAsArrayBuffer(f);
@@ -245,7 +248,16 @@
         });
     }
 
-    btn.addEventListener('click', function () {
+    btn.addEventListener('click', startScan);
+    // Re-escanear un archivo YA cargado (ej. al editar): arma el canvas desde el File y escanea
+    // SIN tocar el input → al guardar NO se re-sube la imagen (ya existe, no se duplica).
+    window.ithScanFile = function (f) {
+        if (!f) { return; }
+        workCanvas = null;
+        var isPdf = /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name);
+        if (isPdf) { loadPdf(f, startScan); } else { loadImage(f, startScan); }
+    };
+    function startScan() {
         if (!workCanvas) { setStatus('Elegí o sacá una foto/PDF primero.'); return; }
         btn.disabled = true;
         clearFields();                       // arranca limpio: sin datos del escaneo anterior
@@ -316,7 +328,7 @@
             setProgress(100); setTimeout(function () { setProgress(null); }, 700);
             btn.disabled = false;
         }
-    });
+    }
 
     // Motor: SÓLO PaddleOCR (Tesseract deshabilitado a pedido, para evaluar Paddle solo).
     function ensureEngine(cb) {
