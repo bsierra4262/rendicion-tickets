@@ -32,6 +32,7 @@
 - [ ] **Filtros**: `class="filters card"` + `.filter-grid` + `<label><span>`. **Formularios**: `.form-card card` con `<h2 class="sec">` + `.fld`/`.grid-fields`. Sin estilos inline ad-hoc.
 - [ ] **Campos repetibles** (ej. varios CUIT): lista `.multi-list` con botones Agregar/Quitar, no un texto con comas.
 - [ ] **Badges** siempre con variante (`badge-ok`/`badge-info`/…), nunca `.badge` pelado (sale transparente).
+- [ ] **Nada de código/proyecto en la UI.** Ni detalle de desarrollador (curl, endpoints, headers, snippets) fuera de la sección **API/CRON**, ni referencias a archivos internos del repo (`.md`, rutas, `config.php`, etc.) en **ningún lado** — un admin (ej. Nicolás) no debe ver ni tocar el código/proyecto. En pantallas de negocio, lenguaje simple.
 - [ ] **Colores/spacing por variables CSS** (`var(--…)`), nunca hex crudo ni px a ojo.
 - [ ] Tablas en `.table-scroll` con `data-label` + `prio-*` (modo tarjeta en ≤768px).
 

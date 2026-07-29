@@ -946,6 +946,7 @@ $cfv2 = $readf("$VIEWS/gasto-form.php"); $idx2 = $readf("$WEB/index.php");
 // 24/7: script de cron + endpoint api/alertas.
 ok('alertas: script de cron 24/7 (CLI/URL) que evalúa', strpos($cronA, 'alertas_evaluar()') !== false && strpos($cronA, 'PHP_SAPI') !== false && is_file("$SRC/cron-alertas.php"));
 ok('alertas: endpoint api/alertas (para ITHOS) + ruta pública', is_file("$SRC/pages/api/alertas.php") && strpos($idx2, "'api/alertas'") !== false && strpos($al2, 'function alertas_api') !== false);
+ok('alertas: ITHOS es PULL — la API filtra por el toggle ITHOS por tipo (sin push redundante)', strpos($al2, "array_filter(\$cfg, fn(\$c) => !empty(\$c['ithos']))") !== false && strpos($readf("$VIEWS/alertas.php"), 'name="ithos_url"') === false);
 // Modo TEST.
 ok('alertas: modo TEST agrega prefijo [TEST] en canales externos', strpos($al2, 'function alerta_prefijo') !== false && strpos($al2, "'[TEST] '") !== false && strpos($al2, 'alerta_prefijo()') !== false);
 // Reenvío de últimas 5 al activar un canal.

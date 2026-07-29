@@ -17,12 +17,17 @@ y las reenvíe al **grupo de WhatsApp** de la empresa. La app expone la API; ITH
 
 ---
 
-## Opción A — ITHOS consume nuestra API (recomendado: pull/polling)
+## ITHOS consume nuestra API (pull / polling)
+
+ITHOS **llama** este endpoint; la app no le hace push. Qué tipos de alerta se le exponen se
+controla con el toggle **ITHOS** por tipo (sección *Alertas*): solo los tipos con ese toggle
+activo aparecen en la respuesta.
 
 ### `GET /api/alertas?desde=<id>`
 
-Devuelve las alertas **abiertas** (no resueltas) con `id` mayor a `desde`. ITHOS guarda el
-último `id` procesado y vuelve a pedir con ese valor (polling incremental, ej. cada 2–5 min).
+Devuelve las alertas **abiertas** (no resueltas, de los tipos habilitados para ITHOS) con `id`
+mayor a `desde`. ITHOS guarda el último `id` procesado y vuelve a pedir con ese valor (polling
+incremental, ej. cada 2–5 min).
 
 **Request**
 ```
@@ -77,34 +82,6 @@ X-API-Key: TU_API_KEY
 | `url` | string | Link directo al ítem en la app. |
 | `creado` | datetime | `YYYY-MM-DD HH:MM:SS`. |
 | `canal_sugerido` | string | `whatsapp`. |
-
----
-
-## Opción B — la app le hace *push* a ITHOS
-
-Si ITHOS prefiere **recibir** (en vez de pollear), exponer un endpoint y cargar su URL + API-key
-en la app (menú *Alertas → Canales externos → Endpoint/API-key de ITHOS*). La app hará:
-
-```
-POST <endpoint_de_ITHOS>
-Authorization: Bearer <api_key_de_ITHOS>
-Content-Type: application/json
-
-{
-  "origen": "rendicion-comprobantes",
-  "tipo": "gasto_pago_vencido",
-  "entorno": "testing",
-  "test": true,
-  "titulo": "[TEST] Pago VENCIDO · EDENOR (2026-06)",
-  "mensaje": "[TEST] El pago de «EDENOR» … venció hace 3 días …",
-  "severidad": "danger",
-  "url": "https://intellihelp.tech/comprobantes/gasto-form?id=45",
-  "canal_sugerido": "whatsapp"
-}
-```
-
-El *push* se dispara **una sola vez** al crear cada alerta (no reenvía en cada evaluación). Se
-espera `2xx` como confirmación. WhatsApp lo resuelve ITHOS (grupo del cliente).
 
 ---
 

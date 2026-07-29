@@ -18,11 +18,9 @@ if (is_post()) {
         }
     }
     elseif ($acc === 'ithos') {
-        setting_set('alertas_ithos_url', trim((string)($_POST['ithos_url'] ?? '')));
-        setting_set('alertas_ithos_key', trim((string)($_POST['ithos_key'] ?? '')));
         setting_set('alertas_email_to', trim((string)($_POST['email_to'] ?? '')));
         setting_set('app_entorno', ($_POST['entorno'] ?? 'testing') === 'produccion' ? 'produccion' : 'testing');
-        flash('Canales externos actualizados.', 'success');
+        flash('Configuración actualizada.', 'success');
     }
     redirect('alertas');
 }
@@ -32,9 +30,9 @@ if (!setting_get('alertas_cron_key')) { setting_set('alertas_cron_key', bin2hex(
 // Al entrar, evaluar (asegura la bandeja al día) — barato, con manejo de errores.
 try { alertas_evaluar(); } catch (\Throwable $e) { /* auditado en el modelo */ }
 
-// API-key de ITHOS: viene por defecto ya generada (no se borra en testing).
-$ithosApiKey = '';
-try { $ithosApiKey = api_token_ithos_asegurar(); } catch (\Throwable $e) {}
+// Asegura que el token de ITHOS exista por defecto (los detalles técnicos viven en la
+// sección API, no acá — Alertas es una pantalla de operación, no de desarrollo).
+try { api_token_ithos_asegurar(); } catch (\Throwable $e) {}
 
 render('alertas', [
     'alertas'  => alertas_listar((($_GET['ver'] ?? '') === 'todas')),
@@ -42,10 +40,6 @@ render('alertas', [
     'tipos'    => alerta_tipos(),
     'cfg'      => alertas_config(),
     'canales'  => alertas_canales_estado(),
-    'ithosUrl' => (string)setting_get('alertas_ithos_url', ''),
-    'ithosKey' => (string)setting_get('alertas_ithos_key', ''),
     'emailTo'  => (string)setting_get('alertas_email_to', ''),
     'entorno'  => alertas_entorno(),
-    'apiUrl'   => url('api/alertas'),
-    'ithosApiKey' => $ithosApiKey,
 ], 'Alertas');

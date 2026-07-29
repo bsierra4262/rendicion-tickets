@@ -1,6 +1,6 @@
 <?php
 /** @var array $alertas @var bool $verTodas @var array $tipos @var array $cfg @var array $canales
- *  @var string $ithosUrl @var string $ithosKey @var string $emailTo */
+ *  @var string $emailTo @var string $entorno */
 $sevBadge = ['danger' => ['badge-rej', 'Urgente'], 'warn' => ['badge-pend', 'Atención'], 'info' => ['badge-info', 'Info']];
 $noLeidas = 0; foreach ($alertas as $a) { if (empty($a['leida_en'])) { $noLeidas++; } }
 $enTest = ($entorno ?? 'testing') === 'testing';
@@ -138,34 +138,10 @@ $enTest = ($entorno ?? 'testing') === 'testing';
         <label class="fld span-all">
             <span>Destinatarios de Email (opcional)</span>
             <input type="text" name="email_to" value="<?= e($emailTo) ?>" placeholder="Por default, todos los administradores">
-            <em class="muted small">Separá con coma. Si se deja vacío, se avisa a los administradores.</em>
-        </label>
-        <label class="fld span-all">
-            <span>Endpoint de ITHOS (URL)</span>
-            <input type="text" name="ithos_url" value="<?= e($ithosUrl) ?>" placeholder="https://…/api/alertas">
-            <em class="muted small">ITHOS recibe la alerta y decide el envío (ej. WhatsApp). Usa la sección API (Bearer).</em>
-        </label>
-        <label class="fld span-all">
-            <span>API-key de ITHOS</span>
-            <input type="text" name="ithos_key" value="<?= e($ithosKey) ?>" placeholder="Token Bearer" autocomplete="off">
+            <em class="muted small">Separá con coma (uno o muchos). Si se deja vacío, se avisa a los administradores.</em>
         </label>
     </div>
     <div class="form-actions" style="margin-top:1rem">
-        <button type="submit" class="btn btn-primary"><?= icon('save') ?>Guardar canales externos</button>
+        <button type="submit" class="btn btn-primary"><?= icon('save') ?>Guardar</button>
     </div>
 </form>
-
-<h2 class="sec" style="margin:1.5rem 0 .5rem">API para ITHOS (WhatsApp)</h2>
-<div class="form-card card">
-    <p class="muted small" style="margin-bottom:.8rem">ITHOS consume esta API (solo lectura) y reenvía al grupo de WhatsApp. <strong>Ya viene todo generado</strong>: la API-key de ITHOS existe por defecto (aparece también en la sección <a href="<?= e(url('api-keys')) ?>">API</a>). Guía para integrarlo: <code>md/API-ALERTAS-ITHOS.md</code>.</p>
-    <div class="grid-fields">
-        <label class="fld span-all"><span>Endpoint (GET)</span>
-            <input type="text" readonly value="<?= e(($apiUrl ?? '')) ?>?desde=0" onclick="this.select()">
-        </label>
-        <label class="fld span-all"><span>API-key de ITHOS (header <code>X-API-Key</code>)</span>
-            <input type="text" readonly value="<?= e($ithosApiKey ?: '(se genera al entrar)') ?>" onclick="this.select()">
-            <em class="muted small">Solo lectura de alertas/consultas — no es admin/root. Pegала en ITHOS.</em>
-        </label>
-    </div>
-    <p class="mono" style="display:block;word-break:break-all;margin-top:.6rem">curl -H "X-API-Key: <?= e($ithosApiKey ?: 'TU_KEY') ?>" "<?= e(($apiUrl ?? '')) ?>?desde=0"</p>
-</div>

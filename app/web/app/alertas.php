@@ -59,12 +59,11 @@ function alertas_config_guardar(array $post): array
     }
     setting_set('alertas_config', json_encode($out, JSON_UNESCAPED_UNICODE));
     if (function_exists('log_app')) { log_app('alerta.config', ['detalle' => 'Configuración de canales actualizada']); }
+    // Solo Email necesita "reenviar las últimas 5" (ITHOS es pull: las obtiene por ?desde=0).
     $nuevos = [];
-    foreach (['email', 'ithos'] as $canal) {
-        $antes = false; $ahora = false;
-        foreach (alerta_tipos() as $k => $t) { if (!empty($prev[$k][$canal])) { $antes = true; } if (!empty($out[$k][$canal])) { $ahora = true; } }
-        if (!$antes && $ahora) { $nuevos[] = $canal; }
-    }
+    $antes = false; $ahora = false;
+    foreach (alerta_tipos() as $k => $t) { if (!empty($prev[$k]['email'])) { $antes = true; } if (!empty($out[$k]['email'])) { $ahora = true; } }
+    if (!$antes && $ahora) { $nuevos[] = 'email'; }
     return $nuevos;
 }
 
@@ -82,7 +81,6 @@ function alertas_reenviar_recientes(string $canal, int $limit = 5): int
         $a = ['titulo' => $r['titulo'], 'mensaje' => $r['mensaje'], 'url' => $r['url'], 'severidad' => $r['severidad']];
         $ok = false;
         if ($canal === 'email' && function_exists('mail_configurado') && mail_configurado()) { $ok = alerta_enviar_email($a); }
-        elseif ($canal === 'ithos' && setting_get('alertas_ithos_url')) { $ok = alerta_enviar_ithos($tipo, $a); }
         if ($ok) {
             $canales = array_filter(array_map('trim', explode(',', (string)$r['canales'])));
             if (!in_array($canal, $canales, true)) { $canales[] = $canal; q('UPDATE alertas SET canales = ? WHERE id = ?', [implode(',', $canales), (int)$r['id']]); }
@@ -108,8 +106,8 @@ function alertas_canales_estado(): array
         'email'   => ['ok' => function_exists('mail_configurado') && mail_configurado(),
             'detalle' => (function_exists('mail_configurado') && mail_configurado())
                 ? ('SMTP configurado (' . (mail_cfg()['user'] ?? '') . ').') : 'Falta configurar el SMTP (config.php $CONFIG[\'mail\'] o ajustes mail_*).'],
-        'ithos'   => ['ok' => (bool)setting_get('alertas_ithos_url'),
-            'detalle' => setting_get('alertas_ithos_url') ? 'Endpoint ITHOS configurado.' : 'Falta el endpoint/API-key de ITHOS.'],
+        'ithos'   => ['ok' => true,
+            'detalle' => 'Se reenvía por ITHOS al grupo de WhatsApp. Activá el canal ITHOS en los tipos que quieras arriba.'],
     ];
 }
 
@@ -158,13 +156,13 @@ function alertas_resolver_ausentes(string $tipo, array $clavesVigentes): void
 // ---- Despacho a canales (in-sistema ya está en la DB) ----
 function alerta_despachar(int $id, string $tipo, array $cfg, array $a): void
 {
+    // Push directo: solo Email. ITHOS NO se hace push: ITHOS CONSUME la API (pull) y ahí
+    // aparecen los tipos con el toggle «ITHOS» activo (ver alertas_api()).
     $canales = ['sistema'];
     if (!empty($cfg['email']) && function_exists('mail_configurado') && mail_configurado()) {
         if (alerta_enviar_email($a)) { $canales[] = 'email'; }
     }
-    if (!empty($cfg['ithos']) && setting_get('alertas_ithos_url')) {
-        if (alerta_enviar_ithos($tipo, $a)) { $canales[] = 'ithos'; }
-    }
+    if (!empty($cfg['ithos'])) { $canales[] = 'ithos-api'; }   // queda expuesto en api/alertas
     q('UPDATE alertas SET canales = ? WHERE id = ?', [implode(',', $canales), $id]);
 }
 
@@ -342,8 +340,14 @@ function alertas_listar(bool $incluirResueltas = false): array
 // con el prefijo [TEST] aplicado si estamos en testing.
 function alertas_api(int $desde = 0): array
 {
-    $rows = q('SELECT id, tipo, severidad, titulo, mensaje, url, created_at FROM alertas
-                WHERE resuelta_en IS NULL AND id > ? ORDER BY id ASC LIMIT 100', [$desde])->fetchAll();
+    // Solo los tipos que el admin habilitó para ITHOS (el toggle «ITHOS» por tipo).
+    $cfg = alertas_config();
+    $tipos = array_keys(array_filter($cfg, fn($c) => !empty($c['ithos'])));
+    if (!$tipos) { return []; }
+    $ph = implode(',', array_fill(0, count($tipos), '?'));
+    $rows = q("SELECT id, tipo, severidad, titulo, mensaje, url, created_at FROM alertas
+                WHERE resuelta_en IS NULL AND id > ? AND tipo IN ($ph) ORDER BY id ASC LIMIT 100",
+        array_merge([$desde], $tipos))->fetchAll();
     $pfx = alerta_prefijo();
     return array_map(fn($r) => [
         'id' => (int)$r['id'], 'tipo' => $r['tipo'], 'severidad' => $r['severidad'],

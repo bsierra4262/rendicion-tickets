@@ -25,4 +25,9 @@ if (is_post()) {
     }
 }
 
-render('api-keys', ['tokens' => api_tokens_all(), 'nueva' => $nueva], 'API');
+// Token de ITHOS por defecto (para alertas + consultas). Los detalles técnicos van acá,
+// que es la sección para APIs — no en pantallas de operación como Alertas.
+$ithosKey = '';
+try { $ithosKey = api_token_ithos_asegurar(); } catch (\Throwable $e) {}
+
+render('api-keys', ['tokens' => api_tokens_all(), 'nueva' => $nueva, 'ithosKey' => $ithosKey], 'API');

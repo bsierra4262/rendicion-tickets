@@ -12,11 +12,20 @@ $b = $host . url('api');
 
 <div class="flash flash-info">
     <strong>Dos tipos de token (permisos):</strong>
-    <strong>Lectura</strong> — solo consultar (estado, comprobantes, alertas); ideal para ITHOS. ·
+    <strong>Lectura</strong> — solo consultar (estado, comprobantes, pendientes y alertas); ideal para ITHOS. ·
     <strong>Root</strong> — acceso total, sin límites (para integrar la app en un sistema propio).
     Se autentica con el header <code class="mono">X-API-Key</code> (o <code class="mono">Authorization: Bearer</code>).
-    <br><span class="small">Ya existe por defecto un token <strong>«ITHOS»</strong> (lectura) para las alertas — ver la sección <a href="<?= e(url('alertas')) ?>">Alertas</a>.</span>
 </div>
+
+<?php if (!empty($ithosKey)): ?>
+<div class="card" style="margin-top:16px">
+    <div class="card-head"><h2>Token de ITHOS (por defecto)</h2><span class="badge badge-info">Lectura</span></div>
+    <p class="muted small" style="margin:.2rem 0 .7rem">Ya viene generado. Sirve para <strong>enviar alertas y hacer consultas</strong> a nuestra app desde ITHOS (un solo token, solo lectura). Copialo y pegalo en ITHOS.</p>
+    <div class="token-box"><code class="mono" id="ithosKey"><?= e($ithosKey) ?></code>
+        <button type="button" class="btn btn-sm btn-ghost" onclick="navigator.clipboard.writeText(document.getElementById('ithosKey').textContent).then(()=>this.textContent='Copiado')">Copiar</button>
+    </div>
+</div>
+<?php endif; ?>
 
 <div class="card">
     <div class="card-head"><h2>Endpoints</h2></div>
