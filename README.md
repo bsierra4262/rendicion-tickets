@@ -67,7 +67,7 @@ ITHOS/WhatsApp, 24/7) y una **API con permisos** para integrarse con otros siste
 - **Gastos recurrentes.** Módulo aparte para servicios y gastos fijos (electricidad, expensas, alquiler, seguros, telefonía, impuestos): maestro de proveedores + lectura automática de la factura (QR de ARCA / texto / OCR) y respaldo en Drive por proveedor, año y mes. Ver [Gastos recurrentes](#gastos-recurrentes).
 - **Alertas centralizadas.** Un módulo de alertas (bandeja dentro del sistema + campana con contador + popup) que avisa, por ejemplo, cuando un pago de gasto quedó vencido. El administrador configura por tipo si además se envían por Email (SMTP propio) o ITHOS (que puede reenviar por WhatsApp). Evaluación **24/7** por cron. Ver [Alertas](#alertas-y-notificaciones).
 - **API con permisos.** Tokens de **lectura** (consultas, ideal para ITHOS/Jarvis) o **root** (acceso total) para integrar la app con otros sistemas. Ver [API y permisos](#api-y-permisos).
-- **Respaldo en Google Drive.** Cada imagen se replica en Drive con estructura por año y mes; la copia local se conserva como respaldo.
+- **Respaldo en Google Drive.** Las compras únicas (comprobantes) van a la carpeta **Facturas Compra** (`AÑO / "AÑO MM - Mes"`) y los gastos a **Gastos Recurrentes** (`Proveedor / AÑO / "AÑO MM - Mes"`). Una factura cargada como comprobante cuyo CUIT es de un proveedor recurrente se guarda sola como gasto. Si Drive falla, el archivo queda pendiente en el servidor y se sube solo al volver la conexión.
 - **Control de sesión.** Cierre automático por inactividad y por tiempo máximo, con validación del lado del servidor.
 - **Auditoría completa.** Cada acción y cada error (cliente y servidor) queda registrado.
 

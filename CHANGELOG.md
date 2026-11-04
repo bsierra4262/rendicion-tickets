@@ -7,6 +7,9 @@ y el versionado, [SemVer](https://semver.org/lang/es/).
 ## [Unreleased]
 
 ### Added
+- **Autodetección gasto recurrente / factura compra**: una factura cargada desde Escanear o
+  Nuevo comprobante cuyo CUIT es de un proveedor de Gastos recurrentes se guarda como gasto
+  (completa el del período o crea uno) y su archivo va a la carpeta de Gastos. Aviso en pantalla.
 - **Módulo de Alertas centralizado**: motor idempotente + bandeja dentro del sistema
   (campana con contador + **popup/toast**), configurable por el admin. Canales: sistema
   (default), Email (SMTP propio, múltiples destinatarios) e ITHOS/Jarvis (WhatsApp a través
@@ -38,10 +41,20 @@ y el versionado, [SemVer](https://semver.org/lang/es/).
 - Auditoría completa en el CRON de cada acción y error (cliente y servidor).
 
 ### Changed
+- **Drive**: las compras únicas (comprobantes) se guardan en la carpeta **Facturas Compra**
+  (`AÑO / "AÑO MM - Mes"`), separada de **Gastos Recurrentes**. Los ya subidos no se movieron.
 - La aplicación se sirve desde `/comprobantes` (antes `/tickets`).
 - Terminología alineada al Excel de rendición: «Categoría» → «Concepto».
 - Lectura adaptativa por franjas para recibos largos.
 - Impuesto Inmobiliario/ABL: se toma el monto a pagar y no la valuación del terreno.
+
+### Fixed
+- Drive: los PDFs de gastos archivados iban a «Archivados» de la carpeta de comprobantes;
+  ahora van a la de gastos. Restaurar un gasto devuelve sus archivos a Proveedor/Año/Mes.
+- Drive: si la subida fallaba, el comprobante/gasto quedaba sin archivo. Ahora queda
+  pendiente en el servidor y se sube solo (requiere la migración `db/drive_pendientes.sql`).
+- Drive: reemplazar la imagen/factura/pago dejaba el archivo anterior duplicado en la
+  carpeta del mes; ahora se mueve a «Archivados».
 
 ### Security
 - `config.php` (credenciales de DB + secreto de Google) fuera del control de versiones.

@@ -25,11 +25,13 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
             <p class="filefield__name" data-empty="Sin archivo seleccionado">Sin archivo seleccionado</p>
         </div>
         <button type="button" id="leerFactura" class="btn btn-primary" style="margin-top:.85rem"><?= icon('scan') ?>Leer factura (autocompletar)</button>
-        <?php if ($editing && !empty($v['drive_factura_link'])): ?>
+        <?php if ($editing && (!empty($v['drive_factura_link']) || !empty($v['factura_path']))): ?>
             <button type="button" class="btn btn-ghost btn-sm" style="margin-top:.85rem;margin-left:.4rem" data-releer="factura" data-src="<?= e(url('gasto-archivo') . '?id=' . $id . '&tipo=factura') ?>"><?= icon('scan', 15) ?>Re-leer la factura cargada</button>
         <?php endif; ?>
         <div id="leerEstado" class="muted small" style="margin-top:8px"></div>
-        <?php if (!empty($v['drive_factura_link'])): ?>
+        <?php if (!empty($v['factura_path'])): ?>
+            <p class="muted small" style="margin-top:8px"><?= icon('file', 15) ?> Factura guardada en el servidor · <strong>pendiente de subir a Drive</strong> (se sube sola cuando haya conexión)</p>
+        <?php elseif (!empty($v['drive_factura_link'])): ?>
             <p class="muted small" style="margin-top:8px"><?= icon('cloud', 15) ?> Factura ya cargada · <a href="<?= e($v['drive_factura_link']) ?>" target="_blank" rel="noopener">ver en Drive</a> · no hace falta volver a subirla para re-leerla</p>
         <?php endif; ?>
     </div>
@@ -103,11 +105,13 @@ $err = fn($k) => !empty($errors[$k]) ? '<em class="err">' . e($errors[$k]) . '</
             <p class="filefield__name" data-empty="Sin archivo seleccionado">Sin archivo seleccionado</p>
         </div>
         <button type="button" id="leerPago" class="btn btn-ghost btn-sm" style="margin-top:.85rem"><?= icon('scan', 15) ?>Leer pago (fecha + marcar pagado)</button>
-        <?php if ($editing && !empty($v['drive_pago_link'])): ?>
+        <?php if ($editing && (!empty($v['drive_pago_link']) || !empty($v['pago_path']))): ?>
             <button type="button" class="btn btn-ghost btn-sm" style="margin-top:.85rem;margin-left:.4rem" data-releer="pago" data-src="<?= e(url('gasto-archivo') . '?id=' . $id . '&tipo=pago') ?>"><?= icon('scan', 15) ?>Re-leer el pago cargado</button>
         <?php endif; ?>
         <div id="leerPagoEstado" class="muted small" style="margin-top:8px"></div>
-        <?php if (!empty($v['drive_pago_link'])): ?>
+        <?php if (!empty($v['pago_path'])): ?>
+            <p class="muted small" style="margin-top:8px"><?= icon('file', 15) ?> Pago guardado en el servidor · <strong>pendiente de subir a Drive</strong> (se sube solo cuando haya conexión)</p>
+        <?php elseif (!empty($v['drive_pago_link'])): ?>
             <p class="muted small" style="margin-top:8px"><?= icon('cloud', 15) ?> Pago ya cargado · <a href="<?= e($v['drive_pago_link']) ?>" target="_blank" rel="noopener">ver en Drive</a></p>
         <?php endif; ?>
     </div>

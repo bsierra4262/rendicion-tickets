@@ -970,6 +970,45 @@ ok('gasto: re-leer factura/pago cargados (proxy Drive, sin resubir)', strpos($id
 ok('gasto: CUIT solo de cabecera + validación dígito (evita falso positivo de tablas)', strpos($gjs50, 'function validCuit') !== false && strpos($gjs50, '.filter(validCuit)') !== false && strpos($gjs50, "search(/detalle de") !== false);
 ok('gasto: importe = TOTAL A PAGAR (par total/total+recargo, ignora %)', strpos($gjs50, 'function parseTotal') !== false && strpos($gjs50, 'A * f') !== false && strpos($gjs50, "(?!\\s*%)") !== false);
 
+// ---- Drive: "Facturas Compra" + archivado por ámbito + pendientes locales + reemplazo ----
+$gd60 = $readf("$SRC/google_drive.php");
+$gs60 = $readf("$SRC/gastos.php");
+eq('drive: Facturas Compra = carpeta propia (1HGk…), separada de Gastos Recurrentes (1wpf…)', [drive_compras_root(), drive_gastos_root()], ['1HGkmZ67VbqG3oPr5cCr-Q9ZMGq2pZ1q-', '1wpfeuP0V5QAkSHEyxXqSqfKCCMddJHHG']);
+ok('drive: subir comprobante cuelga AÑO/mes directo de Facturas Compra', strpos($gd60, '$root = drive_compras_root();') !== false && strpos($gd60, 'drive_folder_id($anio, $root, $token, $creadaA)') !== false && strpos($gd60, 'function drive_parent_id') === false);
+ok('drive: restaurar comprobante vuelve a Facturas Compra/AÑO/mes', (bool)preg_match('/function drive_restaurar.*?\$parent = drive_compras_root\(\);/s', $gd60));
+ok('drive: archivar por ámbito (compras | gastos)', strpos($gd60, "function drive_archivar(string \$fileId, string \$ambito = 'compras')") !== false && strpos($gd60, 'function drive_root_ambito(string $ambito)') !== false);
+ok('BUGFIX gastos: archivar va a «Archivados» de la raíz de GASTOS', strpos($gs60, "drive_archivar((string)\$g[\"drive_{\$t}_id\"], 'gastos')") !== false);
+ok('BUGFIX gastos: restaurar devuelve los archivos a Proveedor/Año/Mes', strpos($gs60, 'drive_gasto_restaurar($id, $g)') !== false && strpos($gd60, 'function drive_gasto_restaurar') !== false);
+ok('BUGFIX comprobante: si Drive falla la imagen queda PENDIENTE en el servidor (no se pierde)', (bool)preg_match('/function drive_procesar_imagen.*?drive_guardar_local\(\$tmp, \$ext\).*?\'drive\.pendiente\'/s', $gd60));
+ok('BUGFIX gasto: si Drive falla el archivo queda PENDIENTE en el servidor', (bool)preg_match('/function drive_gasto_subir\(.*?drive_guardar_local\(\$tmp, \$ext\).*?\{\$tipo\}_path = \?/s', $gd60));
+ok('drive: los pendientes se suben solos al loguear con Drive', strpos($readf("$SRC/pages/google-callback.php"), 'drive_sincronizar_pendientes(5)') !== false && strpos($gd60, 'function drive_sincronizar_pendientes') !== false);
+ok('BUGFIX reemplazo comprobante: la imagen anterior va a «Archivados» (sin duplicados)', strpos($gd60, "'drive.reemplazo'") !== false && (bool)preg_match('/function drive_comprobante_registrar.*?drive_archivar\(\$prevId\)/s', $gd60));
+ok('BUGFIX reemplazo gasto: el archivo anterior va a «Archivados» de Gastos', strpos($gd60, "'gasto.drive_reemplazo'") !== false && strpos($gd60, "drive_archivar(\$prevId, 'gastos')") !== false);
+ok('drive: imagen pendiente se sirve antes que la de Drive', strpos($readf("$SRC/pages/comprobante-imagen.php"), "if (!\$pendiente && !empty(\$c['drive_file_id'])") !== false && strpos($readf("$SRC/pages/gasto-archivo.php"), "drive_local_abs(\$g[\$tipo . '_path']") !== false);
+ok('gastos: columnas factura_path / pago_path (schema + migración)', strpos($readf(dirname($WEB) . '/db/schema.sql'), '`factura_path` varchar(255)') !== false && strpos($readf(dirname($WEB) . '/db/drive_pendientes.sql'), 'ADD COLUMN pago_path') !== false);
+ok('drive: pendiente = ruta bajo pendientes-drive/', drive_es_pendiente('pendientes-drive/2026/11/ab.jpg') && !drive_es_pendiente('2026/11/ab.jpg') && !drive_es_pendiente(null));
+eq('drive: nombre de archivo de gasto', drive_gasto_nombre(['periodo' => '2026-07', 'prov_drive_folder' => '02.EXPENSAS'], 'factura', 'pdf'), '202607 - 02.EXPENSAS - Factura.pdf');
+// ---- Gasto recurrente vs Factura Compra única (detección por CUIT al cargar) ----
+$gs61 = $readf("$SRC/gastos.php");
+$esc61 = $readf("$SRC/pages/escanear.php");
+$cfp61 = $readf("$SRC/pages/comprobante-form.php");
+ok('recurrente: CUIT coincide con la lista del proveedor (incluye multi-entidad)', gp_cuit_coincide(['cuit' => '30655116202'], '30-65511620-2') && gp_cuit_coincide(['cuit' => '30500003193 30500010912'], '30500010912'));
+ok('recurrente: CUIT ajeno / incompleto / vacío NO coincide', !gp_cuit_coincide(['cuit' => '30655116202'], '30546741253') && !gp_cuit_coincide(['cuit' => '30655116202'], '3065511620') && !gp_cuit_coincide(['cuit' => null], '30655116202') && !gp_cuit_coincide(['cuit' => '130655116202'], '30655116202'));
+ok('recurrente: escanear detecta por CUIT ANTES de crear el comprobante', strpos($esc61, "gp_find_by_cuit((string)(\$_POST['cuit'] ?? ''))") !== false && strpos($esc61, 'gr_desde_factura($_POST, $gp') !== false && strpos($esc61, "if (!\$errors && !\$gp)") !== false);
+ok('recurrente: nuevo comprobante detecta (editar NO convierte)', strpos($cfp61, "\$gp = !\$editing ? gp_find_by_cuit(") !== false && strpos($cfp61, "redirect('gasto-form?id=' . \$gid)") !== false);
+ok('recurrente: completa el gasto del período SIN factura o crea uno (multi-entidad siempre nuevo)', strpos($gs61, 'function gr_desde_factura') !== false && strpos($gs61, "if (empty(\$prov['multi_entidad']))") !== false && strpos($gs61, "drive_factura_id IS NULL") !== false && strpos($gs61, "'gasto.desde_factura'") !== false);
+ok('recurrente: el archivo va a Drive de GASTOS (drive_gasto_subir factura)', strpos($gs61, "if (\$g) { drive_gasto_subir(\$gid, \$g, 'factura', \$file); }") !== false);
+ok('recurrente: aviso en pantalla al detectar el CUIT (api + JS)', strpos($readf("$SRC/pages/api-proveedor.php"), "'recurrente'") !== false && strpos($readf("$WEB/assets/js/comprobante-form.js"), 'function showRecurrente') !== false && strpos($readf("$VIEWS/escanear.php"), 'data-detect-recurrente') !== false);
+if (!defined('STORAGE')) {
+    define('STORAGE', sys_get_temp_dir() . '/tickets_test_' . bin2hex(random_bytes(4)));
+    @mkdir(STORAGE . '/uploads/pendientes-drive', 0755, true);
+    file_put_contents(STORAGE . '/uploads/pendientes-drive/x.jpg', 'x');
+    file_put_contents(STORAGE . '/secreto.txt', 's');
+    ok('drive: ruta local segura (existe → abs; traversal/inexistente → null)',
+        drive_local_abs('pendientes-drive/x.jpg') !== null && drive_local_abs('../secreto.txt') === null && drive_local_abs('pendientes-drive/no.jpg') === null);
+    @unlink(STORAGE . '/uploads/pendientes-drive/x.jpg'); @unlink(STORAGE . '/secreto.txt');
+}
+
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);
 if ($F) { echo "FALLARON:\n - " . implode("\n - ", $fails) . "\n"; }

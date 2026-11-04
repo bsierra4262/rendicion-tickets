@@ -63,7 +63,8 @@
                     <td data-label="Archivos" class="prio-3">
                         <?php if (!empty($r['drive_factura_link'])): ?><a href="<?= e($r['drive_factura_link']) ?>" target="_blank" rel="noopener" class="badge badge-info badge-link" title="Factura en Drive"><?= icon('cloud', 13) ?>Factura</a> <?php endif; ?>
                         <?php if (!empty($r['drive_pago_link'])): ?><a href="<?= e($r['drive_pago_link']) ?>" target="_blank" rel="noopener" class="badge badge-info badge-link" title="Pago en Drive"><?= icon('cloud', 13) ?>Pago</a><?php endif; ?>
-                        <?php if (empty($r['drive_factura_link']) && empty($r['drive_pago_link'])): ?><span class="muted">—</span><?php endif; ?>
+                        <?php foreach (['factura', 'pago'] as $t): if (!empty($r[$t . '_path'])): ?><a href="<?= e(url('gasto-archivo') . '?id=' . (int)$r['id'] . '&tipo=' . $t) ?>" target="_blank" rel="noopener" class="badge badge-pend badge-link" title="Guardada en el servidor: se sube a Drive automáticamente cuando haya conexión"><?= icon('file', 13) ?><?= ucfirst($t) ?> · pendiente Drive</a> <?php endif; endforeach; ?>
+                        <?php if (empty($r['drive_factura_link']) && empty($r['drive_pago_link']) && empty($r['factura_path']) && empty($r['pago_path'])): ?><span class="muted">—</span><?php endif; ?>
                     </td>
                     <td class="acts" data-label="Acciones">
                         <a href="<?= e(url('gasto-form') . '?id=' . (int)$r['id']) ?>" class="act" title="Editar"><?= icon('edit', 16) ?></a>

@@ -82,4 +82,8 @@ if (function_exists('drive_guardar_sesion') && !empty($tok['refresh_token'])) {
 }
 
 auth_login_user((int) $user['id']);
+// Si hay archivos que quedaron en el servidor porque Drive había fallado, se suben ahora.
+if (function_exists('drive_sincronizar_pendientes')) {
+    try { drive_sincronizar_pendientes(5); } catch (\Throwable $e) {}
+}
 redirect('dashboard');

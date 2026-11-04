@@ -27,7 +27,7 @@ $action = url('comprobante-form') . ($editing ? '?id=' . $id : '');
 </script>
 <script>window.APP_BASE = <?= json_encode(url('')) ?>;</script>
 
-<form method="post" action="<?= e($action) ?>" class="comp-form" id="compForm" enctype="multipart/form-data">
+<form method="post" action="<?= e($action) ?>" class="comp-form" id="compForm" enctype="multipart/form-data"<?= $editing ? '' : ' data-detect-recurrente' ?>>
     <?= csrf_field() ?>
 
     <?php if ($editing && (!empty($v['imagen_path']) || !empty($v['drive_file_id']))):
@@ -43,7 +43,11 @@ $action = url('comprobante-form') . ($editing ? '?id=' . $id : '');
                     <img src="<?= e($imgSrc) ?>" alt="Comprobante" class="comp-img">
                 <?php endif; ?>
             </a>
-            <?php if (!empty($v['drive_link'])): ?>
+            <?php if (function_exists('drive_es_pendiente') && drive_es_pendiente($v['imagen_path'] ?? null)): ?>
+                <p class="muted small" style="margin-top:8px">
+                    <?= icon('file', 15) ?> Guardada en el servidor · <strong>pendiente de subir a Drive</strong> (se sube sola cuando haya conexión)
+                </p>
+            <?php elseif (!empty($v['drive_link'])): ?>
                 <p class="muted small" style="margin-top:8px">
                     <?= icon('cloud', 15) ?> Respaldado en Drive ·
                     <a href="<?= e($v['drive_link']) ?>" target="_blank" rel="noopener">Ver en Google Drive</a>
@@ -92,7 +96,7 @@ $action = url('comprobante-form') . ($editing ? '?id=' . $id : '');
     </div>
 </form>
 
-<script src="<?= e(url('assets/js/comprobante-form.js')) ?>?v=3"></script>
+<script src="<?= e(url('assets/js/comprobante-form.js')) ?>?v=4"></script>
 <!-- OCR (mismo motor que el escáner): permite leer una imagen adjuntada o RE-ESCANEAR la ya cargada. -->
 <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>

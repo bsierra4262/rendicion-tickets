@@ -57,16 +57,40 @@
         return dv === parseInt(c[10], 10);
     }
 
+    // Aviso «Gasto recurrente detectado»: sólo en formularios de carga NUEVA (data-detect-recurrente).
+    // Facturas Compra = compras únicas; si el CUIT es de un proveedor de Gastos recurrentes,
+    // el server la guarda como gasto (y el archivo va a la carpeta de Gastos en Drive).
+    function showRecurrente(rec) {
+        var form = document.querySelector('form[data-detect-recurrente]');
+        if (!form) return;
+        var box = document.getElementById('recurrenteAviso');
+        if (!rec || !rec.nombre) { if (box) box.hidden = true; return; }
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'recurrenteAviso';
+            box.className = 'flash flash-info';
+            box.setAttribute('role', 'status');
+            form.insertBefore(box, form.firstElementChild ? form.firstElementChild.nextSibling : null);
+        }
+        box.textContent = '';
+        var b = document.createElement('strong');
+        b.textContent = 'Gasto recurrente detectado: ' + rec.nombre + '. ';
+        box.appendChild(b);
+        box.appendChild(document.createTextNode('Al guardar, esta factura se carga en Gastos recurrentes (no como Factura Compra) y el archivo va a su carpeta de Drive.'));
+        box.hidden = false;
+    }
+
     if (cuit) {
         var hint = $('cuit_hint');
         var lookup = function () {
             var c = cuit.value.replace(/\D/g, '');
-            if (c.length !== 11) { if (hint) { hint.textContent = ''; hint.className = 'hint'; } return; }
-            if (!cuitDV(c)) { if (hint) { hint.textContent = 'CUIT inválido (dígito verificador)'; hint.className = 'hint bad'; } return; }
+            if (c.length !== 11) { showRecurrente(null); if (hint) { hint.textContent = ''; hint.className = 'hint'; } return; }
+            if (!cuitDV(c)) { showRecurrente(null); if (hint) { hint.textContent = 'CUIT inválido (dígito verificador)'; hint.className = 'hint bad'; } return; }
             if (hint) { hint.textContent = 'CUIT válido'; hint.className = 'hint good'; }
             fetch(base + 'api-proveedor?cuit=' + encodeURIComponent(c), { headers: { 'Accept': 'application/json' } })
                 .then(function (r) { return r.json(); })
                 .then(function (d) {
+                    showRecurrente(d && d.recurrente);
                     if (d && d.found && d.razon_social && razon && razon.value.trim() === '') {
                         razon.value = d.razon_social;
                         if (hint) hint.textContent = 'Proveedor encontrado: ' + d.razon_social;

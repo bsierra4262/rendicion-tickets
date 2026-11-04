@@ -57,6 +57,108 @@ function gp_find(int $id): ?array
     return q('SELECT * FROM gastos_proveedores WHERE id = ? LIMIT 1', [$id])->fetch() ?: null;
 }
 
+/** ¿El CUIT (sólo dígitos) es uno de los del proveedor? (lista plana `cuit`). Pura. */
+function gp_cuit_coincide(array $p, string $cuit): bool
+{
+    $dg = preg_replace('/\D/', '', $cuit) ?? '';
+    if (strlen($dg) !== 11) { return false; }
+    $lista = preg_split('/[^\d]+/', (string)($p['cuit'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    return in_array($dg, $lista, true);
+}
+
+/**
+ * Proveedor ACTIVO de Gastos recurrentes que tiene este CUIT (incluye las
+ * entidades de un multi-entidad), o null. Es la regla que distingue un
+ * GASTO RECURRENTE de una FACTURA COMPRA única.
+ */
+function gp_find_by_cuit(string $cuit): ?array
+{
+    $dg = preg_replace('/\D/', '', $cuit) ?? '';
+    if (strlen($dg) !== 11) { return null; }
+    $rows = q('SELECT * FROM gastos_proveedores
+                WHERE activo = 1 AND eliminado_en IS NULL AND cuit LIKE ?
+                ORDER BY orden, id', ['%' . $dg . '%'])->fetchAll();
+    foreach ($rows as $p) {
+        if (gp_cuit_coincide($p, $dg)) { return $p; }
+    }
+    return null;
+}
+
+/**
+ * Una factura cargada desde Escanear / Nuevo comprobante resultó ser de un
+ * proveedor de Gastos recurrentes: en vez de crear un comprobante, crea o
+ * completa el GASTO de ese proveedor y período y le adjunta el archivo
+ * (Drive → Gastos Recurrentes / Proveedor / Año / Mes).
+ *
+ *  · Si ya existe el gasto del proveedor+período SIN factura (y el proveedor no
+ *    es multi-entidad), se completa: valor/fecha sólo donde estaban vacíos.
+ *  · Si no existe, o ya tiene factura, o es multi-entidad (ej. varios bancos
+ *    en el mismo mes), se crea un gasto nuevo.
+ *
+ * @param array $in    $_POST del formulario de comprobante (cuit, fecha_emision, importe_total, moneda…)
+ * @param array $prov  proveedor detectado (gp_find_by_cuit)
+ * @param array $file  $_FILES['imagen'] (puede venir vacío)
+ * @return array [errores, gastoId, 'creado'|'completado']
+ */
+function gr_desde_factura(array $in, array $prov, int $uid, array $file = []): array
+{
+    $fecha = trim((string)($in['fecha_emision'] ?? ''));
+    $d = DateTime::createFromFormat('Y-m-d', $fecha);
+    if (!$d || $d->format('Y-m-d') !== $fecha) {
+        return [['fecha_emision' => 'Fecha inválida: se necesita para el período del gasto recurrente.'], 0, ''];
+    }
+    $total = trim((string)($in['importe_total'] ?? ''));
+    $tipoC = trim((string)($in['tipo_comprobante'] ?? ''));   // ej. "Fact B" (ya trae la letra)
+    $letra = trim((string)($in['letra'] ?? ''));
+    if ($letra !== '' && preg_match('/\s' . preg_quote($letra, '/') . '$/i', $tipoC)) { $letra = ''; }
+    $comp  = trim(implode(' ', array_filter([
+        $tipoC, $letra,
+        trim((string)($in['punto_venta'] ?? '') . '-' . (string)($in['numero'] ?? ''), '-'),
+    ])));
+    [$err, $c] = gr_validar([
+        'proveedor_id'  => (int)$prov['id'],
+        'periodo'       => substr($fecha, 0, 7),
+        'valor_mensual' => $total,
+        'moneda'        => (string)($in['moneda'] ?? 'ARS'),
+        'fecha_factura' => $fecha,
+        'estado'        => 'pendiente',
+        'observaciones' => ($comp !== '' ? $comp : 'Factura') . ' cargada como comprobante: detectada como gasto recurrente por CUIT.',
+    ]);
+    if ($err) { return [$err, 0, '']; }
+
+    $existente = null;
+    if (empty($prov['multi_entidad'])) {
+        $existente = q('SELECT * FROM gastos_recurrentes
+                         WHERE proveedor_id = ? AND periodo = ? AND eliminado_en IS NULL
+                           AND (drive_factura_id IS NULL OR drive_factura_id = \'\')
+                         ORDER BY id DESC LIMIT 1', [(int)$prov['id'], $c['periodo']])->fetch() ?: null;
+    }
+
+    if ($existente) {
+        $gid = (int)$existente['id'];
+        $set = []; $vals = [];
+        foreach (['valor_mensual', 'fecha_factura'] as $k) {
+            if (($existente[$k] ?? null) === null && $c[$k] !== null) { $set[] = "$k = ?"; $vals[] = $c[$k]; }
+        }
+        if ($existente['valor_mensual'] === null && $c['valor_mensual'] !== null) { $set[] = 'moneda = ?'; $vals[] = $c['moneda']; }
+        if ($set) { $vals[] = $gid; q('UPDATE gastos_recurrentes SET ' . implode(', ', $set) . ' WHERE id = ?', $vals); }
+        $accion = 'completado';
+    } else {
+        $gid = gr_save($c, null, $uid);
+        $accion = 'creado';
+    }
+    if (function_exists('log_app')) {
+        log_app('gasto.desde_factura', ['tipo' => 'accion', 'entidad' => 'gasto', 'entidad_id' => $gid,
+            'detalle' => 'Factura de ' . ($prov['nombre'] ?? '?') . ' (CUIT ' . preg_replace('/\D/', '', (string)($in['cuit'] ?? '')) . ') '
+                       . 'detectada como gasto recurrente → gasto ' . $c['periodo'] . ' ' . $accion]);
+    }
+    if (!empty($file['name']) && function_exists('drive_gasto_subir')) {
+        $g = gr_find($gid);
+        if ($g) { drive_gasto_subir($gid, $g, 'factura', $file); }
+    }
+    return [[], $gid, $accion];
+}
+
 /** Normaliza y valida los campos del maestro. Devuelve [errores, limpio]. */
 function gp_validar(array $in): array
 {
@@ -319,10 +421,16 @@ function gr_delete(int $id): void
     $g = gr_find($id);
     if (!$g) { return; }
     q('UPDATE gastos_recurrentes SET eliminado_en = NOW() WHERE id = ? AND eliminado_en IS NULL', [$id]);
-    // Espejo en Drive: archivar los PDFs si existen.
-    foreach (['drive_factura_id', 'drive_pago_id'] as $k) {
-        if (!empty($g[$k]) && function_exists('drive_archivar')) {
-            try { drive_archivar((string)$g[$k]); } catch (\Throwable $e) {}
+    // Espejo en Drive: archivar los PDFs en «<raíz gastos>/Archivados» (no en la de comprobantes).
+    foreach (['factura', 'pago'] as $t) {
+        if (!empty($g["drive_{$t}_id"]) && function_exists('drive_archivar')) {
+            $ok = false;
+            try { $ok = drive_archivar((string)$g["drive_{$t}_id"], 'gastos'); } catch (\Throwable $e) {}
+            if (function_exists('log_app')) {
+                log_app($ok ? 'gasto.drive_archivar' : 'gasto.drive_fallo', ['tipo' => $ok ? 'accion' : 'error',
+                    'entidad' => 'gasto', 'entidad_id' => $id,
+                    'detalle' => $ok ? ucfirst($t) . ' movida a «Archivados» en Drive' : 'No se pudo mover la ' . $t . ' a «Archivados» en Drive']);
+            }
         }
     }
     if (function_exists('log_app')) {
@@ -336,5 +444,10 @@ function gr_restore(int $id): void
     q('UPDATE gastos_recurrentes SET eliminado_en = NULL WHERE id = ?', [$id]);
     if (function_exists('log_app')) {
         log_app('gasto.restaurar', ['entidad' => 'gasto', 'entidad_id' => $id, 'detalle' => 'Restaurado desde la papelera']);
+    }
+    // Espejo en Drive: devolver factura/pago de «Archivados» a Proveedor/Año/Mes.
+    $g = gr_find($id);
+    if ($g && function_exists('drive_gasto_restaurar')) {
+        drive_gasto_restaurar($id, $g);
     }
 }

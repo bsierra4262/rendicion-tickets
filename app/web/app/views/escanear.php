@@ -21,7 +21,7 @@
 
 <script>window.APP_BASE = <?= json_encode(url('')) ?>;</script>
 
-<form method="post" action="<?= e(url('escanear')) ?>" class="comp-form" id="compForm" enctype="multipart/form-data" data-ocr-async>
+<form method="post" action="<?= e(url('escanear')) ?>" class="comp-form" id="compForm" enctype="multipart/form-data" data-ocr-async data-detect-recurrente>
     <?= csrf_field() ?>
 
     <div class="form-card card scan-panel">
@@ -53,6 +53,6 @@
 <!-- pdf.js se carga bajo demanda desde escanear.js (solo si suben un PDF) -->
 <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
-<script src="<?= e(url('assets/js/comprobante-form.js')) ?>?v=3"></script>
+<script src="<?= e(url('assets/js/comprobante-form.js')) ?>?v=4"></script>
 <script src="<?= e(url('assets/js/paddleocr.js')) ?>?v=18"></script>
 <script src="<?= e(url('assets/js/escanear.js')) ?>?v=37"></script>

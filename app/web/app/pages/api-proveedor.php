@@ -27,6 +27,9 @@ if ($cuit !== '' || $razon !== '' || $cuitOcr !== '') {
         'razon_social' => $r['razon_social'] ?? '',
         'concepto_id'  => $r['categoria_sugerida_id'] ?? null,
         'concepto'     => $catNombre,
+        // ¿Es de un proveedor de Gastos recurrentes? → al guardar va a Gastos, no a Facturas Compra.
+        'recurrente'   => ($c !== '' && function_exists('gp_find_by_cuit') && ($gp = gp_find_by_cuit($c)))
+                            ? ['id' => (int)$gp['id'], 'nombre' => (string)$gp['nombre']] : null,
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }

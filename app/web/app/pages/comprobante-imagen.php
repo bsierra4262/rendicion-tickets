@@ -8,8 +8,11 @@ if (!$c) {
     exit('No encontrada');
 }
 
+// Copia PENDIENTE de subir a Drive (Drive había fallado): es la imagen más nueva.
+$pendiente = function_exists('drive_es_pendiente') && drive_es_pendiente($c['imagen_path'] ?? null);
+
 // Preferido: servir desde Google Drive (los comprobantes nuevos no tienen copia local).
-if (!empty($c['drive_file_id']) && function_exists('drive_descargar')) {
+if (!$pendiente && !empty($c['drive_file_id']) && function_exists('drive_descargar')) {
     $f = drive_descargar((string)$c['drive_file_id']);
     if ($f) {
         header('Content-Type: ' . $f['mime']);
@@ -21,7 +24,7 @@ if (!empty($c['drive_file_id']) && function_exists('drive_descargar')) {
     // Si Drive no responde, se intenta la copia local (si existiera).
 }
 
-// Compatibilidad: comprobantes viejos con imagen guardada localmente.
+// Copia local: pendiente de subir a Drive, o comprobantes viejos con imagen local.
 if (!empty($c['imagen_path'])) {
     $real = realpath(STORAGE . '/uploads/' . $c['imagen_path']);
     $base = realpath(STORAGE . '/uploads');
