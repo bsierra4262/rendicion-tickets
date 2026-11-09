@@ -22,6 +22,7 @@
 ## Índice
 
 - [Descripción](#descripción)
+- [La aplicación por dentro](#la-aplicación-por-dentro)
 - [Características](#características)
 - [Arquitectura del sistema](#arquitectura-del-sistema)
 - [Pipeline de OCR (comprobantes)](#pipeline-de-ocr-comprobantes)
@@ -54,6 +55,100 @@ Además del OCR de comprobantes, la plataforma incluye módulos de **gastos recu
 ITHOS/WhatsApp, 24/7) y una **API con permisos** para integrarse con otros sistemas.
 
 > Demo (privada): `https://intellihelp.tech/comprobantes`
+
+## La aplicación por dentro
+
+> Las capturas salen de una instalación local de prueba con datos **ficticios**: empresas,
+> personas, CUIT e importes inventados. Google Drive, el correo y la integración con ITHOS
+> quedaron desconectados; ningún comprobante real llega a una captura.
+
+<p align="center"><img src="docs/capturas/login.png" alt="Pantalla de ingreso con Google Workspace" width="100%"></p>
+
+El ingreso es exclusivamente con la cuenta de Google Workspace de la organización; no hay
+contraseñas propias que administrar.
+
+### Panel
+
+<p align="center"><img src="docs/capturas/panel.png" alt="Panel principal" width="100%"></p>
+
+Resumen del día: comprobantes cargados, pendientes de revisión, gastos por pagar, alertas
+activas y total del mes, con accesos directos a cada tarea.
+
+### Comprobantes
+
+<p align="center"><img src="docs/capturas/escanear.png" alt="Escaneo de un comprobante" width="100%"></p>
+
+<table>
+  <tr>
+    <td width="50%"><b>Listado con filtros y exportación</b><br><img src="docs/capturas/comprobantes.png" alt="Listado de comprobantes"></td>
+    <td width="50%"><b>Revisión, verificación o rechazo</b><br><img src="docs/capturas/comprobante-form.png" alt="Edición de un comprobante"></td>
+  </tr>
+  <tr>
+    <td width="50%"><b>Catálogo de proveedores (CUIT y concepto sugerido)</b><br><img src="docs/capturas/proveedores.png" alt="Proveedores de comprobantes"></td>
+    <td width="50%"><b>Conceptos con papelera propia</b><br><img src="docs/capturas/categorias.png" alt="Conceptos"></td>
+  </tr>
+</table>
+
+- **Escanear:** foto o PDF del ticket; el QR de ARCA o el OCR completan el formulario y el operador revisa antes de guardar.
+- **Listado:** filtros por período, concepto, estado y moneda, búsqueda por proveedor, CUIT o número, y exportación.
+- **Revisión:** cada alta queda pendiente hasta que alguien la verifica o la rechaza.
+- **Proveedores y conceptos:** el concepto sugerido de cada proveedor se ajusta con el uso.
+
+### Reportes
+
+<p align="center"><img src="docs/capturas/reportes.png" alt="Reportes" width="100%"></p>
+
+Totales de neto, IVA y total por período y moneda, evolución mensual, gasto por concepto y
+principales proveedores, con descarga en PDF.
+
+### Gastos recurrentes
+
+<table>
+  <tr>
+    <td width="50%"><b>Gastos por período y estado de pago</b><br><img src="docs/capturas/gastos.png" alt="Gastos recurrentes"></td>
+    <td width="50%"><b>Carga con lectura automática de la factura</b><br><img src="docs/capturas/gasto-form.png" alt="Edición de un gasto"></td>
+  </tr>
+  <tr>
+    <td width="50%"><b>Maestro de proveedores de gastos</b><br><img src="docs/capturas/gproveedores.png" alt="Proveedores de gastos"></td>
+    <td width="50%"><b>Ficha del proveedor (rubro, facturación, CUIT, carpeta de Drive)</b><br><img src="docs/capturas/gproveedor-form.png" alt="Edición de un proveedor de gastos"></td>
+  </tr>
+</table>
+
+### Administración
+
+<table>
+  <tr>
+    <td width="50%"><b>Alertas: bandeja y canales por tipo</b><br><img src="docs/capturas/alertas.png" alt="Alertas"></td>
+    <td width="50%"><b>CRON: bitácora de actividad</b><br><img src="docs/capturas/cron.png" alt="Registro de actividad"></td>
+  </tr>
+  <tr>
+    <td width="50%"><b>API y tokens con permisos</b><br><img src="docs/capturas/api-keys.png" alt="API y tokens"></td>
+    <td width="50%"><b>Usuarios y roles</b><br><img src="docs/capturas/usuarios.png" alt="Usuarios"></td>
+  </tr>
+  <tr>
+    <td width="50%"><b>Papelera con restauración</b><br><img src="docs/capturas/papelera.png" alt="Papelera"></td>
+    <td width="50%"></td>
+  </tr>
+</table>
+
+- **Alertas:** pagos vencidos o por vencer y comprobantes sin revisar; el administrador decide por tipo si además salen por Email o ITHOS.
+- **CRON:** cada navegación, alta, edición, ingreso y error queda registrado, con filtros por tipo y fecha.
+- **API:** tokens de lectura o root, endpoints disponibles y prueba en vivo desde la misma pantalla.
+- **Usuarios:** las cuentas se crean al primer ingreso con Google; acá se asigna el rol y se desactiva el acceso.
+- **Papelera:** lo archivado se restaura con un clic; solo administradores.
+
+### En el celular
+
+El menú se pliega en un botón y los formularios pasan a una columna: el escaneo está pensado
+para hacerse con la cámara del teléfono en el momento de la compra.
+
+<p align="center">
+  <img src="docs/capturas/movil-panel.png" alt="Panel en celular" width="30%">
+  &nbsp;
+  <img src="docs/capturas/movil-escanear.png" alt="Escaneo en celular" width="30%">
+  &nbsp;
+  <img src="docs/capturas/movil-comprobantes.png" alt="Comprobantes en celular" width="30%">
+</p>
 
 ## Características
 
