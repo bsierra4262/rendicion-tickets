@@ -75,6 +75,32 @@ El respaldo en Drive se activa desde la propia app (menú **Drive**, solo admin)
 botón **Conectar**, autorizando con la cuenta dueña de la carpeta destino. Mientras
 no se conecte, las imágenes se guardan localmente sin inconvenientes.
 
+## Ingreso con ITHub (sesión única)
+
+Con ITHub, la app no tiene login propio: `/login` manda a ITHub y, si la persona ya entró ahí,
+pasa sin ver ninguna pantalla. El acceso y el rol (`admin` o `carga`) se administran en
+**ITHub → Permisos**. Google queda sólo para **Conectar Google Drive**, que se pide después de
+cada ingreso con la misma cuenta de la sesión (los tokens de Drive viven sólo en la sesión).
+
+1. En **ITHub → Aplicaciones → Rendición de Tickets** (clave `comprobantes`):
+
+   | Campo | Valor |
+   | --- | --- |
+   | URIs de vuelta | `https://intellihelp.tech/comprobantes/ithub-callback` |
+   | URIs después de salir | `https://intellihelp.tech/comprobantes/login` |
+   | Aviso de cierre | `https://intellihelp.tech/comprobantes/ithub-logout` |
+
+   y **Generar secreto** (se muestra una sola vez).
+
+2. En la configuración, la sección `ithub` (ver `config.example.php`; en Docker,
+   `ITHUB_CLIENT_ID` / `ITHUB_CLIENT_SECRET`) con `client_id` `comprobantes` y ese secreto.
+
+3. Migración [`app/db/ithub.sql`](app/db/ithub.sql) (`ithub_sesiones_cerradas`, idempotente):
+   ahí anota `ithub-logout` las sesiones que ITHub avisa cerradas, y la app corta las suyas en
+   el pedido siguiente.
+
+Sin la sección `ithub`, la app sigue entrando con Google como siempre.
+
 ## Requisitos técnicos
 
 - PHP **8.1+** con `pdo_mysql`, `mbstring`, `curl`, `fileinfo`.

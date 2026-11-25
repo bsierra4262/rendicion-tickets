@@ -48,4 +48,10 @@ return [
         'allowed_domain' => $env('GOOGLE_ALLOWED_DOMAIN', ''),
         'auto_provision' => $bool('GOOGLE_AUTO_PROVISION', true),
     ],
+    // Ingreso con ITHub (opcional): sin client_id y secreto, login de Google.
+    'ithub' => [
+        'issuer'        => $env('ITHUB_ISSUER', 'https://ithub.intellihelp.tech'),
+        'client_id'     => $env('ITHUB_CLIENT_ID', ''),
+        'client_secret' => $env('ITHUB_CLIENT_SECRET', ''),
+    ],
 ];

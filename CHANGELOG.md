@@ -4,6 +4,26 @@ Todos los cambios notables de este proyecto se documentan acá.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/)
 y el versionado, [SemVer](https://semver.org/lang/es/).
 
+## 2026-11-25 · Ingreso con ITHub (sesión única)
+
+- **Login por ITHub** (OpenID Connect, código + PKCE): con la sección `ithub` en la
+  configuración, `/login` manda a la sesión única de Intellihelp y, si ya estaba abierta, se
+  entra sin ver la pantalla de ingreso. El `id_token` se valida entero (RS256 con la clave
+  pública de ITHub, emisor, destinatario, vencimiento y nonce); la clave se arma desde el JWK
+  sin dependencias y queda en caché una hora.
+- **El rol lo decide ITHub**: llega en el token (`admin` | `carga`) y se aplica en cada ingreso.
+  Quien no tiene la app habilitada en ITHub no entra. Usuarios lo avisa arriba.
+- **Una sola salida**: «Salir» cierra la sesión única (todas las apps). Al revés, cuando ITHub
+  cierra una sesión o le quita la app a alguien, avisa por detrás a `/ithub-logout` y la sesión
+  se corta en el pedido siguiente. Migración `db/ithub.sql` (`ithub_sesiones_cerradas`). El
+  cierre por inactividad sigue igual y no cierra las demás apps.
+- **Google queda sólo para Drive**: después de entrar con ITHub se pide «Conectar Google
+  Drive» con la cuenta de la sesión (se rechaza otra y se revoca su permiso). Si se cancela,
+  los archivos quedan pendientes en el servidor y un aviso arriba ofrece conectarlo.
+- Sin la sección `ithub` la app sigue con su login de Google de siempre.
+- 35 pruebas nuevas (firma, emisor, destinatario, vencimiento, nonce, PKCE, aviso de cierre,
+  salida, cableado); `smoke.sh` apunta a `/comprobantes` y reconoce el modo ITHub.
+
 ## [Unreleased]
 
 ### Added

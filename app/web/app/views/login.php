@@ -1,6 +1,8 @@
 <?php
 $appName = $GLOBALS['CONFIG']['app']['name'] ?? 'Rendición de Tickets';
 $googleOn = function_exists('google_enabled') && google_enabled();
+// Con ITHub (ithub.php) el login sólo se ve cuando hay un aviso que mostrar.
+$ithubOn = function_exists('ithub_habilitado') && ithub_habilitado();
 ?>
 <div class="login-wrap">
     <div class="login-card">
@@ -14,7 +16,14 @@ $googleOn = function_exists('google_enabled') && google_enabled();
             <div class="flash flash-<?= e($f['type']) ?>"><?= e($f['msg']) ?></div>
         <?php endforeach; ?>
 
-        <?php if ($googleOn): ?>
+        <?php if ($ithubOn): ?>
+            <a href="<?= e(url('ithub-login')) ?>" class="btn btn-primary btn-block">
+                Ingresar con ITHub
+            </a>
+            <p class="muted" style="text-align:center;font-size:12.5px;margin-top:14px;">
+                Sesión única de Intellihelp: si ya entraste a ITHub, no te pide nada más.
+            </p>
+        <?php elseif ($googleOn): ?>
             <a href="<?= e(url('google-login')) ?>" class="btn btn-google btn-block">
                 <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>

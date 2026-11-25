@@ -40,4 +40,16 @@ return [
         'allowed_domain' => 'tudominio.com',                     // hd: solo cuentas de este dominio
         'auto_provision' => true,                                // crear usuarios nuevos del dominio con rol 'carga'
     ],
+    // Ingreso con ITHub (sesión única de Intellihelp). Con client_id y
+    // client_secret, /login manda a ITHub y el rol (admin | carga) lo decide
+    // ITHub; Google queda sólo para conectar Google Drive con la misma cuenta.
+    // Sin esta sección (o vacía), la app sigue con su login de Google de siempre.
+    // Alta en ITHub → Aplicaciones → Rendición de Tickets: URI de vuelta
+    // https://DOMINIO/BASE_PATH/ithub-callback, URI después de salir .../login,
+    // aviso de cierre .../ithub-logout.
+    // 'ithub' => [
+    //     'issuer'        => 'https://ithub.intellihelp.tech',
+    //     'client_id'     => 'comprobantes',
+    //     'client_secret' => 'ith_...',                         // NUNCA subir a git
+    // ],
 ];

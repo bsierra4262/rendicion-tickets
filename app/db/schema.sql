@@ -213,6 +213,16 @@ CREATE TABLE `gastos_recurrentes` (
   KEY `idx_estado` (`estado`,`eliminado_en`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ---- Sesiones de ITHub cerradas (aviso por detrás de ITHub, ithub-logout.php) ----
+-- auth_user() corta toda sesión abierta con ese `sid`. Se limpia sola (más de
+-- dos días no sirve: la sesión máxima es de 8 h). Migración: db/ithub.sql.
+CREATE TABLE IF NOT EXISTS `ithub_sesiones_cerradas` (
+  `sid`        char(32) NOT NULL,
+  `cerrada_en` datetime NOT NULL,
+  PRIMARY KEY (`sid`),
+  KEY `idx_ithub_cerrada_en` (`cerrada_en`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ---- Ajustes por defecto de la aplicación ----
 INSERT INTO `app_settings` (`clave`, `valor`) VALUES
   ('app_nombre', 'Rendición de Tickets'),
