@@ -678,7 +678,8 @@ $boot38 = $readf("$SRC/bootstrap.php");
 ok('bootstrap: fallback a config_env por entorno', strpos($boot38, "config_env.php") !== false && strpos($boot38, "getenv('DB_HOST')") !== false && strpos($boot38, 'server-config/config.php') !== false);
 // esquema
 $sch = $readf("$ROOT/app/db/schema.sql");
-ok('schema.sql: existe con las 11 tablas',   substr_count($sch, 'CREATE TABLE') === 11);
+// 11 de la app + ithub_sesiones_cerradas (ingreso con ITHub).
+ok('schema.sql: existe con las 12 tablas',   substr_count($sch, 'CREATE TABLE') === 12);
 ok('schema.sql: incluye las tablas de gastos', strpos($sch, 'CREATE TABLE `gastos_proveedores`') !== false && strpos($sch, 'CREATE TABLE `gastos_recurrentes`') !== false);
 ok('schema.sql: incluye columnas de Drive + FULLTEXT del padrón', strpos($sch, 'drive_link') !== false && strpos($sch, 'drive_file_id') !== false && strpos($sch, 'FULLTEXT') !== false);
 ok('schema.sql: sin AUTO_INCREMENT= (contadores reseteados)', strpos($sch, 'AUTO_INCREMENT=') === false);
@@ -1008,6 +1009,86 @@ if (!defined('STORAGE')) {
         drive_local_abs('pendientes-drive/x.jpg') !== null && drive_local_abs('../secreto.txt') === null && drive_local_abs('pendientes-drive/no.jpg') === null);
     @unlink(STORAGE . '/uploads/pendientes-drive/x.jpg'); @unlink(STORAGE . '/secreto.txt');
 }
+
+// ---- Ingreso con ITHub (sesión única, OpenID Connect) ----
+// Se firma con una clave RSA generada en el momento; no se llama a ITHub (las
+// claves se le pasan a ithub_validar_jwt directamente).
+echo "== ITHub ==\n";
+require_once $SRC . '/ithub.php';
+ok('ithub: sin la sección ithub, sigue el login de Google', !ithub_habilitado());
+$GLOBALS['CONFIG']['ithub'] = ['issuer' => 'https://ithub.intellihelp.tech', 'client_id' => 'comprobantes', 'client_secret' => 'ith_prueba'];
+ok('ithub: con client_id y secreto, el ingreso es por ITHub', ithub_habilitado());
+eq('ithub: redirect_uri exacto (HTTPS + base_path)', ithub_redirect_uri(), 'https://intellihelp.tech/comprobantes/ithub-callback');
+$_SESSION = [];
+$au70 = ithub_url_autorizacion();
+has('ithub: authorize va a ITHub', $au70, 'https://ithub.intellihelp.tech/oauth/authorize?');
+has('ithub: authorize con PKCE S256', $au70, 'code_challenge_method=S256');
+has('ithub: authorize con el client_id', $au70, 'client_id=comprobantes');
+ok('ithub: state, nonce y verificador quedan en la sesión', !empty($_SESSION['ithub_state']) && !empty($_SESSION['ithub_nonce']) && !empty($_SESSION['ithub_ver']));
+has('ithub: el challenge es el SHA-256 del verificador', $au70, 'code_challenge=' . ithub_b64url(hash('sha256', $_SESSION['ithub_ver'], true)));
+$_SESSION = [];
+
+// En Windows openssl_pkey_new necesita el openssl.cnf que trae PHP.
+$cnf70 = [];
+if (is_file(dirname(PHP_BINARY) . '/extras/ssl/openssl.cnf')) { $cnf70['config'] = dirname(PHP_BINARY) . '/extras/ssl/openssl.cnf'; }
+$clave70 = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA] + $cnf70);
+$det70 = openssl_pkey_get_details($clave70);
+$jwk70 = ['kty' => 'RSA', 'kid' => 'k1', 'alg' => 'RS256', 'use' => 'sig',
+          'n' => ithub_b64url($det70['rsa']['n']), 'e' => ithub_b64url($det70['rsa']['e'])];
+$claves70 = ['k1' => $jwk70];
+eq('ithub: el PEM armado desde el JWK es la misma clave pública',
+   str_replace(["\r", "\n"], '', ithub_jwk_a_pem($jwk70)), str_replace(["\r", "\n"], '', $det70['key']));
+$firmar70 = static function (array $claims, string $kid = 'k1', string $alg = 'RS256') use ($clave70): string {
+    $h = ithub_b64url(json_encode(['alg' => $alg, 'typ' => 'JWT', 'kid' => $kid]));
+    $p = ithub_b64url(json_encode($claims));
+    openssl_sign("$h.$p", $firma, $clave70, OPENSSL_ALGO_SHA256);
+    return "$h.$p." . ithub_b64url($firma);
+};
+$base70 = ['iss' => 'https://ithub.intellihelp.tech', 'aud' => 'comprobantes', 'sub' => '7', 'sid' => str_repeat('a', 32),
+           'email' => 'usuario@intellihelp.tech', 'rol' => 'carga', 'nonce' => 'n1', 'iat' => time(), 'exp' => time() + 300];
+$falla70 = static function (callable $fn): string {
+    try { $fn(); return ''; } catch (RuntimeException $e) { return $e->getMessage(); }
+};
+eq('ithub: un id_token bien firmado pasa y trae el rol', ithub_validar_jwt($firmar70($base70), 'n1', false, $claves70)['rol'] ?? '', 'carga');
+$partes70 = explode('.', $firmar70($base70));
+$partes70[1] = ithub_b64url(json_encode(['rol' => 'admin'] + $base70));
+eq('ithub: cambiar el contenido rompe la firma', $falla70(fn() => ithub_validar_jwt(implode('.', $partes70), 'n1', false, $claves70)), 'firma');
+eq('ithub: otro destinatario (aud) no sirve', $falla70(fn() => ithub_validar_jwt($firmar70(['aud' => 'crm'] + $base70), 'n1', false, $claves70)), 'iss/aud');
+eq('ithub: otro emisor (iss) no sirve', $falla70(fn() => ithub_validar_jwt($firmar70(['iss' => 'https://evil.tld'] + $base70), 'n1', false, $claves70)), 'iss/aud');
+eq('ithub: vencido no sirve', $falla70(fn() => ithub_validar_jwt($firmar70(['exp' => time() - 120] + $base70), 'n1', false, $claves70)), 'vencido');
+eq('ithub: con otro nonce no sirve (repetición)', $falla70(fn() => ithub_validar_jwt($firmar70($base70), 'otro', false, $claves70)), 'nonce');
+eq('ithub: sólo RS256', $falla70(fn() => ithub_validar_jwt($firmar70($base70, 'k1', 'none'), 'n1', false, $claves70)), 'alg');
+eq('ithub: un kid desconocido no sirve', $falla70(fn() => ithub_validar_jwt($firmar70($base70, 'k9'), 'n1', false, $claves70)), 'kid');
+eq('ithub: basura no es un token', $falla70(fn() => ithub_validar_jwt('no.es-un.token.jwt', null, false, $claves70)), 'formato');
+$logout70 = ['iss' => 'https://ithub.intellihelp.tech', 'aud' => 'comprobantes', 'sub' => '7', 'sid' => str_repeat('b', 32),
+             'iat' => time(), 'exp' => time() + 120, 'jti' => 'x', 'events' => [ITHUB_EVENTO_LOGOUT => new stdClass()]];
+eq('ithub: el aviso de cierre válido trae el sid', ithub_validar_jwt($firmar70($logout70), null, true, $claves70)['sid'] ?? '', str_repeat('b', 32));
+eq('ithub: un id_token no sirve como aviso de cierre', $falla70(fn() => ithub_validar_jwt($firmar70($base70), null, true, $claves70)), 'logout_token');
+eq('ithub: un aviso de cierre con nonce se rechaza', $falla70(fn() => ithub_validar_jwt($firmar70(['nonce' => 'x'] + $logout70), null, true, $claves70)), 'logout_token');
+$salida70 = ithub_url_salida('tok.en.x');
+has('ithub: la salida va a /oauth/logout de ITHub', $salida70, 'https://ithub.intellihelp.tech/oauth/logout?');
+has('ithub: con el id_token como pista (no pregunta)', $salida70, 'id_token_hint=tok.en.x');
+has('ithub: y vuelve al login de la app', $salida70, 'post_logout_redirect_uri=' . rawurlencode('https://intellihelp.tech/comprobantes/login'));
+eq('ithub: los roles son los de la app', ITHUB_ROLES, ['admin', 'carga']);
+// Cableado (fuente)
+$idx70 = $readf("$WEB/index.php");
+$auth70 = $readf("$SRC/auth.php");
+$gcb70 = $readf("$SRC/pages/google-callback.php");
+$glo70 = $readf("$SRC/pages/google-login.php");
+$lout70 = $readf("$SRC/pages/logout.php");
+$lin70 = $readf("$SRC/pages/login.php");
+$ilo70 = $readf("$SRC/pages/ithub-logout.php");
+ok('ithub: bootstrap carga el módulo', strpos($readf("$SRC/bootstrap.php"), "require APP . '/ithub.php'") !== false);
+ok('ithub: rutas públicas ithub-login / ithub-callback / ithub-logout', strpos($idx70, "'ithub-login'     => ['public' => true]") !== false && strpos($idx70, "'ithub-callback'  => ['public' => true]") !== false && strpos($idx70, "'ithub-logout'    => ['public' => true]") !== false);
+ok('ithub: auth_user corta la sesión cuyo sid cerró ITHub (sin bucle)', strpos($auth70, 'ithub_sid_cerrado(') !== false && strpos($auth70, "unset(\$_SESSION['ithub_sid'])") !== false);
+ok('ithub: login va directo a ITHub salvo aviso o ?manual=1', strpos($lin70, "redirect('ithub-login')") !== false && strpos($lin70, "isset(\$_GET['manual'])") !== false);
+ok('ithub: salir manual cierra la sesión única; el cierre por inactividad no', strpos($lout70, 'ithub_url_salida(') !== false && strpos($lout70, "\$motivo === ''") !== false);
+ok('ithub: el aviso de cierre valida la firma y responde 400 si no', strpos($ilo70, 'ithub_validar_jwt(') !== false && strpos($ilo70, 'http_response_code(400)') !== false && strpos($ilo70, 'ithub_cerrar_sid(') !== false);
+ok('ithub: Drive se conecta sólo con la cuenta de la sesión', strpos($gcb70, "strtolower((string)\$yo['email']) !== \$email") !== false && strpos($gcb70, 'drive_guardar_sesion($tok)') !== false);
+ok('ithub: con ITHub, google-login exige estar adentro', (bool)preg_match("/if \(ithub_habilitado\(\)\) \{\s*if \(!auth_user\(\)\) \{\s*redirect\('login'\);/", $glo70));
+ok('ithub: tabla ithub_sesiones_cerradas (schema + migración)', strpos($readf(dirname($WEB) . '/db/schema.sql'), 'CREATE TABLE IF NOT EXISTS `ithub_sesiones_cerradas`') !== false && strpos($readf(dirname($WEB) . '/db/ithub.sql'), 'CREATE TABLE IF NOT EXISTS `ithub_sesiones_cerradas`') !== false);
+unset($GLOBALS['CONFIG']['ithub']);
+ok('ithub: sin la sección ithub vuelve al login de Google', !ithub_habilitado());
 
 echo "\n==================================================\n";
 printf("RESULTADO: %d passed, %d failed (de %d)\n", $T - $F, $F, $T);

@@ -64,8 +64,13 @@ ITHOS/WhatsApp, 24/7) y una **API con permisos** para integrarse con otros siste
 
 <p align="center"><img src="docs/capturas/login.png" alt="Pantalla de ingreso con Google Workspace" width="100%"></p>
 
-El ingreso es exclusivamente con la cuenta de Google Workspace de la organización; no hay
-contraseñas propias que administrar.
+El ingreso es con **ITHub**, la sesión única de Intellihelp: `/login` manda a ITHub y, si la
+persona ya entró ahí, pasa sin ver ninguna pantalla. ITHub decide quién tiene acceso y con qué
+rol (`admin` o `carga`). Después se conecta Google Drive con la misma cuenta, para el respaldo
+de comprobantes y gastos. Sin ITHub configurado, el ingreso es con la cuenta de Google
+Workspace de la organización. En ningún caso hay contraseñas propias que administrar.
+
+<p align="center"><img src="docs/capturas/login-ithub.png" alt="Pantalla de ingreso con ITHub" width="100%"></p>
 
 ### Panel
 
@@ -134,7 +139,7 @@ principales proveedores, con descarga en PDF.
 - **Alertas:** pagos vencidos o por vencer y comprobantes sin revisar; el administrador decide por tipo si además salen por Email o ITHOS.
 - **CRON:** cada navegación, alta, edición, ingreso y error queda registrado, con filtros por tipo y fecha.
 - **API:** tokens de lectura o root, endpoints disponibles y prueba en vivo desde la misma pantalla.
-- **Usuarios:** las cuentas se crean al primer ingreso con Google; acá se asigna el rol y se desactiva el acceso.
+- **Usuarios:** las cuentas se crean al primer ingreso. Con ITHub, el acceso y el rol se administran en ITHub → Permisos y se aplican en cada ingreso; sin ITHub, acá se asigna el rol y se desactiva el acceso.
 - **Papelera:** lo archivado se restaura con un clic; solo administradores.
 
 ### En el celular
@@ -173,7 +178,8 @@ Drive, auditoría (CRON) y la API. Vista general:
 
 ```mermaid
 flowchart LR
-    U([Usuario / Admin]) --> APP{{Rendición · PHP + MySQL}}
+    U([Usuario / Admin]) --> IH([ITHub · sesión única])
+    IH -- OpenID Connect --> APP{{Rendición · PHP + MySQL}}
     APP --> C[Comprobantes<br/>OCR en el navegador]
     APP --> G[Gastos recurrentes<br/>lectura de factura]
     APP --> AL[Alertas<br/>bandeja + canales]
@@ -286,7 +292,7 @@ completa: [`md/API-ALERTAS-ITHOS.md`](md/API-ALERTAS-ITHOS.md).
 | OCR | PaddleOCR PP-OCRv6 · `onnxruntime-web` · modelos ONNX (orientación) |
 | Códigos | `jsQR` · `ZXing` · `BarcodeDetector` nativo |
 | Front-end | JavaScript sin build, CSS con variables de tema |
-| Autenticación | Sesiones PHP + OAuth 2.0 (Google Workspace) · API por token con scopes |
+| Autenticación | Sesiones PHP + OpenID Connect con ITHub (código + PKCE, RS256) · OAuth 2.0 de Google para Drive · API por token con scopes |
 | Notificaciones | SMTP propio (sin dependencias) · cron (Hostinger) · integración ITHOS/WhatsApp |
 | Empaquetado | Docker (PHP-Apache + MariaDB) o Apache/PHP sobre hosting |
 
@@ -296,16 +302,16 @@ completa: [`md/API-ALERTAS-ITHOS.md`](md/API-ALERTAS-ITHOS.md).
 app/
 ├─ web/                 # document root: index.php (router), vistas, assets
 │  ├─ app/              # dominio: comprobantes, gastos, alertas, mail, apiauth,
-│  │  │                 #   auth, google, drive, actividad, helpers
+│  │  │                 #   auth, ithub, google, drive, actividad, helpers
 │  │  ├─ pages/         # controladores por ruta (incl. api/ y cron-alertas.php)
 │  │  └─ views/         # plantillas (layout, comprobantes, gastos, alertas, cron…)
 │  ├─ assets/           # js (escaneo/OCR, gastos, visor), css, models (ONNX)
 │  └─ .htaccess         # front controller + aislamiento
-├─ db/                  # schema.sql
+├─ db/                  # schema.sql + migraciones sueltas (drive_pendientes, ithub…)
 └─ server-config/       # config.example.php (config.php real no se versiona)
 bin/                    # setup.php (instalación / diagnóstico)
 docker/                 # Dockerfile assets: vhost, entrypoint, dbinit
-test/                   # batería de regresión (507 casos)
+test/                   # batería de regresión (573 casos)
 md/                     # PROYECTO, REQUERIMIENTOS, API-ALERTAS-ITHOS
 docs/                   # banner y capturas
 ```
@@ -348,11 +354,14 @@ php test/run_tests.php
 
 ## Seguridad
 
-- Los secretos (credenciales de base y `client_secret` de Google) viven en `config.php` o en
+- Los secretos (credenciales de base, `client_secret` de Google y de ITHub) viven en `config.php` o en
   variables de entorno; nunca se versionan. El repositorio incluye únicamente
   `config.example.php` y `.env.example` con marcadores.
 - En producción, `config.php` y el almacenamiento de imágenes se ubican fuera del web root.
-- El acceso se restringe al dominio de la organización (`hd`) vía Google Workspace.
+- El acceso lo decide ITHub (sesión única): el `id_token` se valida entero (firma RS256 con la
+  clave pública de ITHub, emisor, destinatario, vencimiento y nonce), salir cierra la sesión en
+  todas las apps y un cierre en ITHub corta la sesión acá (aviso por detrás). Sin ITHub, el
+  acceso se restringe al dominio de la organización (`hd`) vía Google Workspace.
 - Los comprobantes se persisten como borrador y requieren aprobación humana.
 - Política de reporte de vulnerabilidades en [SECURITY.md](SECURITY.md).
 

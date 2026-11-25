@@ -13,6 +13,9 @@ $routes = [
     'login'           => ['public' => true],
     'google-login'    => ['public' => true],
     'google-callback' => ['public' => true],
+    'ithub-login'     => ['public' => true],   // ingreso con la sesión única de ITHub
+    'ithub-callback'  => ['public' => true],
+    'ithub-logout'    => ['public' => true],   // aviso de cierre de ITHub (servidor a servidor)
     'logout'          => ['public' => false],
     'api-sesion'      => ['public' => true],
     'dashboard'       => ['public' => false],

@@ -122,6 +122,13 @@ $brandOrg  = $GLOBALS['CONFIG']['app']['org'] ?? 'INTELLIHELP';
         <?php foreach (take_flash() as $f): ?>
             <div class="flash flash-<?= e($f['type']) ?>"><?= e($f['msg']) ?></div>
         <?php endforeach; ?>
+        <?php // Con ITHub, Drive se conecta aparte (google-login): mientras no esté, avisa. ?>
+        <?php if (function_exists('ithub_habilitado') && ithub_habilitado() && google_enabled() && !drive_conectado()): ?>
+            <div class="flash flash-info">
+                <?= icon('cloud', 15) ?> Google Drive no está conectado en esta sesión: lo que cargues queda en el servidor y se sube solo al conectarlo.
+                <a href="<?= $asset('google-login') ?>"><strong>Conectar Google Drive</strong></a>
+            </div>
+        <?php endif; ?>
         <?= $content ?>
     </main>
     <footer class="foot"><?= e($appName) ?> · <?= e($brandOrg) ?> — <?= date('Y') ?></footer>

@@ -53,6 +53,12 @@ function google_auth_url(string $state): string
     if (!empty($g['allowed_domain'])) {
         $params['hd'] = $g['allowed_domain'];
     }
+    // Con ITHub, quien conecta Drive ya está adentro: se le propone su propia
+    // cuenta sin el selector (google-callback igual exige que sea esa).
+    if (!empty($_SESSION['uid']) && function_exists('ithub_habilitado') && ithub_habilitado() && ($yo = auth_user())) {
+        $params['login_hint'] = $yo['email'];
+        $params['prompt'] = 'consent';
+    }
     return 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query($params);
 }
 

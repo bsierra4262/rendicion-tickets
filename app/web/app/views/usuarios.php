@@ -8,9 +8,17 @@
     </div>
 </div>
 
+<?php if (function_exists('ithub_habilitado') && ithub_habilitado()): ?>
+<div class="flash flash-info">
+    El acceso a la app y el rol de cada persona se administran en
+    <a href="<?= e(ithub_cfg()['issuer'] . '/permisos') ?>" target="_blank" rel="noopener"><strong>ITHub → Permisos</strong></a>.
+    Un cambio hecho acá vale hasta su próximo ingreso, en el que se aplica el rol que diga ITHub.
+</div>
+<?php else: ?>
 <div class="flash flash-info">
     Los usuarios se crean solos al ingresar por Google (rol <strong>Carga</strong>). Acá podés ascender a <strong>Admin</strong> o desactivar accesos.
 </div>
+<?php endif; ?>
 
 <div class="cards" style="margin-bottom:1rem">
     <div class="card">

@@ -1,9 +1,18 @@
 <?php
 declare(strict_types=1);
 
-if (auth_user()) {
+// Vuelta de Google (google-callback). Sin ITHub hace el login completo. Con
+// ITHub configurado, el login lo hace ITHub y esto queda sólo para conectar
+// Google Drive de quien ya está adentro (paso 4'), con la misma cuenta.
+
+$conIthub = ithub_habilitado();
+if ($conIthub && !auth_user()) {
+    redirect('login');
+}
+if (!$conIthub && auth_user()) {
     redirect('dashboard');
 }
+$volver = $conIthub ? 'dashboard' : 'login';
 
 // 1) Validar state (anti-CSRF)
 $state = $_GET['state'] ?? '';
@@ -11,24 +20,26 @@ $expected = $_SESSION['oauth_state'] ?? '';
 unset($_SESSION['oauth_state']);
 if ($state === '' || !hash_equals($expected, $state)) {
     flash('La validación de seguridad con Google falló. Reintentá.', 'error');
-    redirect('login');
+    redirect($volver);
 }
 
 if (isset($_GET['error'])) {
-    flash('Se canceló el acceso con Google.', 'error');
-    redirect('login');
+    flash($conIthub
+        ? 'No se conectó Google Drive: los archivos que cargues quedan en el servidor y se suben solos cuando lo conectes.'
+        : 'Se canceló el acceso con Google.', $conIthub ? 'info' : 'error');
+    redirect($volver);
 }
 
 $code = $_GET['code'] ?? '';
 if ($code === '') {
-    redirect('login');
+    redirect($volver);
 }
 
 // 2) Intercambiar code por tokens
 $tok = google_exchange_code($code);
 if (empty($tok['id_token']) && empty($tok['access_token'])) {
     flash('No se pudo validar la cuenta de Google.', 'error');
-    redirect('login');
+    redirect($volver);
 }
 
 // 3) Obtener identidad (desde el id_token, recibido directo de Google por TLS)
@@ -41,14 +52,41 @@ $picture  = (string) ($claims['picture'] ?? '');
 
 if ($email === '' || !$verified) {
     flash('La cuenta de Google no tiene un email verificado.', 'error');
-    redirect('login');
+    redirect($volver);
 }
 
 // 4) (Opcional) restringir por dominio de la organización
 $g = google_cfg();
 if (!empty($g['allowed_domain']) && $hd !== $g['allowed_domain']) {
     flash('Tu cuenta no pertenece al dominio autorizado de la organización.', 'error');
-    redirect('login');
+    redirect($volver);
+}
+
+// 4') Con ITHub, esto no es un login: es «Conectar Google Drive» de alguien
+//     que ya está adentro. Se exige que la cuenta de Google sea la misma de la
+//     sesión (si no, el Drive de otra persona quedaría colgado de esta sesión)
+//     y no se toca la sesión ni el usuario (nombre, foto y rol vienen de ITHub).
+if ($conIthub) {
+    $yo = auth_user();
+    if (strtolower((string)$yo['email']) !== $email) {
+        if (!empty($tok['refresh_token']) || !empty($tok['access_token'])) {
+            // El permiso que dio la otra cuenta no se usa: se revoca enseguida.
+            drive_http('POST', 'https://oauth2.googleapis.com/revoke',
+                http_build_query(['token' => (string)($tok['refresh_token'] ?? $tok['access_token'])]),
+                ['Content-Type: application/x-www-form-urlencoded'], 4);
+        }
+        flash('Elegiste otra cuenta de Google (' . $email . '). Conectá Drive con la tuya: ' . $yo['email'] . '.', 'error');
+        redirect('dashboard');
+    }
+    if (empty($tok['refresh_token']) || strpos((string)($tok['scope'] ?? ''), DRIVE_SCOPE) === false) {
+        flash('Google no dio permiso para Drive (se destildó el acceso). Los archivos quedan en el servidor '
+            . 'hasta que vuelvas a conectar y dejes tildado el acceso a Drive.', 'error');
+        redirect('dashboard');
+    }
+    drive_guardar_sesion($tok);
+    log_app('drive.conectar', ['tipo' => 'auth', 'detalle' => 'Drive conectado en la sesión de ' . $email]);
+    try { drive_sincronizar_pendientes(5); } catch (\Throwable $e) {}
+    redirect('dashboard');
 }
 
 // 5) Buscar o crear el usuario
